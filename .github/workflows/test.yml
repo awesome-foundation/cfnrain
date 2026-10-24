@@ -2,9 +2,8 @@ on:
   push:
     branches:
       - main
+  # Any base branch, so stacked PRs get tested too
   pull_request:
-    branches:
-      - main
 
 name: Unit tests
 
