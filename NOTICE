@@ -1,2 +1,9 @@
 Rain
 Copyright 2020 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+
+cfnrain
+Copyright 2026 the cfnrain contributors.
+
+This product is a fork of Rain (https://github.com/aws-cloudformation/rain)
+at commit 90e8c6f5. Changes since that commit are recorded in the git
+history of this repository.

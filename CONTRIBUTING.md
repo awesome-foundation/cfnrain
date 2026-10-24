@@ -11,7 +11,7 @@ information to effectively respond to your bug report or contribution.
 
 We welcome you to use the GitHub issue tracker to report bugs or suggest features.
 
-When filing an issue, please check [existing open](https://github.com/aws-cloudformation/rain/issues), or [recently closed](https://github.com/aws-cloudformation/rain/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aclosed%20), issues to make sure somebody else hasn't already
+When filing an issue, please check [existing open](https://github.com/awesome-foundation/cfnrain/issues), or [recently closed](https://github.com/awesome-foundation/cfnrain/issues?q=is%3Aissue%20is%3Aclosed), issues to make sure somebody else hasn't already
 reported the issue. Please try to include as much information as you can. Details like these are incredibly useful:
 
 * A reproducible test case or series of steps
@@ -41,21 +41,19 @@ GitHub provides additional document on [forking a repository](https://help.githu
 
 
 ## Finding contributions to work on
-Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels (enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any ['help wanted'](https://github.com/aws-cloudformation/rain/labels/help%20wanted) issues is a great place to start.
+Looking at the existing issues is a great way to find something to contribute on. As our projects, by default, use the default GitHub issue labels (enhancement/bug/duplicate/help wanted/invalid/question/wontfix), looking at any ['help wanted'](https://github.com/awesome-foundation/cfnrain/labels/help%20wanted) issues is a great place to start.
 
 
 ## Code of Conduct
-This project has adopted the [Amazon Open Source Code of Conduct](https://aws.github.io/code-of-conduct).
-For more information see the [Code of Conduct FAQ](https://aws.github.io/code-of-conduct-faq) or contact
-opensource-codeofconduct@amazon.com with any additional questions or comments.
+This project has adopted the [Contributor Covenant](CODE_OF_CONDUCT.md), version 2.1.
 
 
 ## Security issue notifications
-If you discover a potential security issue in this project we ask that you notify AWS/Amazon Security via our [vulnerability reporting page](http://aws.amazon.com/security/vulnerability-reporting/). Please do **not** create a public github issue.
+If you discover a potential security issue in this project, report it as described in [SECURITY.md](SECURITY.md). Please do **not** create a public GitHub issue.
 
 
 ## Licensing
 
-See the [LICENSE](https://github.com/aws-cloudformation/rain/blob/main/LICENSE) file for our project's licensing. We will ask you to confirm the licensing of your contribution.
+See the [LICENSE](LICENSE) file for our project's licensing. Contributions are accepted under the Apache License 2.0, as section 5 of the license describes. There is no contributor license agreement.
 
 We may ask you to sign a [Contributor License Agreement (CLA)](http://en.wikipedia.org/wiki/Contributor_License_Agreement) for larger changes.
