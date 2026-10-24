@@ -1,14 +1,19 @@
 #!/bin/bash
 #
-# Rain integration tests
+# cfnrain integration tests. They deploy real stacks.
+#
+# Set INTEG_BUCKET_NAME to a globally unique S3 bucket name that the
+# test stack may create, for example: INTEG_BUCKET_NAME=myname-cfnrain-integ
 
 set -eoux pipefail
+
+: "${INTEG_BUCKET_NAME:?set INTEG_BUCKET_NAME to a unique bucket name for the test stack}"
 
 ./scripts/test.sh
 
 ./cfnrain ls
 
-./cfnrain deploy test/templates/success.template success-test7 -y --params BucketName=ezbeardatamazon-rain-test-1
+./cfnrain deploy test/templates/success.template success-test7 -y --params BucketName="$INTEG_BUCKET_NAME"
 
 ./cfnrain cat success-test7
 
@@ -19,14 +24,14 @@ set -eoux pipefail
 ./cfnrain rm success-test7 -y
 
 # Unnamed stack
-./cfnrain deploy test/templates/success.template -y --params BucketName=ezbeardatamazon-rain-test-1
+./cfnrain deploy test/templates/success.template -y --params BucketName="$INTEG_BUCKET_NAME"
 ./cfnrain cat success
 ./cfnrain ls success
 ./cfnrain rm -y success
 
 # Change sets
 # Create a named changeset
-#./cfnrain deploy --no-exec test/templates/success.template success-test7 success-changeset-name -y --params BucketName=ezbeardatamazon-rain-test-1
+#./cfnrain deploy --no-exec test/templates/success.template success-test7 success-changeset-name -y --params BucketName="$INTEG_BUCKET_NAME"
 #./cfnrain ls -c success-test7 success-changeset-name
 
 #./cfnrain rm -c -y success-test7 success-changeset-name
