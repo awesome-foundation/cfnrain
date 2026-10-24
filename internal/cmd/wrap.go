@@ -6,9 +6,9 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/aws-cloudformation/rain/internal/config"
-	"github.com/aws-cloudformation/rain/internal/console"
-	"github.com/aws-cloudformation/rain/internal/console/spinner"
+	"github.com/awesome-foundation/cfnrain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/console"
+	"github.com/awesome-foundation/cfnrain/internal/console/spinner"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )
@@ -25,7 +25,7 @@ func AddDefaults(c *cobra.Command) {
 	c.PersistentFlags().BoolVarP(&config.Debug, "debug", "", false, "Output debugging information")
 
 	// Customise version string
-	if c.Name() == "rain" {
+	if c.Name() == "cfnrain" {
 		c.SetVersionTemplate(fmt.Sprintf("%s {{.Version}} %s/%s\n",
 			config.NAME,
 			runtime.GOOS,

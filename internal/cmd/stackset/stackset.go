@@ -1,9 +1,9 @@
 package stackset
 
 import (
-	"github.com/aws-cloudformation/rain/internal/aws/s3"
-	"github.com/aws-cloudformation/rain/internal/config"
-	"github.com/aws-cloudformation/rain/internal/console"
+	"github.com/awesome-foundation/cfnrain/internal/aws/s3"
+	"github.com/awesome-foundation/cfnrain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/console"
 	"github.com/spf13/cobra"
 )
 

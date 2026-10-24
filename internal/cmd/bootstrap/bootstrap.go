@@ -1,7 +1,7 @@
 package bootstrap
 
 import (
-	"github.com/aws-cloudformation/rain/internal/aws/s3"
+	"github.com/awesome-foundation/cfnrain/internal/aws/s3"
 	"github.com/spf13/cobra"
 )
 
@@ -11,7 +11,7 @@ var force = false
 var Cmd = &cobra.Command{
 	Use:                   "bootstrap",
 	Short:                 "Creates the artifacts bucket",
-	Long:                  "Creates a s3 bucket to hold all the artifacts generated and referenced by rain cli",
+	Long:                  "Creates a s3 bucket to hold all the artifacts generated and referenced by cfnrain",
 	Args:                  cobra.MaximumNArgs(0),
 	Aliases:               []string{"bootstrap"},
 	DisableFlagsInUseLine: true,

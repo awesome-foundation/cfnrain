@@ -4,11 +4,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aws-cloudformation/rain/cft/parse"
-	"github.com/aws-cloudformation/rain/internal/config"
-	"github.com/aws-cloudformation/rain/internal/dc"
-	"github.com/aws-cloudformation/rain/internal/node"
-	"github.com/aws-cloudformation/rain/internal/s11n"
+	"github.com/awesome-foundation/cfnrain/cft/parse"
+	"github.com/awesome-foundation/cfnrain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/dc"
+	"github.com/awesome-foundation/cfnrain/internal/node"
+	"github.com/awesome-foundation/cfnrain/internal/s11n"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"gopkg.in/yaml.v3"
 )

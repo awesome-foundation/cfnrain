@@ -3,7 +3,7 @@ package cft
 import (
 	"fmt"
 
-	"github.com/aws-cloudformation/rain/internal/s11n"
+	"github.com/awesome-foundation/cfnrain/internal/s11n"
 	"gopkg.in/yaml.v3"
 )
 

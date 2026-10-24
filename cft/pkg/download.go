@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/aws-cloudformation/rain/internal/aws/s3"
-	"github.com/aws-cloudformation/rain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/aws/s3"
+	"github.com/awesome-foundation/cfnrain/internal/config"
 	"github.com/google/uuid"
 )
 

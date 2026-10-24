@@ -1,12 +1,12 @@
 package forecast
 
 import (
-	"github.com/aws-cloudformation/rain/internal/aws/acm"
-	"github.com/aws-cloudformation/rain/internal/config"
-	"github.com/aws-cloudformation/rain/internal/console/spinner"
-	"github.com/aws-cloudformation/rain/internal/node"
-	"github.com/aws-cloudformation/rain/internal/s11n"
-	fc "github.com/aws-cloudformation/rain/plugins/forecast"
+	"github.com/awesome-foundation/cfnrain/internal/aws/acm"
+	"github.com/awesome-foundation/cfnrain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/console/spinner"
+	"github.com/awesome-foundation/cfnrain/internal/node"
+	"github.com/awesome-foundation/cfnrain/internal/s11n"
+	fc "github.com/awesome-foundation/cfnrain/plugins/forecast"
 	"gopkg.in/yaml.v3"
 )
 

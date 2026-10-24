@@ -3,8 +3,8 @@ package diff_test
 import (
 	"os"
 
-	"github.com/aws-cloudformation/rain/internal/cmd/diff"
-	"github.com/aws-cloudformation/rain/internal/console"
+	"github.com/awesome-foundation/cfnrain/internal/cmd/diff"
+	"github.com/awesome-foundation/cfnrain/internal/console"
 )
 
 func Example_diff() {

@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aws-cloudformation/rain/cft/format"
-	cftpkg "github.com/aws-cloudformation/rain/cft/pkg"
-	"github.com/aws-cloudformation/rain/internal/config"
-	"github.com/aws-cloudformation/rain/internal/console/spinner"
-	"github.com/aws-cloudformation/rain/internal/node"
-	"github.com/aws-cloudformation/rain/internal/ui"
+	"github.com/awesome-foundation/cfnrain/cft/format"
+	cftpkg "github.com/awesome-foundation/cfnrain/cft/pkg"
+	"github.com/awesome-foundation/cfnrain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/console/spinner"
+	"github.com/awesome-foundation/cfnrain/internal/node"
+	"github.com/awesome-foundation/cfnrain/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -25,7 +25,7 @@ var Cmd = &cobra.Command{
 	Short: "Package local artifacts into a template",
 	Long: `Performs the same functions as "aws cloudformation package" but with added functionality.
 
-You may use the following, rain-specific directives in templates packaged with "rain pkg":
+You may use the following, rain-specific directives in templates packaged with "cfnrain pkg":
 
   !Rain::Embed <path>          Embeds the contents of the file at <path> into the template as a string
 
@@ -41,11 +41,11 @@ You may use the following, rain-specific directives in templates packaged with "
 
   !Rain::S3 <object>           supply an object with the following properties: 
     Path: <path>               a file or directory to be uploaded to S3
-    Zip: true|false            If "true", rain with zip <path> even if it is a file
-    BucketProperty: <bucket>   If you supply "BucketProperty" and "KeyProperty", rain pkg will
+    Zip: true|false            If "true", cfnrain with zip <path> even if it is a file
+    BucketProperty: <bucket>   If you supply "BucketProperty" and "KeyProperty", cfnrain pkg will
     KeyProperty: <key>         include the uploaded file/directory's details as an object in the template
                                with the property names you specify.
-    Format: Uri|Http           Specify which format rain pkg should return the S3 location as.
+    Format: Uri|Http           Specify which format cfnrain pkg should return the S3 location as.
                                Do not specify this property if you supply BucketProperty and KeyProperty.
                                The default Format is "Uri".
 

@@ -6,11 +6,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/aws-cloudformation/rain/internal/aws/cfn"
-	"github.com/aws-cloudformation/rain/internal/config"
-	"github.com/aws-cloudformation/rain/internal/console"
-	"github.com/aws-cloudformation/rain/internal/console/spinner"
-	"github.com/aws-cloudformation/rain/internal/ui"
+	"github.com/awesome-foundation/cfnrain/internal/aws/cfn"
+	"github.com/awesome-foundation/cfnrain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/console"
+	"github.com/awesome-foundation/cfnrain/internal/console/spinner"
+	"github.com/awesome-foundation/cfnrain/internal/ui"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/spf13/cobra"
 )

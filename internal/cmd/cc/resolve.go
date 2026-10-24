@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aws-cloudformation/rain/cft/parse"
-	"github.com/aws-cloudformation/rain/internal/aws"
-	"github.com/aws-cloudformation/rain/internal/aws/sts"
-	"github.com/aws-cloudformation/rain/internal/config"
-	"github.com/aws-cloudformation/rain/internal/node"
+	"github.com/awesome-foundation/cfnrain/cft/parse"
+	"github.com/awesome-foundation/cfnrain/internal/aws"
+	"github.com/awesome-foundation/cfnrain/internal/aws/sts"
+	"github.com/awesome-foundation/cfnrain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/node"
 	"gopkg.in/yaml.v3"
 )
 

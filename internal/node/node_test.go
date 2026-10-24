@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/aws-cloudformation/rain/cft/parse"
-	"github.com/aws-cloudformation/rain/internal/node"
+	"github.com/awesome-foundation/cfnrain/cft/parse"
+	"github.com/awesome-foundation/cfnrain/internal/node"
 	"gopkg.in/yaml.v3"
 )
 

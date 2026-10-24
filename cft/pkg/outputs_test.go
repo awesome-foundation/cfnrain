@@ -3,7 +3,7 @@ package pkg
 import (
 	"testing"
 
-	"github.com/aws-cloudformation/rain/cft"
+	"github.com/awesome-foundation/cfnrain/cft"
 )
 
 func TestGetArrayIndexFromString(t *testing.T) {

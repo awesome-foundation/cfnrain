@@ -12,8 +12,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aws-cloudformation/rain/internal/aws/cfn"
-	"github.com/aws-cloudformation/rain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/aws/cfn"
+	"github.com/awesome-foundation/cfnrain/internal/config"
 )
 
 // SamProp represents the old cfn spec types, which are... odd

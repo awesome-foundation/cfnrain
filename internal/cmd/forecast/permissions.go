@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aws-cloudformation/rain/internal/aws/cfn"
-	"github.com/aws-cloudformation/rain/internal/aws/iam"
-	"github.com/aws-cloudformation/rain/internal/config"
-	"github.com/aws-cloudformation/rain/internal/console/spinner"
-	fc "github.com/aws-cloudformation/rain/plugins/forecast"
+	"github.com/awesome-foundation/cfnrain/internal/aws/cfn"
+	"github.com/awesome-foundation/cfnrain/internal/aws/iam"
+	"github.com/awesome-foundation/cfnrain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/console/spinner"
+	fc "github.com/awesome-foundation/cfnrain/plugins/forecast"
 	"golang.org/x/exp/slices"
 )
 

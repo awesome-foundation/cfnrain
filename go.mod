@@ -1,4 +1,4 @@
-module github.com/aws-cloudformation/rain
+module github.com/awesome-foundation/cfnrain
 
 go 1.26.2
 

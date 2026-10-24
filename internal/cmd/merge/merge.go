@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aws-cloudformation/rain/cft"
-	"github.com/aws-cloudformation/rain/cft/format"
-	"github.com/aws-cloudformation/rain/cft/parse"
-	"github.com/aws-cloudformation/rain/internal/config"
-	"github.com/aws-cloudformation/rain/internal/node"
-	"github.com/aws-cloudformation/rain/internal/ui"
+	"github.com/awesome-foundation/cfnrain/cft"
+	"github.com/awesome-foundation/cfnrain/cft/format"
+	"github.com/awesome-foundation/cfnrain/cft/parse"
+	"github.com/awesome-foundation/cfnrain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/node"
+	"github.com/awesome-foundation/cfnrain/internal/ui"
 	"github.com/spf13/cobra"
 )
 

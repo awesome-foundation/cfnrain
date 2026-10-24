@@ -3,10 +3,10 @@ package forecast
 import (
 	"fmt"
 
-	"github.com/aws-cloudformation/rain/cft"
-	"github.com/aws-cloudformation/rain/cft/graph"
-	"github.com/aws-cloudformation/rain/internal/config"
-	"github.com/aws-cloudformation/rain/internal/s11n"
+	"github.com/awesome-foundation/cfnrain/cft"
+	"github.com/awesome-foundation/cfnrain/cft/graph"
+	"github.com/awesome-foundation/cfnrain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/s11n"
 )
 
 // Estimates is a map of resource type name to ResourceEstimates, which are based on historical averages

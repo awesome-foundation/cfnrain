@@ -3,37 +3,37 @@ package rain
 import (
 	"fmt"
 
-	"github.com/aws-cloudformation/rain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/config"
 	"github.com/spf13/cobra"
 
-	"github.com/aws-cloudformation/rain/internal/aws/s3"
-	"github.com/aws-cloudformation/rain/internal/cmd"
-	"github.com/aws-cloudformation/rain/internal/cmd/bootstrap"
-	"github.com/aws-cloudformation/rain/internal/cmd/build"
-	"github.com/aws-cloudformation/rain/internal/cmd/cat"
-	"github.com/aws-cloudformation/rain/internal/cmd/cc"
-	consolecmd "github.com/aws-cloudformation/rain/internal/cmd/console"
-	"github.com/aws-cloudformation/rain/internal/cmd/deploy"
-	"github.com/aws-cloudformation/rain/internal/cmd/diff"
-	rainfmt "github.com/aws-cloudformation/rain/internal/cmd/fmt"
-	"github.com/aws-cloudformation/rain/internal/cmd/forecast"
-	"github.com/aws-cloudformation/rain/internal/cmd/info"
-	"github.com/aws-cloudformation/rain/internal/cmd/logs"
-	"github.com/aws-cloudformation/rain/internal/cmd/ls"
-	"github.com/aws-cloudformation/rain/internal/cmd/merge"
-	"github.com/aws-cloudformation/rain/internal/cmd/module"
-	"github.com/aws-cloudformation/rain/internal/cmd/pkg"
-	"github.com/aws-cloudformation/rain/internal/cmd/rm"
-	"github.com/aws-cloudformation/rain/internal/cmd/stackset"
-	"github.com/aws-cloudformation/rain/internal/cmd/tree"
-	"github.com/aws-cloudformation/rain/internal/cmd/watch"
-	"github.com/aws-cloudformation/rain/internal/console"
+	"github.com/awesome-foundation/cfnrain/internal/aws/s3"
+	"github.com/awesome-foundation/cfnrain/internal/cmd"
+	"github.com/awesome-foundation/cfnrain/internal/cmd/bootstrap"
+	"github.com/awesome-foundation/cfnrain/internal/cmd/build"
+	"github.com/awesome-foundation/cfnrain/internal/cmd/cat"
+	"github.com/awesome-foundation/cfnrain/internal/cmd/cc"
+	consolecmd "github.com/awesome-foundation/cfnrain/internal/cmd/console"
+	"github.com/awesome-foundation/cfnrain/internal/cmd/deploy"
+	"github.com/awesome-foundation/cfnrain/internal/cmd/diff"
+	rainfmt "github.com/awesome-foundation/cfnrain/internal/cmd/fmt"
+	"github.com/awesome-foundation/cfnrain/internal/cmd/forecast"
+	"github.com/awesome-foundation/cfnrain/internal/cmd/info"
+	"github.com/awesome-foundation/cfnrain/internal/cmd/logs"
+	"github.com/awesome-foundation/cfnrain/internal/cmd/ls"
+	"github.com/awesome-foundation/cfnrain/internal/cmd/merge"
+	"github.com/awesome-foundation/cfnrain/internal/cmd/module"
+	"github.com/awesome-foundation/cfnrain/internal/cmd/pkg"
+	"github.com/awesome-foundation/cfnrain/internal/cmd/rm"
+	"github.com/awesome-foundation/cfnrain/internal/cmd/stackset"
+	"github.com/awesome-foundation/cfnrain/internal/cmd/tree"
+	"github.com/awesome-foundation/cfnrain/internal/cmd/watch"
+	"github.com/awesome-foundation/cfnrain/internal/console"
 )
 
 // Cmd is the rain command's entrypoint
 var Cmd = &cobra.Command{
-	Use:     "rain",
-	Long:    "Rain is a command line tool for working with AWS CloudFormation templates and stacks",
+	Use:     "cfnrain",
+	Long:    "cfnrain is a command line tool for working with AWS CloudFormation templates and stacks. It is a community fork of AWS CloudFormation Rain and is not affiliated with AWS.",
 	Version: config.VERSION,
 }
 

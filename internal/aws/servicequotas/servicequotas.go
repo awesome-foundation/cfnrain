@@ -3,7 +3,7 @@ package servicequotas
 import (
 	"context"
 
-	aws "github.com/aws-cloudformation/rain/internal/aws"
+	aws "github.com/awesome-foundation/cfnrain/internal/aws"
 	"github.com/aws/aws-sdk-go-v2/service/servicequotas"
 )
 

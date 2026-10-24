@@ -18,12 +18,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/smithy-go/ptr"
 
-	"github.com/aws-cloudformation/rain/internal/aws"
-	"github.com/aws-cloudformation/rain/internal/aws/ssm"
-	"github.com/aws-cloudformation/rain/internal/aws/sts"
-	"github.com/aws-cloudformation/rain/internal/config"
-	"github.com/aws-cloudformation/rain/internal/console"
-	"github.com/aws-cloudformation/rain/internal/console/spinner"
+	"github.com/awesome-foundation/cfnrain/internal/aws"
+	"github.com/awesome-foundation/cfnrain/internal/aws/ssm"
+	"github.com/awesome-foundation/cfnrain/internal/aws/sts"
+	"github.com/awesome-foundation/cfnrain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/console"
+	"github.com/awesome-foundation/cfnrain/internal/console/spinner"
 
 	"github.com/gabriel-vasile/mimetype"
 )

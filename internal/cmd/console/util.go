@@ -5,9 +5,9 @@ import (
 	"os/exec"
 	"runtime"
 
-	"github.com/aws-cloudformation/rain/internal/aws/console"
-	tty "github.com/aws-cloudformation/rain/internal/console"
-	"github.com/aws-cloudformation/rain/internal/console/spinner"
+	"github.com/awesome-foundation/cfnrain/internal/aws/console"
+	tty "github.com/awesome-foundation/cfnrain/internal/console"
+	"github.com/awesome-foundation/cfnrain/internal/console/spinner"
 )
 
 // Open generates a sign-in URL to the AWS console with an optional service and resource

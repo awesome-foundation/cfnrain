@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aws-cloudformation/rain/internal/aws/cfn"
-	"github.com/aws-cloudformation/rain/internal/console"
+	"github.com/awesome-foundation/cfnrain/internal/aws/cfn"
+	"github.com/awesome-foundation/cfnrain/internal/console"
 	"github.com/manifoldco/promptui"
 )
 

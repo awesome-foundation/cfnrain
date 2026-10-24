@@ -3,7 +3,7 @@ package cfn
 import (
 	"errors"
 
-	"github.com/aws-cloudformation/rain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/config"
 )
 
 func convertStrings(sa []string) []any {

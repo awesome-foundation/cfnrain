@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	rainaws "github.com/aws-cloudformation/rain/internal/aws"
-	"github.com/aws-cloudformation/rain/internal/aws/apigateway"
+	rainaws "github.com/awesome-foundation/cfnrain/internal/aws"
+	"github.com/awesome-foundation/cfnrain/internal/aws/apigateway"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/aws"

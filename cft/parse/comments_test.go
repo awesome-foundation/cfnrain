@@ -3,8 +3,8 @@ package parse_test
 import (
 	"testing"
 
-	"github.com/aws-cloudformation/rain/cft/format"
-	"github.com/aws-cloudformation/rain/cft/parse"
+	"github.com/awesome-foundation/cfnrain/cft/format"
+	"github.com/awesome-foundation/cfnrain/cft/parse"
 	"github.com/google/go-cmp/cmp"
 )
 

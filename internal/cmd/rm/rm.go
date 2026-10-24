@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/aws-cloudformation/rain/cft/parse"
-	"github.com/aws-cloudformation/rain/internal/aws/cfn"
-	"github.com/aws-cloudformation/rain/internal/aws/s3"
-	"github.com/aws-cloudformation/rain/internal/config"
-	"github.com/aws-cloudformation/rain/internal/console"
-	"github.com/aws-cloudformation/rain/internal/console/spinner"
-	"github.com/aws-cloudformation/rain/internal/node"
-	"github.com/aws-cloudformation/rain/internal/s11n"
-	"github.com/aws-cloudformation/rain/internal/ui"
+	"github.com/awesome-foundation/cfnrain/cft/parse"
+	"github.com/awesome-foundation/cfnrain/internal/aws/cfn"
+	"github.com/awesome-foundation/cfnrain/internal/aws/s3"
+	"github.com/awesome-foundation/cfnrain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/console"
+	"github.com/awesome-foundation/cfnrain/internal/console/spinner"
+	"github.com/awesome-foundation/cfnrain/internal/node"
+	"github.com/awesome-foundation/cfnrain/internal/s11n"
+	"github.com/awesome-foundation/cfnrain/internal/ui"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/spf13/cobra"
 )
@@ -174,7 +174,7 @@ var Cmd = &cobra.Command{
 		}
 
 		if detach {
-			fmt.Printf("Detaching. You can check your stack's status with: rain watch %s\n", stackName)
+			fmt.Printf("Detaching. You can check your stack's status with: cfnrain watch %s\n", stackName)
 		} else {
 			status, messages := cfn.WaitForStackToSettle(stackName)
 			stack, _ = cfn.GetStack(stackName)

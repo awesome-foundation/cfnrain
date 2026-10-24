@@ -4,7 +4,7 @@ import (
 	"math"
 	"reflect"
 
-	"github.com/aws-cloudformation/rain/cft"
+	"github.com/awesome-foundation/cfnrain/cft"
 )
 
 // New returns a Diff that represents the difference between two templates

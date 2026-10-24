@@ -2,12 +2,12 @@ package cat
 
 import (
 	"fmt"
-	"github.com/aws-cloudformation/rain/cft/format"
-	"github.com/aws-cloudformation/rain/cft/parse"
-	"github.com/aws-cloudformation/rain/internal/aws/cfn"
-	"github.com/aws-cloudformation/rain/internal/console/spinner"
-	"github.com/aws-cloudformation/rain/internal/dc"
-	"github.com/aws-cloudformation/rain/internal/ui"
+	"github.com/awesome-foundation/cfnrain/cft/format"
+	"github.com/awesome-foundation/cfnrain/cft/parse"
+	"github.com/awesome-foundation/cfnrain/internal/aws/cfn"
+	"github.com/awesome-foundation/cfnrain/internal/console/spinner"
+	"github.com/awesome-foundation/cfnrain/internal/dc"
+	"github.com/awesome-foundation/cfnrain/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -21,7 +21,7 @@ var Cmd = &cobra.Command{
 	Short: "Get the CloudFormation template from a running stack",
 	Long: `Downloads the template or the configuration file used to deploy <stack> and prints it to stdout.
 
-The  ` + "`" + `--config` + "`" + ` flag can be used to get the rain config file for the stack instead of the template.
+The  ` + "`" + `--config` + "`" + ` flag can be used to get the cfnrain config file for the stack instead of the template.
 `,
 	Args:                  cobra.ExactArgs(1),
 	DisableFlagsInUseLine: true,

@@ -17,7 +17,7 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/lestrrat-go/jwx/v2/jwt"
 
-	"github.com/aws-cloudformation/rain/internal/aws/apigateway"
+	"github.com/awesome-foundation/cfnrain/internal/aws/apigateway"
 )
 
 func HandleRequest(ctx context.Context,

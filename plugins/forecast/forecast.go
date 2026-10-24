@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/aws-cloudformation/rain/cft"
-	"github.com/aws-cloudformation/rain/internal/s11n"
-	"github.com/aws-cloudformation/rain/plugins/deployconfig"
+	"github.com/awesome-foundation/cfnrain/cft"
+	"github.com/awesome-foundation/cfnrain/internal/s11n"
+	"github.com/awesome-foundation/cfnrain/plugins/deployconfig"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"gopkg.in/yaml.v3"
 )

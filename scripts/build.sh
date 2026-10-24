@@ -2,7 +2,7 @@
 
 set -eoux pipefail
 
-go build ./cmd/rain
+go build ./cmd/cfnrain
 staticcheck ./...
 go vet ./...
 

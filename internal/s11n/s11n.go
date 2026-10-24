@@ -3,8 +3,8 @@ package s11n
 import (
 	"fmt"
 
-	"github.com/aws-cloudformation/rain/internal/config"
-	"github.com/aws-cloudformation/rain/internal/node"
+	"github.com/awesome-foundation/cfnrain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/node"
 	"gopkg.in/yaml.v3"
 )
 

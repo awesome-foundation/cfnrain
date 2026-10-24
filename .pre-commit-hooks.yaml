@@ -1,7 +1,24 @@
+- id: cfnrain-format
+  name: cfnrain format
+  description: Format AWS CloudFormation templates
+  entry: cfnrain
+  language: golang
+  files: \.(yml|yaml|json)$
+  args: ["fmt", "-w"]
+
+- id: cfnrain-verify
+  name: cfnrain verify
+  description: Verify AWS CloudFormation templates formatting without modifying files
+  entry: cfnrain
+  language: golang
+  files: \.(yml|yaml|json)$
+  args: ["fmt", "-v"]
+
+# The old rain hook ids, kept so existing configs only change the repo URL
 - id: rain-format
   name: rain format
   description: Format AWS CloudFormation templates
-  entry: rain
+  entry: cfnrain
   language: golang
   files: \.(yml|yaml|json)$
   args: ["fmt", "-w"]
@@ -9,7 +26,7 @@
 - id: rain-verify
   name: rain verify
   description: Verify AWS CloudFormation templates formatting without modifying files
-  entry: rain
+  entry: cfnrain
   language: golang
   files: \.(yml|yaml|json)$
   args: ["fmt", "-v"]
