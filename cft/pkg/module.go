@@ -15,8 +15,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-var HasModules bool
-
 const (
 	Metadata            = "Metadata"
 	IfParam             = "IfParam"
@@ -86,7 +84,6 @@ func processModulesSection(t *cft.Template, n *yaml.Node,
 	if moduleSection == nil {
 		return nil
 	}
-	HasModules = true
 
 	if moduleSection.Kind != yaml.MappingNode {
 		return errors.New("the Modules section is not a mapping node")
@@ -524,8 +521,6 @@ func module(ctx *directiveContext) (bool, error) {
 	if len(n.Content) != 2 {
 		return false, errors.New("expected !Rain::Module <URI>")
 	}
-
-	HasModules = true
 
 	uri := n.Content[1].Value
 
