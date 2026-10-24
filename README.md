@@ -1,46 +1,30 @@
-[![Unit tests](https://github.com/aws-cloudformation/rain/actions/workflows/test.yml/badge.svg)](https://github.com/aws-cloudformation/rain/actions/workflows/test.yml)
-[![Mentioned in Awesome CloudFormation](https://awesome.re/mentioned-badge-flat.svg)](https://github.com/aws-cloudformation/awesome-cloudformation)
+[![Unit tests](https://github.com/awesome-foundation/cfnrain/actions/workflows/test.yml/badge.svg)](https://github.com/awesome-foundation/cfnrain/actions/workflows/test.yml)
 
-# Rain
+# cfnrain
 
-> [!WARNING]
-> ## ⚠️ This project is deprecated
->
-> **Rain is no longer actively maintained and has been deprecated.** We are no
-> longer accepting feature requests, and issues and pull requests may not be
-> reviewed or merged. The repository will remain available in an archived,
-> read-only state so that existing users can continue to reference the source
-> and prior releases.
->
-> Existing binaries and releases will continue to be available on the
-> [releases page](https://github.com/aws-cloudformation/rain/releases), but no
-> new releases, bug fixes, or security patches are planned.
->
-> We recommend migrating to actively supported alternatives such as the
-> [AWS CLI](https://aws.amazon.com/cli/) for CloudFormation operations,
-> the [AWS CDK](https://aws.amazon.com/cdk/) for authoring reusable
-> infrastructure components such as modules,
-> [cfn-lint](https://github.com/aws-cloudformation/cfn-lint) for template
-> validation, and [cfn-guard](https://github.com/aws-cloudformation/cloudformation-guard)
-> for policy checks.
->
-> Thank you to everyone who contributed to and used Rain over the years.
+cfnrain is a community fork of [AWS CloudFormation Rain](https://github.com/aws-cloudformation/rain). AWS archived Rain on 2026-07-29 and plans no more releases. cfnrain continues the project from Rain's last commit (`90e8c6f5`, which is Rain v1.24.4 plus 22 commits).
 
-* Documentation: <https://aws-cloudformation.github.io/rain/>
+**cfnrain is not affiliated with or endorsed by Amazon Web Services.**
 
-> Rain is what happens when you have a lot of CloudFormation
-
-Rain is also a command line tool for working with [AWS CloudFormation](https://aws.amazon.com/cloudformation/) templates and stacks.
+cfnrain is a command line tool for working with [AWS CloudFormation](https://aws.amazon.com/cloudformation/) templates and stacks.
 
 [![Make it Rain](./docs/rain.svg)](https://asciinema.org/a/vtbAXkriC0zg0T2UzP0t63G4S?autoplay=1)
 
-## Discord
+## Coming from Rain
 
-Join us on Discord to discuss rain and all things CloudFormation! Connect and interact with CloudFormation developers and
-experts, find channels to discuss rain, the CloudFormation registry, StackSets,
-cfn-lint, Guard and more:
+cfnrain is a drop-in replacement for Rain v1.24.4. Your templates, config files and AWS accounts keep working with no changes:
 
-[![Join our Discord](https://discordapp.com/api/guilds/981586120448020580/widget.png?style=banner3)](https://discord.gg/9zpd7TTRwq)
+* The `!Rain::*` directives, the `Rain` template section and the `RAIN_VAR_*` and `RAIN_DEFAULT_TAG_*` environment variables work as before.
+* cfnrain uses the same artifact bucket (`rain-artifacts-<account>-<region>`) and the same `rain-bucket` SSM parameter.
+* The Homebrew formula installs the command as both `cfnrain` and `rain`, so existing scripts keep working.
+
+What is different:
+
+* The command is `cfnrain`, and the Go module is `github.com/awesome-foundation/cfnrain`.
+* cfnrain does not write `Metadata.AWSToolsMetrics` into your templates. The `--no-analytics` flag is accepted and has no effect.
+* AWS sees the user agent `cfnrain/<version>`, not `Rain/<version>`.
+
+The direction of the project is open. Join the discussion in [GitHub Discussions](https://github.com/awesome-foundation/cfnrain/discussions).
 
 ## Key features
 
@@ -66,15 +50,15 @@ _Note that in order to use experimental commands, you have to add `--experimenta
 
 ## Getting started
 
-If you have [homebrew](https://brew.sh/) installed, `brew install rain`
+With [Homebrew](https://brew.sh/): `brew install awesome-foundation/tap/cfnrain`
 
-Or you can download the appropriate binary for your system from [the releases page](https://github.com/aws-cloudformation/rain/releases).
+You can also download a binary for your system from [the releases page](https://github.com/awesome-foundation/cfnrain/releases). Each release publishes a `checksums.txt` file.
 
-Or if you're a [Gopher](https://blog.golang.org/gopher), you can `go install github.com/aws-cloudformation/rain/cmd/rain@latest`
+With Go: `go install github.com/awesome-foundation/cfnrain/cmd/cfnrain@latest`
 
 ```
 Usage:
-  rain [command]
+  cfnrain [command]
 
 Stack commands:
   cat         Get the CloudFormation template from a running stack
@@ -109,7 +93,7 @@ You can find shell completion scripts in [docs/bash_completion.sh](./docs/bash_c
 
 Rain is written in [Go](https://golang.org/) and uses the [AWS SDK for Go v2](https://github.com/aws/aws-sdk-go-v2).
 
-To contribute a change to Rain, [fork this repository](https://github.com/aws-cloudformation/rain/fork), make your changes, and submit a Pull Request.
+To contribute a change to cfnrain, [fork this repository](https://github.com/awesome-foundation/cfnrain/fork), make your changes, and submit a Pull Request.
 
 ### Go Generate
 

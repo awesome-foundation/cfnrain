@@ -1,9 +1,9 @@
-#compdef rain
-compdef _rain rain
+#compdef cfnrain
+compdef _cfnrain cfnrain
 
-# zsh completion for rain                                 -*- shell-script -*-
+# zsh completion for cfnrain                              -*- shell-script -*-
 
-__rain_debug()
+__cfnrain_debug()
 {
     local file="$BASH_COMP_DEBUG_FILE"
     if [[ -n ${file} ]]; then
@@ -11,7 +11,7 @@ __rain_debug()
     fi
 }
 
-_rain()
+_cfnrain()
 {
     local shellCompDirectiveError=1
     local shellCompDirectiveNoSpace=2
@@ -23,21 +23,21 @@ _rain()
     local lastParam lastChar flagPrefix requestComp out directive comp lastComp noSpace keepOrder
     local -a completions
 
-    __rain_debug "\n========= starting completion logic =========="
-    __rain_debug "CURRENT: ${CURRENT}, words[*]: ${words[*]}"
+    __cfnrain_debug "\n========= starting completion logic =========="
+    __cfnrain_debug "CURRENT: ${CURRENT}, words[*]: ${words[*]}"
 
     # The user could have moved the cursor backwards on the command-line.
     # We need to trigger completion from the $CURRENT location, so we need
     # to truncate the command-line ($words) up to the $CURRENT location.
     # (We cannot use $CURSOR as its value does not work when a command is an alias.)
     words=("${=words[1,CURRENT]}")
-    __rain_debug "Truncated words[*]: ${words[*]},"
+    __cfnrain_debug "Truncated words[*]: ${words[*]},"
 
     lastParam=${words[-1]}
     lastChar=${lastParam[-1]}
-    __rain_debug "lastParam: ${lastParam}, lastChar: ${lastChar}"
+    __cfnrain_debug "lastParam: ${lastParam}, lastChar: ${lastChar}"
 
-    # For zsh, when completing a flag with an = (e.g., rain -n=<TAB>)
+    # For zsh, when completing a flag with an = (e.g., cfnrain -n=<TAB>)
     # completions must be prefixed with the flag
     setopt local_options BASH_REMATCH
     if [[ "${lastParam}" =~ '-.*=' ]]; then
@@ -50,22 +50,22 @@ _rain()
     if [ "${lastChar}" = "" ]; then
         # If the last parameter is complete (there is a space following it)
         # We add an extra empty parameter so we can indicate this to the go completion code.
-        __rain_debug "Adding extra empty parameter"
+        __cfnrain_debug "Adding extra empty parameter"
         requestComp="${requestComp} \"\""
     fi
 
-    __rain_debug "About to call: eval ${requestComp}"
+    __cfnrain_debug "About to call: eval ${requestComp}"
 
     # Use eval to handle any environment variables and such
     out=$(eval ${requestComp} 2>/dev/null)
-    __rain_debug "completion output: ${out}"
+    __cfnrain_debug "completion output: ${out}"
 
     # Extract the directive integer following a : from the last line
     local lastLine
     while IFS='\n' read -r line; do
         lastLine=${line}
     done < <(printf "%s\n" "${out[@]}")
-    __rain_debug "last line: ${lastLine}"
+    __cfnrain_debug "last line: ${lastLine}"
 
     if [ "${lastLine[1]}" = : ]; then
         directive=${lastLine[2,-1]}
@@ -75,16 +75,16 @@ _rain()
         out=${out[1,-$suffix]}
     else
         # There is no directive specified.  Leave $out as is.
-        __rain_debug "No directive found.  Setting do default"
+        __cfnrain_debug "No directive found.  Setting do default"
         directive=0
     fi
 
-    __rain_debug "directive: ${directive}"
-    __rain_debug "completions: ${out}"
-    __rain_debug "flagPrefix: ${flagPrefix}"
+    __cfnrain_debug "directive: ${directive}"
+    __cfnrain_debug "completions: ${out}"
+    __cfnrain_debug "flagPrefix: ${flagPrefix}"
 
     if [ $((directive & shellCompDirectiveError)) -ne 0 ]; then
-        __rain_debug "Completion received error. Ignoring completions."
+        __cfnrain_debug "Completion received error. Ignoring completions."
         return
     fi
 
@@ -95,11 +95,11 @@ _rain()
     while IFS='\n' read -r comp; do
         # Check if this is an activeHelp statement (i.e., prefixed with $activeHelpMarker)
         if [ "${comp[1,$endIndex]}" = "$activeHelpMarker" ];then
-            __rain_debug "ActiveHelp found: $comp"
+            __cfnrain_debug "ActiveHelp found: $comp"
             comp="${comp[$startIndex,-1]}"
             if [ -n "$comp" ]; then
                 compadd -x "${comp}"
-                __rain_debug "ActiveHelp will need delimiter"
+                __cfnrain_debug "ActiveHelp will need delimiter"
                 hasActiveHelp=1
             fi
 
@@ -116,7 +116,7 @@ _rain()
             local tab="$(printf '\t')"
             comp=${comp//$tab/:}
 
-            __rain_debug "Adding completion: ${comp}"
+            __cfnrain_debug "Adding completion: ${comp}"
             completions+=${comp}
             lastComp=$comp
         fi
@@ -127,19 +127,19 @@ _rain()
     # - file completion will be performed (so there will be choices after the activeHelp)
     if [ $hasActiveHelp -eq 1 ]; then
         if [ ${#completions} -ne 0 ] || [ $((directive & shellCompDirectiveNoFileComp)) -eq 0 ]; then
-            __rain_debug "Adding activeHelp delimiter"
+            __cfnrain_debug "Adding activeHelp delimiter"
             compadd -x "--"
             hasActiveHelp=0
         fi
     fi
 
     if [ $((directive & shellCompDirectiveNoSpace)) -ne 0 ]; then
-        __rain_debug "Activating nospace."
+        __cfnrain_debug "Activating nospace."
         noSpace="-S ''"
     fi
 
     if [ $((directive & shellCompDirectiveKeepOrder)) -ne 0 ]; then
-        __rain_debug "Activating keep order."
+        __cfnrain_debug "Activating keep order."
         keepOrder="-V"
     fi
 
@@ -156,17 +156,17 @@ _rain()
         done
         filteringCmd+=" ${flagPrefix}"
 
-        __rain_debug "File filtering command: $filteringCmd"
+        __cfnrain_debug "File filtering command: $filteringCmd"
         _arguments '*:filename:'"$filteringCmd"
     elif [ $((directive & shellCompDirectiveFilterDirs)) -ne 0 ]; then
         # File completion for directories only
         local subdir
         subdir="${completions[1]}"
         if [ -n "$subdir" ]; then
-            __rain_debug "Listing directories in $subdir"
+            __cfnrain_debug "Listing directories in $subdir"
             pushd "${subdir}" >/dev/null 2>&1
         else
-            __rain_debug "Listing directories in ."
+            __cfnrain_debug "Listing directories in ."
         fi
 
         local result
@@ -177,17 +177,17 @@ _rain()
         fi
         return $result
     else
-        __rain_debug "Calling _describe"
+        __cfnrain_debug "Calling _describe"
         if eval _describe $keepOrder "completions" completions $flagPrefix $noSpace; then
-            __rain_debug "_describe found some completions"
+            __cfnrain_debug "_describe found some completions"
 
             # Return the success of having called _describe
             return 0
         else
-            __rain_debug "_describe did not find completions."
-            __rain_debug "Checking if we should do file completion."
+            __cfnrain_debug "_describe did not find completions."
+            __cfnrain_debug "Checking if we should do file completion."
             if [ $((directive & shellCompDirectiveNoFileComp)) -ne 0 ]; then
-                __rain_debug "deactivating file completion"
+                __cfnrain_debug "deactivating file completion"
 
                 # We must return an error code here to let zsh know that there were no
                 # completions found by _describe; this is what will trigger other
@@ -196,7 +196,7 @@ _rain()
                 return 1
             else
                 # Perform file completion
-                __rain_debug "Activating file completion"
+                __cfnrain_debug "Activating file completion"
 
                 # We must return the result of this command, so it must be the
                 # last command, or else we must store its result to return it.
@@ -207,6 +207,6 @@ _rain()
 }
 
 # don't run the completion function when being source-ed or eval-ed
-if [ "$funcstack[1]" = "_rain" ]; then
-    _rain
+if [ "$funcstack[1]" = "_cfnrain" ]; then
+    _cfnrain
 fi

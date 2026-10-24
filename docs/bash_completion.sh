@@ -1,6 +1,6 @@
-# bash completion for rain                                 -*- shell-script -*-
+# bash completion for cfnrain                              -*- shell-script -*-
 
-__rain_debug()
+__cfnrain_debug()
 {
     if [[ -n ${BASH_COMP_DEBUG_FILE:-} ]]; then
         echo "$*" >> "${BASH_COMP_DEBUG_FILE}"
@@ -9,13 +9,13 @@ __rain_debug()
 
 # Homebrew on Macs have version 1.3 of bash-completion which doesn't include
 # _init_completion. This is a very minimal version of that function.
-__rain_init_completion()
+__cfnrain_init_completion()
 {
     COMPREPLY=()
     _get_comp_words_by_ref "$@" cur prev words cword
 }
 
-__rain_index_of_word()
+__cfnrain_index_of_word()
 {
     local w word=$1
     shift
@@ -27,7 +27,7 @@ __rain_index_of_word()
     index=-1
 }
 
-__rain_contains_word()
+__cfnrain_contains_word()
 {
     local w word=$1; shift
     for w in "$@"; do
@@ -36,9 +36,9 @@ __rain_contains_word()
     return 1
 }
 
-__rain_handle_go_custom_completion()
+__cfnrain_handle_go_custom_completion()
 {
-    __rain_debug "${FUNCNAME[0]}: cur is ${cur}, words[*] is ${words[*]}, #words[@] is ${#words[@]}"
+    __cfnrain_debug "${FUNCNAME[0]}: cur is ${cur}, words[*] is ${words[*]}, #words[@] is ${#words[@]}"
 
     local shellCompDirectiveError=1
     local shellCompDirectiveNoSpace=2
@@ -49,23 +49,23 @@ __rain_handle_go_custom_completion()
     local out requestComp lastParam lastChar comp directive args
 
     # Prepare the command to request completions for the program.
-    # Calling ${words[0]} instead of directly rain allows handling aliases
+    # Calling ${words[0]} instead of directly cfnrain allows handling aliases
     args=("${words[@]:1}")
     # Disable ActiveHelp which is not supported for bash completion v1
-    requestComp="RAIN_ACTIVE_HELP=0 ${words[0]} __completeNoDesc ${args[*]}"
+    requestComp="CFNRAIN_ACTIVE_HELP=0 ${words[0]} __completeNoDesc ${args[*]}"
 
     lastParam=${words[$((${#words[@]}-1))]}
     lastChar=${lastParam:$((${#lastParam}-1)):1}
-    __rain_debug "${FUNCNAME[0]}: lastParam ${lastParam}, lastChar ${lastChar}"
+    __cfnrain_debug "${FUNCNAME[0]}: lastParam ${lastParam}, lastChar ${lastChar}"
 
     if [ -z "${cur}" ] && [ "${lastChar}" != "=" ]; then
         # If the last parameter is complete (there is a space following it)
         # We add an extra empty parameter so we can indicate this to the go method.
-        __rain_debug "${FUNCNAME[0]}: Adding extra empty parameter"
+        __cfnrain_debug "${FUNCNAME[0]}: Adding extra empty parameter"
         requestComp="${requestComp} \"\""
     fi
 
-    __rain_debug "${FUNCNAME[0]}: calling ${requestComp}"
+    __cfnrain_debug "${FUNCNAME[0]}: calling ${requestComp}"
     # Use eval to handle any environment variables and such
     out=$(eval "${requestComp}" 2>/dev/null)
 
@@ -77,23 +77,23 @@ __rain_handle_go_custom_completion()
         # There is not directive specified
         directive=0
     fi
-    __rain_debug "${FUNCNAME[0]}: the completion directive is: ${directive}"
-    __rain_debug "${FUNCNAME[0]}: the completions are: ${out}"
+    __cfnrain_debug "${FUNCNAME[0]}: the completion directive is: ${directive}"
+    __cfnrain_debug "${FUNCNAME[0]}: the completions are: ${out}"
 
     if [ $((directive & shellCompDirectiveError)) -ne 0 ]; then
         # Error code.  No completion.
-        __rain_debug "${FUNCNAME[0]}: received error from custom completion go code"
+        __cfnrain_debug "${FUNCNAME[0]}: received error from custom completion go code"
         return
     else
         if [ $((directive & shellCompDirectiveNoSpace)) -ne 0 ]; then
             if [[ $(type -t compopt) = "builtin" ]]; then
-                __rain_debug "${FUNCNAME[0]}: activating no space"
+                __cfnrain_debug "${FUNCNAME[0]}: activating no space"
                 compopt -o nospace
             fi
         fi
         if [ $((directive & shellCompDirectiveNoFileComp)) -ne 0 ]; then
             if [[ $(type -t compopt) = "builtin" ]]; then
-                __rain_debug "${FUNCNAME[0]}: activating no file completion"
+                __cfnrain_debug "${FUNCNAME[0]}: activating no file completion"
                 compopt +o default
             fi
         fi
@@ -109,7 +109,7 @@ __rain_handle_go_custom_completion()
         done
 
         filteringCmd="_filedir $fullFilter"
-        __rain_debug "File filtering command: $filteringCmd"
+        __cfnrain_debug "File filtering command: $filteringCmd"
         $filteringCmd
     elif [ $((directive & shellCompDirectiveFilterDirs)) -ne 0 ]; then
         # File completion for directories only
@@ -117,10 +117,10 @@ __rain_handle_go_custom_completion()
         # Use printf to strip any trailing newline
         subdir=$(printf "%s" "${out}")
         if [ -n "$subdir" ]; then
-            __rain_debug "Listing directories in $subdir"
-            __rain_handle_subdirs_in_dir_flag "$subdir"
+            __cfnrain_debug "Listing directories in $subdir"
+            __cfnrain_handle_subdirs_in_dir_flag "$subdir"
         else
-            __rain_debug "Listing directories in ."
+            __cfnrain_debug "Listing directories in ."
             _filedir -d
         fi
     else
@@ -130,9 +130,9 @@ __rain_handle_go_custom_completion()
     fi
 }
 
-__rain_handle_reply()
+__cfnrain_handle_reply()
 {
-    __rain_debug "${FUNCNAME[0]}"
+    __cfnrain_debug "${FUNCNAME[0]}"
     local comp
     case $cur in
         -*)
@@ -160,7 +160,7 @@ __rain_handle_reply()
 
                 local index flag
                 flag="${cur%=*}"
-                __rain_index_of_word "${flag}" "${flags_with_completion[@]}"
+                __cfnrain_index_of_word "${flag}" "${flags_with_completion[@]}"
                 COMPREPLY=()
                 if [[ ${index} -ge 0 ]]; then
                     PREFIX=""
@@ -184,7 +184,7 @@ __rain_handle_reply()
 
     # check if we are handling a flag with special work handling
     local index
-    __rain_index_of_word "${prev}" "${flags_with_completion[@]}"
+    __cfnrain_index_of_word "${prev}" "${flags_with_completion[@]}"
     if [[ ${index} -ge 0 ]]; then
         ${flags_completion[${index}]}
         return
@@ -201,7 +201,7 @@ __rain_handle_reply()
         completions+=("${must_have_one_noun[@]}")
     elif [[ -n "${has_completion_function}" ]]; then
         # if a go completion function is provided, defer to that function
-        __rain_handle_go_custom_completion
+        __cfnrain_handle_go_custom_completion
     fi
     if [[ ${#must_have_one_flag[@]} -ne 0 ]]; then
         completions+=("${must_have_one_flag[@]}")
@@ -217,9 +217,9 @@ __rain_handle_reply()
     fi
 
     if [[ ${#COMPREPLY[@]} -eq 0 ]]; then
-        if declare -F __rain_custom_func >/dev/null; then
+        if declare -F __cfnrain_custom_func >/dev/null; then
             # try command name qualified custom func
-            __rain_custom_func
+            __cfnrain_custom_func
         else
             # otherwise fall back to unqualified for compatibility
             declare -F __custom_func >/dev/null && __custom_func
@@ -239,21 +239,21 @@ __rain_handle_reply()
 }
 
 # The arguments should be in the form "ext1|ext2|extn"
-__rain_handle_filename_extension_flag()
+__cfnrain_handle_filename_extension_flag()
 {
     local ext="$1"
     _filedir "@(${ext})"
 }
 
-__rain_handle_subdirs_in_dir_flag()
+__cfnrain_handle_subdirs_in_dir_flag()
 {
     local dir="$1"
     pushd "${dir}" >/dev/null 2>&1 && _filedir -d && popd >/dev/null 2>&1 || return
 }
 
-__rain_handle_flag()
+__cfnrain_handle_flag()
 {
-    __rain_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
+    __cfnrain_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
 
     # if a command required a flag, and we found it, unset must_have_one_flag()
     local flagname=${words[c]}
@@ -264,13 +264,13 @@ __rain_handle_flag()
         flagname=${flagname%=*} # strip everything after the =
         flagname="${flagname}=" # but put the = back
     fi
-    __rain_debug "${FUNCNAME[0]}: looking for ${flagname}"
-    if __rain_contains_word "${flagname}" "${must_have_one_flag[@]}"; then
+    __cfnrain_debug "${FUNCNAME[0]}: looking for ${flagname}"
+    if __cfnrain_contains_word "${flagname}" "${must_have_one_flag[@]}"; then
         must_have_one_flag=()
     fi
 
     # if you set a flag which only applies to this command, don't show subcommands
-    if __rain_contains_word "${flagname}" "${local_nonpersistent_flags[@]}"; then
+    if __cfnrain_contains_word "${flagname}" "${local_nonpersistent_flags[@]}"; then
       commands=()
     fi
 
@@ -287,8 +287,8 @@ __rain_handle_flag()
     fi
 
     # skip the argument to a two word flag
-    if [[ ${words[c]} != *"="* ]] && __rain_contains_word "${words[c]}" "${two_word_flags[@]}"; then
-        __rain_debug "${FUNCNAME[0]}: found a flag ${words[c]}, skip the next argument"
+    if [[ ${words[c]} != *"="* ]] && __cfnrain_contains_word "${words[c]}" "${two_word_flags[@]}"; then
+        __cfnrain_debug "${FUNCNAME[0]}: found a flag ${words[c]}, skip the next argument"
         c=$((c+1))
         # if we are looking for a flags value, don't show commands
         if [[ $c -eq $cword ]]; then
@@ -300,13 +300,13 @@ __rain_handle_flag()
 
 }
 
-__rain_handle_noun()
+__cfnrain_handle_noun()
 {
-    __rain_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
+    __cfnrain_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
 
-    if __rain_contains_word "${words[c]}" "${must_have_one_noun[@]}"; then
+    if __cfnrain_contains_word "${words[c]}" "${must_have_one_noun[@]}"; then
         must_have_one_noun=()
-    elif __rain_contains_word "${words[c]}" "${noun_aliases[@]}"; then
+    elif __cfnrain_contains_word "${words[c]}" "${noun_aliases[@]}"; then
         must_have_one_noun=()
     fi
 
@@ -314,55 +314,55 @@ __rain_handle_noun()
     c=$((c+1))
 }
 
-__rain_handle_command()
+__cfnrain_handle_command()
 {
-    __rain_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
+    __cfnrain_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
 
     local next_command
     if [[ -n ${last_command} ]]; then
         next_command="_${last_command}_${words[c]//:/__}"
     else
         if [[ $c -eq 0 ]]; then
-            next_command="_rain_root_command"
+            next_command="_cfnrain_root_command"
         else
             next_command="_${words[c]//:/__}"
         fi
     fi
     c=$((c+1))
-    __rain_debug "${FUNCNAME[0]}: looking for ${next_command}"
+    __cfnrain_debug "${FUNCNAME[0]}: looking for ${next_command}"
     declare -F "$next_command" >/dev/null && $next_command
 }
 
-__rain_handle_word()
+__cfnrain_handle_word()
 {
     if [[ $c -ge $cword ]]; then
-        __rain_handle_reply
+        __cfnrain_handle_reply
         return
     fi
-    __rain_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
+    __cfnrain_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
     if [[ "${words[c]}" == -* ]]; then
-        __rain_handle_flag
-    elif __rain_contains_word "${words[c]}" "${commands[@]}"; then
-        __rain_handle_command
+        __cfnrain_handle_flag
+    elif __cfnrain_contains_word "${words[c]}" "${commands[@]}"; then
+        __cfnrain_handle_command
     elif [[ $c -eq 0 ]]; then
-        __rain_handle_command
-    elif __rain_contains_word "${words[c]}" "${command_aliases[@]}"; then
+        __cfnrain_handle_command
+    elif __cfnrain_contains_word "${words[c]}" "${command_aliases[@]}"; then
         # aliashash variable is an associative array which is only supported in bash > 3.
         if [[ -z "${BASH_VERSION:-}" || "${BASH_VERSINFO[0]:-}" -gt 3 ]]; then
             words[c]=${aliashash[${words[c]}]}
-            __rain_handle_command
+            __cfnrain_handle_command
         else
-            __rain_handle_noun
+            __cfnrain_handle_noun
         fi
     else
-        __rain_handle_noun
+        __cfnrain_handle_noun
     fi
-    __rain_handle_word
+    __cfnrain_handle_word
 }
 
-_rain_bootstrap()
+_cfnrain_bootstrap()
 {
-    last_command="rain_bootstrap"
+    last_command="cfnrain_bootstrap"
 
     command_aliases=()
 
@@ -414,9 +414,9 @@ _rain_bootstrap()
     noun_aliases=()
 }
 
-_rain_build()
+_cfnrain_build()
 {
-    last_command="rain_build"
+    last_command="cfnrain_build"
 
     command_aliases=()
 
@@ -495,9 +495,9 @@ _rain_build()
     noun_aliases=()
 }
 
-_rain_cat()
+_cfnrain_cat()
 {
-    last_command="rain_cat"
+    last_command="cfnrain_cat"
 
     command_aliases=()
 
@@ -545,9 +545,9 @@ _rain_cat()
     noun_aliases=()
 }
 
-_rain_cc_deploy()
+_cfnrain_cc_deploy()
 {
-    last_command="rain_cc_deploy"
+    last_command="cfnrain_cc_deploy"
 
     command_aliases=()
 
@@ -622,9 +622,9 @@ _rain_cc_deploy()
     noun_aliases=()
 }
 
-_rain_cc_drift()
+_cfnrain_cc_drift()
 {
-    last_command="rain_cc_drift"
+    last_command="cfnrain_cc_drift"
 
     command_aliases=()
 
@@ -673,9 +673,9 @@ _rain_cc_drift()
     noun_aliases=()
 }
 
-_rain_cc_help()
+_cfnrain_cc_help()
 {
-    last_command="rain_cc_help"
+    last_command="cfnrain_cc_help"
 
     command_aliases=()
 
@@ -696,9 +696,9 @@ _rain_cc_help()
     noun_aliases=()
 }
 
-_rain_cc_rm()
+_cfnrain_cc_rm()
 {
-    last_command="rain_cc_rm"
+    last_command="cfnrain_cc_rm"
 
     command_aliases=()
 
@@ -751,9 +751,9 @@ _rain_cc_rm()
     noun_aliases=()
 }
 
-_rain_cc_state()
+_cfnrain_cc_state()
 {
-    last_command="rain_cc_state"
+    last_command="cfnrain_cc_state"
 
     command_aliases=()
 
@@ -802,9 +802,9 @@ _rain_cc_state()
     noun_aliases=()
 }
 
-_rain_cc()
+_cfnrain_cc()
 {
-    last_command="rain_cc"
+    last_command="cfnrain_cc"
 
     command_aliases=()
 
@@ -865,9 +865,9 @@ _rain_cc()
     noun_aliases=()
 }
 
-_rain_console()
+_cfnrain_console()
 {
-    last_command="rain_console"
+    last_command="cfnrain_console"
 
     command_aliases=()
 
@@ -923,9 +923,9 @@ _rain_console()
     noun_aliases=()
 }
 
-_rain_deploy()
+_cfnrain_deploy()
 {
-    last_command="rain_deploy"
+    last_command="cfnrain_deploy"
 
     command_aliases=()
 
@@ -1025,9 +1025,9 @@ _rain_deploy()
     noun_aliases=()
 }
 
-_rain_diff()
+_cfnrain_diff()
 {
-    last_command="rain_diff"
+    last_command="cfnrain_diff"
 
     command_aliases=()
 
@@ -1055,9 +1055,9 @@ _rain_diff()
     noun_aliases=()
 }
 
-_rain_fmt()
+_cfnrain_fmt()
 {
-    last_command="rain_fmt"
+    last_command="cfnrain_fmt"
 
     command_aliases=()
 
@@ -1116,9 +1116,9 @@ _rain_fmt()
     noun_aliases=()
 }
 
-_rain_forecast()
+_cfnrain_forecast()
 {
-    last_command="rain_forecast"
+    last_command="cfnrain_forecast"
 
     command_aliases=()
 
@@ -1201,9 +1201,9 @@ _rain_forecast()
     noun_aliases=()
 }
 
-_rain_help()
+_cfnrain_help()
 {
-    last_command="rain_help"
+    last_command="cfnrain_help"
 
     command_aliases=()
 
@@ -1224,9 +1224,9 @@ _rain_help()
     noun_aliases=()
 }
 
-_rain_info()
+_cfnrain_info()
 {
-    last_command="rain_info"
+    last_command="cfnrain_info"
 
     command_aliases=()
 
@@ -1266,9 +1266,9 @@ _rain_info()
     noun_aliases=()
 }
 
-_rain_logs()
+_cfnrain_logs()
 {
-    last_command="rain_logs"
+    last_command="cfnrain_logs"
 
     command_aliases=()
 
@@ -1329,9 +1329,9 @@ _rain_logs()
     noun_aliases=()
 }
 
-_rain_ls()
+_cfnrain_ls()
 {
-    last_command="rain_ls"
+    last_command="cfnrain_ls"
 
     command_aliases=()
 
@@ -1375,9 +1375,9 @@ _rain_ls()
     noun_aliases=()
 }
 
-_rain_merge()
+_cfnrain_merge()
 {
-    last_command="rain_merge"
+    last_command="cfnrain_merge"
 
     command_aliases=()
 
@@ -1417,9 +1417,9 @@ _rain_merge()
     noun_aliases=()
 }
 
-_rain_module_bootstrap()
+_cfnrain_module_bootstrap()
 {
-    last_command="rain_module_bootstrap"
+    last_command="cfnrain_module_bootstrap"
 
     command_aliases=()
 
@@ -1472,9 +1472,9 @@ _rain_module_bootstrap()
     noun_aliases=()
 }
 
-_rain_module_help()
+_cfnrain_module_help()
 {
-    last_command="rain_module_help"
+    last_command="cfnrain_module_help"
 
     command_aliases=()
 
@@ -1495,9 +1495,9 @@ _rain_module_help()
     noun_aliases=()
 }
 
-_rain_module_install()
+_cfnrain_module_install()
 {
-    last_command="rain_module_install"
+    last_command="cfnrain_module_install"
 
     command_aliases=()
 
@@ -1554,9 +1554,9 @@ _rain_module_install()
     noun_aliases=()
 }
 
-_rain_module_publish()
+_cfnrain_module_publish()
 {
-    last_command="rain_module_publish"
+    last_command="cfnrain_module_publish"
 
     command_aliases=()
 
@@ -1613,9 +1613,9 @@ _rain_module_publish()
     noun_aliases=()
 }
 
-_rain_module()
+_cfnrain_module()
 {
-    last_command="rain_module"
+    last_command="cfnrain_module"
 
     command_aliases=()
 
@@ -1655,9 +1655,9 @@ _rain_module()
     noun_aliases=()
 }
 
-_rain_pkg()
+_cfnrain_pkg()
 {
-    last_command="rain_pkg"
+    last_command="cfnrain_pkg"
 
     command_aliases=()
 
@@ -1724,9 +1724,9 @@ _rain_pkg()
     noun_aliases=()
 }
 
-_rain_rm()
+_cfnrain_rm()
 {
-    last_command="rain_rm"
+    last_command="cfnrain_rm"
 
     command_aliases=()
 
@@ -1780,9 +1780,9 @@ _rain_rm()
     noun_aliases=()
 }
 
-_rain_stackset_deploy()
+_cfnrain_stackset_deploy()
 {
-    last_command="rain_stackset_deploy"
+    last_command="cfnrain_stackset_deploy"
 
     command_aliases=()
 
@@ -1866,9 +1866,9 @@ _rain_stackset_deploy()
     noun_aliases=()
 }
 
-_rain_stackset_help()
+_cfnrain_stackset_help()
 {
-    last_command="rain_stackset_help"
+    last_command="cfnrain_stackset_help"
 
     command_aliases=()
 
@@ -1889,9 +1889,9 @@ _rain_stackset_help()
     noun_aliases=()
 }
 
-_rain_stackset_ls()
+_cfnrain_stackset_ls()
 {
-    last_command="rain_stackset_ls"
+    last_command="cfnrain_stackset_ls"
 
     command_aliases=()
 
@@ -1933,9 +1933,9 @@ _rain_stackset_ls()
     noun_aliases=()
 }
 
-_rain_stackset_rm()
+_cfnrain_stackset_rm()
 {
-    last_command="rain_stackset_rm"
+    last_command="cfnrain_stackset_rm"
 
     command_aliases=()
 
@@ -1977,9 +1977,9 @@ _rain_stackset_rm()
     noun_aliases=()
 }
 
-_rain_stackset()
+_cfnrain_stackset()
 {
-    last_command="rain_stackset"
+    last_command="cfnrain_stackset"
 
     command_aliases=()
 
@@ -2029,9 +2029,9 @@ _rain_stackset()
     noun_aliases=()
 }
 
-_rain_tree()
+_cfnrain_tree()
 {
-    last_command="rain_tree"
+    last_command="cfnrain_tree"
 
     command_aliases=()
 
@@ -2067,9 +2067,9 @@ _rain_tree()
     noun_aliases=()
 }
 
-_rain_watch()
+_cfnrain_watch()
 {
-    last_command="rain_watch"
+    last_command="cfnrain_watch"
 
     command_aliases=()
 
@@ -2109,9 +2109,9 @@ _rain_watch()
     noun_aliases=()
 }
 
-_rain_root_command()
+_cfnrain_root_command()
 {
-    last_command="rain"
+    last_command="cfnrain"
 
     command_aliases=()
 
@@ -2187,7 +2187,7 @@ _rain_root_command()
     noun_aliases=()
 }
 
-__start_rain()
+__start_cfnrain()
 {
     local cur prev words cword split
     declare -A flaghash 2>/dev/null || :
@@ -2195,7 +2195,7 @@ __start_rain()
     if declare -F _init_completion >/dev/null 2>&1; then
         _init_completion -s || return
     else
-        __rain_init_completion -n "=" || return
+        __cfnrain_init_completion -n "=" || return
     fi
 
     local c=0
@@ -2205,7 +2205,7 @@ __start_rain()
     local local_nonpersistent_flags=()
     local flags_with_completion=()
     local flags_completion=()
-    local commands=("rain")
+    local commands=("cfnrain")
     local command_aliases=()
     local must_have_one_flag=()
     local must_have_one_noun=()
@@ -2214,13 +2214,13 @@ __start_rain()
     local nouns=()
     local noun_aliases=()
 
-    __rain_handle_word
+    __cfnrain_handle_word
 }
 
 if [[ $(type -t compopt) = "builtin" ]]; then
-    complete -o default -F __start_rain rain
+    complete -o default -F __start_cfnrain cfnrain
 else
-    complete -o default -o nospace -F __start_rain rain
+    complete -o default -o nospace -F __start_cfnrain cfnrain
 fi
 
 # ex: ts=4 sw=4 et filetype=sh

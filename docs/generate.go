@@ -41,7 +41,7 @@ func emptyStr(s string) string {
 }
 
 func identity(s string) string {
-	if s == "rain.md" {
+	if s == "cfnrain.md" {
 		return "index.md"
 	}
 
@@ -56,7 +56,7 @@ func main() {
 		panic(err)
 	}
 
-	err = os.Rename("rain.md", "index.md")
+	err = os.Rename("cfnrain.md", "index.md")
 	if err != nil {
 		panic(err)
 	}
