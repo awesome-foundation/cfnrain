@@ -1,0 +1,16 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bootstrap-sha": "90e8c6f55803775f23ff2c1ef70fd4e79574ae15",
+  "release-type": "go",
+  "include-v-in-tag": true,
+  "include-component-in-tag": false,
+  "packages": {
+    ".": {
+      "component": "cfnrain",
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        "internal/config/version.go"
+      ]
+    }
+  }
+}
