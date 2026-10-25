@@ -39,11 +39,21 @@ jobs:
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
-          args: release --clean
+          # The Homebrew tap is public. While this repository is private, a
+          # release must not push a formula there.
+          args: release --clean ${{ github.event.repository.private && '--skip=homebrew' || '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-      # Build provenance for every published archive and the checksums file
+      # Build provenance for every archive listed in checksums.txt. Public
+      # repositories only: attestations are public, and private repositories
+      # need GitHub Enterprise for them.
       - uses: actions/attest-build-provenance@v2
+        if: ${{ !github.event.repository.private }}
         with:
           subject-checksums: ./dist/checksums.txt
+      # subject-checksums covers the files listed in checksums.txt, not the file itself
+      - uses: actions/attest-build-provenance@v2
+        if: ${{ !github.event.repository.private }}
+        with:
+          subject-path: ./dist/checksums.txt

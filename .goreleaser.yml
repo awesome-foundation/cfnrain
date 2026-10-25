@@ -4,7 +4,7 @@ before:
   hooks:
     - go mod tidy
     - go vet ./...
-    # modules.zip and modules.sha256, released as extra assets like upstream did
+    # modules.zip and modules.sha256 into release-assets/, released as extra assets like upstream did
     - ./.github/workflows/modules.sh
 
 builds:
@@ -76,5 +76,5 @@ release:
     owner: awesome-foundation
     name: cfnrain
   extra_files:
-    - glob: ./dist/modules.zip
-    - glob: ./dist/modules.sha256
+    - glob: ./release-assets/modules.zip
+    - glob: ./release-assets/modules.sha256
