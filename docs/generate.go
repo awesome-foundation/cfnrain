@@ -41,7 +41,7 @@ func emptyStr(s string) string {
 }
 
 func identity(s string) string {
-	if s == "rain.md" {
+	if s == "cfnrain.md" {
 		return "index.md"
 	}
 
@@ -51,12 +51,16 @@ func identity(s string) string {
 func main() {
 	console.NoColour = true
 
+	// No "Auto generated on <date>" footer, so regenerating on another day
+	// does not change every page and the CI freshness check stays stable
+	rain.Cmd.DisableAutoGenTag = true
+
 	err := doc.GenMarkdownTreeCustom(rain.Cmd, "./", emptyStr, identity)
 	if err != nil {
 		panic(err)
 	}
 
-	err = os.Rename("rain.md", "index.md")
+	err = os.Rename("cfnrain.md", "index.md")
 	if err != nil {
 		panic(err)
 	}
@@ -79,4 +83,27 @@ func main() {
 
 	rain.Cmd.GenBashCompletionFile("bash_completion.sh")
 	rain.Cmd.GenZshCompletionFile("zsh_completion.sh")
+
+	// Users link cfnrain as rain to keep existing scripts working, so complete both names
+	alsoComplete("bash_completion.sh", "-F __start_cfnrain cfnrain\n", "-F __start_cfnrain cfnrain rain\n")
+	alsoComplete("zsh_completion.sh", "#compdef cfnrain\n", "#compdef cfnrain rain\n")
+	alsoComplete("zsh_completion.sh", "compdef _cfnrain cfnrain\n", "compdef _cfnrain cfnrain rain\n")
+}
+
+// alsoComplete rewrites a generated completion script and panics when
+// the expected line is missing, so a cobra change cannot silently drop
+// completion for the rain name
+func alsoComplete(path, old, new string) {
+	b, err := os.ReadFile(path)
+	if err != nil {
+		panic(err)
+	}
+	s := string(b)
+	if !strings.Contains(s, old) {
+		panic("completion line not found in " + path + ": " + old)
+	}
+	err = os.WriteFile(path, []byte(strings.ReplaceAll(s, old, new)), 0644)
+	if err != nil {
+		panic(err)
+	}
 }

@@ -74,7 +74,7 @@ sure the template is valid before deployment. You can see an example plugin in
 package main
 
 import (
-	fc "github.com/aws-cloudformation/rain/plugins/forecast"
+	fc "github.com/awesome-foundation/cfnrain/plugins/forecast"
 )
 
 type PluginImpl struct{}
@@ -111,7 +111,7 @@ var Plugin = PluginImpl{}
 ## Roadmap
 
 You can view the issues list for the forecast command
-[here](https://github.com/aws-cloudformation/rain/issues?q=is%3Aopen+is%3Aissue+label%3Aforecast).
+[here](https://github.com/awesome-foundation/cfnrain/issues?q=is%3Aopen+is%3Aissue+label%3Aforecast).
 
 Please feel free to create an issue here whenever you get a stack failure that
 you think could have been prevented by one of these checks.
