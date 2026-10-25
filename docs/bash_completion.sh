@@ -2218,9 +2218,9 @@ __start_cfnrain()
 }
 
 if [[ $(type -t compopt) = "builtin" ]]; then
-    complete -o default -F __start_cfnrain cfnrain
+    complete -o default -F __start_cfnrain cfnrain rain
 else
-    complete -o default -o nospace -F __start_cfnrain cfnrain
+    complete -o default -o nospace -F __start_cfnrain cfnrain rain
 fi
 
 # ex: ts=4 sw=4 et filetype=sh

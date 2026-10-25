@@ -55,5 +55,3 @@ If you discover a potential security issue in this project, report it as describ
 ## Licensing
 
 See the [LICENSE](LICENSE) file for our project's licensing. Contributions are accepted under the Apache License 2.0, as section 5 of the license describes. There is no contributor license agreement.
-
-We may ask you to sign a [Contributor License Agreement (CLA)](http://en.wikipedia.org/wiki/Contributor_License_Agreement) for larger changes.

@@ -1,5 +1,5 @@
-#compdef cfnrain
-compdef _cfnrain cfnrain
+#compdef cfnrain rain
+compdef _cfnrain cfnrain rain
 
 # zsh completion for cfnrain                              -*- shell-script -*-
 

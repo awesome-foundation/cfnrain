@@ -23,6 +23,7 @@ What is different:
 * The command is `cfnrain`, and the Go module is `github.com/awesome-foundation/cfnrain`.
 * cfnrain does not write `Metadata.AWSToolsMetrics` into your templates. The `--no-analytics` flag is accepted and has no effect.
 * AWS sees the user agent `cfnrain/<version>`, not `Rain/<version>`.
+* When cfnrain assumes a role from your AWS profile, the role session name is `cfnrain-<version>`, not `Rain-<version>`. If a role trust policy only allows session names that match `Rain-*`, add `cfnrain-*`.
 
 The direction of the project is open. Join the discussion in [GitHub Discussions](https://github.com/awesome-foundation/cfnrain/discussions).
 
