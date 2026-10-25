@@ -1,0 +1,61 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go vet ./...
+    # modules.zip and modules.sha256 into release-assets/, released as extra assets like upstream did
+    - ./.github/workflows/modules.sh
+
+builds:
+  - id: cfnrain
+    main: ./cmd/cfnrain
+    binary: cfnrain
+    env:
+      # One build per platform. Upstream also shipped CGO variants, but
+      # cross-compiling turns CGO off anyway, and only forecast --plugin needs it.
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+    # The platform matrix rain v1.24.4 released
+    goos: [linux, darwin, windows]
+    goarch: [amd64, arm64, arm, "386"]
+    goarm: ["7"]
+    ignore:
+      - goos: darwin
+        goarch: arm
+      - goos: darwin
+        goarch: "386"
+      - goos: windows
+        goarch: arm
+      - goos: windows
+        goarch: arm64
+
+archives:
+  - id: cfnrain
+    ids: [cfnrain]
+    formats: [tar.gz]
+    name_template: "cfnrain_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - LICENSE
+      - NOTICE
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+
+changelog:
+  disable: true
+
+release:
+  github:
+    owner: awesome-foundation
+    name: cfnrain
+  extra_files:
+    - glob: ./release-assets/modules.zip
+    - glob: ./release-assets/modules.sha256

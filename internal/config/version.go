@@ -5,5 +5,5 @@ const (
 	NAME = "cfnrain"
 
 	// VERSION is the application's version string
-	VERSION = "v1.24.4"
+	VERSION = "v1.24.4" // x-release-please-version
 )
