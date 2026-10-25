@@ -16,7 +16,7 @@ cfnrain is a drop-in replacement for Rain v1.24.4. Your templates, config files 
 
 * The `!Rain::*` directives, the `Rain` template section and the `RAIN_VAR_*` and `RAIN_DEFAULT_TAG_*` environment variables work as before.
 * cfnrain uses the same artifact bucket (`rain-artifacts-<account>-<region>`) and the same `rain-bucket` SSM parameter.
-* The Homebrew formula installs the command as both `cfnrain` and `rain`, so existing scripts keep working.
+* Existing scripts that call `rain` keep working if you link the name: `ln -s "$(command -v cfnrain)" /usr/local/bin/rain` (or any directory on your `PATH`).
 
 What is different:
 
@@ -51,9 +51,7 @@ _Note that in order to use experimental commands, you have to add `--experimenta
 
 ## Getting started
 
-With [Homebrew](https://brew.sh/): `brew install awesome-foundation/tap/cfnrain`
-
-You can also download a binary for your system from [the releases page](https://github.com/awesome-foundation/cfnrain/releases). Each release publishes a `checksums.txt` file.
+Download a binary for your system from [the releases page](https://github.com/awesome-foundation/cfnrain/releases). Each release publishes a `checksums.txt` file.
 
 With Go: `go install github.com/awesome-foundation/cfnrain/cmd/cfnrain@latest`
 

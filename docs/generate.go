@@ -84,7 +84,7 @@ func main() {
 	rain.Cmd.GenBashCompletionFile("bash_completion.sh")
 	rain.Cmd.GenZshCompletionFile("zsh_completion.sh")
 
-	// Homebrew and install-rain also install cfnrain as rain, so complete both names
+	// Users link cfnrain as rain to keep existing scripts working, so complete both names
 	alsoComplete("bash_completion.sh", "-F __start_cfnrain cfnrain\n", "-F __start_cfnrain cfnrain rain\n")
 	alsoComplete("zsh_completion.sh", "#compdef cfnrain\n", "#compdef cfnrain rain\n")
 	alsoComplete("zsh_completion.sh", "compdef _cfnrain cfnrain\n", "compdef _cfnrain cfnrain rain\n")
