@@ -33,7 +33,6 @@ package pkg
 
 import (
 	"embed"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"path/filepath"
@@ -52,25 +51,11 @@ import (
 
 // Experimental must be set to true to enable !Rain::Module
 var Experimental bool
+
+// NoAnalytics has no effect. It stays so that --no-analytics keeps working.
 var NoAnalytics bool
-var HasRainSection bool
 
-const AWSToolsMetrics = "AWSToolsMetrics"
 const Rain = "Rain"
-
-type analytics struct {
-	// Current Rain version
-	Version string
-
-	// Are we using experimental features?
-	Experimental bool
-
-	// Did we use any Rain modules?
-	HasModules bool
-
-	// Did the template have a Rain section?
-	HasRainSection bool
-}
 
 type transformContext struct {
 	nodeToTransform *yaml.Node
@@ -113,8 +98,6 @@ func processRainSection(t *cft.Template) error {
 		// This is okay, not all templates have a Rain section
 		return nil
 	}
-
-	HasRainSection = true
 
 	err = processConstants(t, rainNode)
 	if err != nil {
@@ -244,34 +227,6 @@ func Template(t *cft.Template, rootDir string, fs *embed.FS) (*cft.Template, err
 	} else {
 		retval.Node = &yaml.Node{Kind: yaml.DocumentNode, Content: make([]*yaml.Node, 0)}
 		retval.Node.Content = append(retval.Node.Content, t.Node)
-	}
-
-	// Add analytics to Metadata
-	if !NoAnalytics {
-		metadata, err := retval.GetSection(cft.Metadata)
-		if err != nil || metadata == nil {
-			metadata = node.AddMap(retval.Node.Content[0], string(cft.Metadata))
-		}
-		_, awsToolsMetrics, _ := s11n.GetMapValue(metadata, AWSToolsMetrics)
-		if awsToolsMetrics == nil {
-			awsToolsMetrics = node.AddMap(metadata, AWSToolsMetrics)
-		}
-		a := analytics{
-			Version:        config.VERSION,
-			HasModules:     HasModules,
-			Experimental:   Experimental,
-			HasRainSection: HasRainSection,
-		}
-		s, _ := json.Marshal(&a)
-		_, rain, _ := s11n.GetMapValue(awsToolsMetrics, Rain)
-		rainNode := &yaml.Node{Kind: yaml.ScalarNode, Value: string(s)}
-		if rain == nil {
-			awsToolsMetrics.Content = append(awsToolsMetrics.Content,
-				&yaml.Node{Kind: yaml.ScalarNode, Value: Rain})
-			awsToolsMetrics.Content = append(awsToolsMetrics.Content, rainNode)
-		} else {
-			*rain = *rainNode
-		}
 	}
 
 	return retval, nil

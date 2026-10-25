@@ -351,5 +351,5 @@ func init() {
 	Cmd.Flags().StringVar(&format.NodeStyle, "node-style", "original", format.NodeStyleDocs)
 	Cmd.Flags().BoolVar(&experimental, "experimental", false, "Acknowledge that you want to deploy with an experimental feature")
 	Cmd.Flags().BoolVar(&includeNested, "nested-change-set", true, "Whether or not to include nested stacks in the change set")
-	Cmd.Flags().BoolVar(&cftpkg.NoAnalytics, "no-analytics", false, "Do not write analytics to Metadata")
+	Cmd.Flags().BoolVar(&cftpkg.NoAnalytics, "no-analytics", false, "No effect, kept for compatibility. cfnrain does not write analytics to Metadata")
 }
