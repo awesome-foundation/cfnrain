@@ -6,15 +6,15 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/aws-cloudformation/rain/cft"
-	"github.com/aws-cloudformation/rain/cft/format"
-	"github.com/aws-cloudformation/rain/internal/aws/cfn"
-	"github.com/aws-cloudformation/rain/internal/cmd/deploy"
-	"github.com/aws-cloudformation/rain/internal/config"
-	"github.com/aws-cloudformation/rain/internal/console"
-	"github.com/aws-cloudformation/rain/internal/console/spinner"
-	"github.com/aws-cloudformation/rain/internal/dc"
-	"github.com/aws-cloudformation/rain/internal/ui"
+	"github.com/awesome-foundation/cfnrain/cft"
+	"github.com/awesome-foundation/cfnrain/cft/format"
+	"github.com/awesome-foundation/cfnrain/internal/aws/cfn"
+	"github.com/awesome-foundation/cfnrain/internal/cmd/deploy"
+	"github.com/awesome-foundation/cfnrain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/console"
+	"github.com/awesome-foundation/cfnrain/internal/console/spinner"
+	"github.com/awesome-foundation/cfnrain/internal/dc"
+	"github.com/awesome-foundation/cfnrain/internal/ui"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/aws/smithy-go/ptr"
 	"golang.org/x/exp/constraints"
@@ -45,14 +45,14 @@ var DeployCmd = &cobra.Command{
 	Use:   "deploy <template> [stackset] [flags]",
 	Short: "Deploy a CloudFormation stack set from a local template",
 	Long: `Creates or updates a CloudFormation stack set <stackset> from the template file <template>.
-If you don't specify a stack set name, rain will use the template filename minus its extension.
-If you do not specify a template file, rain will asume that you want to add a new instance to an existing template,
-If a template needs to be packaged before it can be deployed, rain will package the template first.
+If you don't specify a stack set name, cfnrain will use the template filename minus its extension.
+If you do not specify a template file, cfnrain will asume that you want to add a new instance to an existing template,
+If a template needs to be packaged before it can be deployed, cfnrain will package the template first.
 Rain will attempt to create an S3 bucket to store artifacts that it packages and deploys.
 The bucket's name will be of the format rain-artifacts-<AWS account id>-<AWS region>.
 
 The config flags can be used to set accounts, regions to operate and tags with parameters to use.
-Configuration file with extended options can be provided along with '--config' flag in YAML or JSON format (see [example file](https://github.com/aws-cloudformation/rain/blob/main/test/samples/test-config.yaml) for details).
+Configuration file with extended options can be provided along with '--config' flag in YAML or JSON format (see [example file](https://github.com/awesome-foundation/cfnrain/blob/main/test/samples/test-config.yaml) for details).
 
 YAML:
 ` + "```" + `

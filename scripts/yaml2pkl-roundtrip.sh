@@ -28,13 +28,13 @@ fi
 
 echo "Converting to Pkl"
 echo ""
-./rain fmt --pkl ${pklBasic} "$1" > "${pklOutput}"
+./cfnrain fmt --pkl ${pklBasic} "$1" > "${pklOutput}"
 cat "${pklOutput}"
 echo ""
 
 echo "Converting back to YAML"
 echo ""
-pkl eval "${pklOutput}" -f yaml | ./rain fmt > "${yamlOutput}"
+pkl eval "${pklOutput}" -f yaml | ./cfnrain fmt > "${yamlOutput}"
 cat "${yamlOutput}"
 echo ""
 

@@ -1,7 +1,7 @@
 package main
 
 import (
-	fc "github.com/aws-cloudformation/rain/plugins/forecast"
+	fc "github.com/awesome-foundation/cfnrain/plugins/forecast"
 )
 
 type PluginImpl struct{}

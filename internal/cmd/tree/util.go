@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aws-cloudformation/rain/cft/graph"
-	"github.com/aws-cloudformation/rain/internal/console"
+	"github.com/awesome-foundation/cfnrain/cft/graph"
+	"github.com/awesome-foundation/cfnrain/internal/console"
 )
 
 func printLinks(links []graph.Node, typeFilter string) {

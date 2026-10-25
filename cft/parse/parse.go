@@ -8,8 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/aws-cloudformation/rain/cft"
-	"github.com/aws-cloudformation/rain/cft/diff"
+	"github.com/awesome-foundation/cfnrain/cft"
+	"github.com/awesome-foundation/cfnrain/cft/diff"
 
 	"gopkg.in/yaml.v3"
 )

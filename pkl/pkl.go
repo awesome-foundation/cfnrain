@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/apple/pkl-go/pkl"
-	"github.com/aws-cloudformation/rain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/config"
 )
 
 var EvaluatorOptionsFunc = func(opts *pkl.EvaluatorOptions) {

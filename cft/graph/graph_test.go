@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/aws-cloudformation/rain/cft"
-	"github.com/aws-cloudformation/rain/cft/graph"
-	"github.com/aws-cloudformation/rain/cft/parse"
+	"github.com/awesome-foundation/cfnrain/cft"
+	"github.com/awesome-foundation/cfnrain/cft/graph"
+	"github.com/awesome-foundation/cfnrain/cft/parse"
 )
 
 const templateString = `

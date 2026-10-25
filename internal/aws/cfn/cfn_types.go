@@ -1,7 +1,7 @@
 package cfn
 
 import (
-	"github.com/aws-cloudformation/rain/cft"
+	"github.com/awesome-foundation/cfnrain/cft"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 )
 

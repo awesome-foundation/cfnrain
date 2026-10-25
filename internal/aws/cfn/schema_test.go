@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/aws-cloudformation/rain/internal/aws/cfn"
+	"github.com/awesome-foundation/cfnrain/internal/aws/cfn"
 )
 
 func TestSchema(t *testing.T) {

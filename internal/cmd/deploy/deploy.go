@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/aws-cloudformation/rain/cft"
-	"github.com/aws-cloudformation/rain/cft/format"
-	cftpkg "github.com/aws-cloudformation/rain/cft/pkg"
-	"github.com/aws-cloudformation/rain/internal/aws"
-	"github.com/aws-cloudformation/rain/internal/aws/cfn"
-	"github.com/aws-cloudformation/rain/internal/config"
-	"github.com/aws-cloudformation/rain/internal/console"
-	"github.com/aws-cloudformation/rain/internal/console/spinner"
-	"github.com/aws-cloudformation/rain/internal/dc"
-	"github.com/aws-cloudformation/rain/internal/s11n"
-	"github.com/aws-cloudformation/rain/internal/ui"
+	"github.com/awesome-foundation/cfnrain/cft"
+	"github.com/awesome-foundation/cfnrain/cft/format"
+	cftpkg "github.com/awesome-foundation/cfnrain/cft/pkg"
+	"github.com/awesome-foundation/cfnrain/internal/aws"
+	"github.com/awesome-foundation/cfnrain/internal/aws/cfn"
+	"github.com/awesome-foundation/cfnrain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/console"
+	"github.com/awesome-foundation/cfnrain/internal/console/spinner"
+	"github.com/awesome-foundation/cfnrain/internal/dc"
+	"github.com/awesome-foundation/cfnrain/internal/s11n"
+	"github.com/awesome-foundation/cfnrain/internal/ui"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"gopkg.in/yaml.v3"
 
@@ -42,9 +42,9 @@ var Cmd = &cobra.Command{
 	Short: "Deploy a CloudFormation stack or changeset from a local template",
 	Long: `Creates or updates a CloudFormation stack named <stack> from the template file <template>. 
 You can also create and execute changesets with this command.
-If you don't specify a stack name, rain will use the template filename minus its extension.
+If you don't specify a stack name, cfnrain will use the template filename minus its extension.
 
-If a template needs to be packaged before it can be deployed, rain will package the template first.
+If a template needs to be packaged before it can be deployed, cfnrain will package the template first.
 Rain will attempt to create an S3 bucket to store artifacts that it packages and deploys.
 The bucket's name will be of the format rain-artifacts-<AWS account id>-<AWS region>.
 
@@ -84,11 +84,11 @@ YAML:
 
 To create a changeset (with optional stackName and changeSetName):
 
-rain deploy --no-exec <template> [stackName] [changeSetName]
+cfnrain deploy --no-exec <template> [stackName] [changeSetName]
 
 To execute a changeset:
 
-rain deploy --changeset <stackName> <changeSetName>
+cfnrain deploy --changeset <stackName> <changeSetName>
 
 To list and delete changesets, use the ls and rm commands.
 `,
@@ -104,7 +104,7 @@ To list and delete changesets, use the ls and rm commands.
 		if changeset {
 
 			if len(args) != 2 {
-				panic("expected 2 args: rain deploy --changeset <stackName> <changeSetName>")
+				panic("expected 2 args: cfnrain deploy --changeset <stackName> <changeSetName>")
 			}
 
 			stackName = args[0]
@@ -240,7 +240,7 @@ To list and delete changesets, use the ls and rm commands.
 		}
 
 		if detach {
-			fmt.Printf("Detaching. You can check your stack's status with: rain watch %s\n", stackName)
+			fmt.Printf("Detaching. You can check your stack's status with: cfnrain watch %s\n", stackName)
 		} else {
 			if changeset {
 				fmt.Printf("Executing changeset '%s' as stack '%s' in %s.\n",
@@ -347,7 +347,7 @@ func init() {
 	Cmd.Flags().StringVarP(&roleArn, "role-arn", "", "", "ARN of an IAM role that CloudFormation should assume to deploy the stack")
 	Cmd.Flags().BoolVarP(&ignoreUnknownParams, "ignore-unknown-params", "", false, "Ignore unknown parameters")
 	Cmd.Flags().BoolVarP(&noexec, "no-exec", "x", false, "do not execute the changeset")
-	Cmd.Flags().BoolVar(&changeset, "changeset", false, "execute the changeset, rain deploy --changeset <stackName> <changeSetName>")
+	Cmd.Flags().BoolVar(&changeset, "changeset", false, "execute the changeset, cfnrain deploy --changeset <stackName> <changeSetName>")
 	Cmd.Flags().StringVar(&format.NodeStyle, "node-style", "original", format.NodeStyleDocs)
 	Cmd.Flags().BoolVar(&experimental, "experimental", false, "Acknowledge that you want to deploy with an experimental feature")
 	Cmd.Flags().BoolVar(&includeNested, "nested-change-set", true, "Whether or not to include nested stacks in the change set")

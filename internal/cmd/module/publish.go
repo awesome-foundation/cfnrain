@@ -2,8 +2,8 @@ package module
 
 import (
 	"fmt"
-	"github.com/aws-cloudformation/rain/internal/aws/codeartifact"
-	"github.com/aws-cloudformation/rain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/aws/codeartifact"
+	"github.com/awesome-foundation/cfnrain/internal/config"
 	"github.com/spf13/cobra"
 )
 

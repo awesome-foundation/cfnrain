@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aws-cloudformation/rain/cft"
+	"github.com/awesome-foundation/cfnrain/cft"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
 	"github.com/aws/smithy-go/ptr"
 	"gopkg.in/yaml.v3"

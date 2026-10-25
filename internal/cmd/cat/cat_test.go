@@ -3,7 +3,7 @@ package cat_test
 import (
 	"os"
 
-	"github.com/aws-cloudformation/rain/internal/cmd/cat"
+	"github.com/awesome-foundation/cfnrain/internal/cmd/cat"
 )
 
 func Example_cat_help() {
@@ -16,7 +16,7 @@ func Example_cat_help() {
 	// Output:
 	// Downloads the template or the configuration file used to deploy <stack> and prints it to stdout.
 	//
-	// The  `--config` flag can be used to get the rain config file for the stack instead of the template.
+	// The  `--config` flag can be used to get the cfnrain config file for the stack instead of the template.
 	//
 	// Usage:
 	//   cat <stack>

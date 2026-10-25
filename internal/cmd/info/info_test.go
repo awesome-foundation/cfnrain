@@ -3,7 +3,7 @@ package info_test
 import (
 	"os"
 
-	"github.com/aws-cloudformation/rain/internal/cmd/info"
+	"github.com/awesome-foundation/cfnrain/internal/cmd/info"
 )
 
 func Example_info_help() {

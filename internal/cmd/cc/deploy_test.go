@@ -3,8 +3,8 @@ package cc
 import (
 	"testing"
 
-	"github.com/aws-cloudformation/rain/cft/diff"
-	"github.com/aws-cloudformation/rain/cft/graph"
+	"github.com/awesome-foundation/cfnrain/cft/diff"
+	"github.com/awesome-foundation/cfnrain/cft/graph"
 )
 
 func TestReady(t *testing.T) {

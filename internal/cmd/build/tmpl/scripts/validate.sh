@@ -12,21 +12,21 @@ RULES="${SOURCE}/scripts/rules.guard"
 
 echo "Building templates..."
 echo "Building bucket..."
-./rain build --recommend bucket bucket -o ${OUT}/bucket/bucket.yaml
+./cfnrain build --recommend bucket bucket -o ${OUT}/bucket/bucket.yaml
 echo "Building website..."
-./rain build --recommend bucket website -o ${OUT}/bucket/website.yaml
+./cfnrain build --recommend bucket website -o ${OUT}/bucket/website.yaml
 echo "Building codecommit pipeline..."
-./rain build --recommend pipeline codecommit -o ${OUT}/pipeline/codecommit.yaml
+./cfnrain build --recommend pipeline codecommit -o ${OUT}/pipeline/codecommit.yaml
 echo "Building s3 pipeline..."
-./rain build --recommend pipeline s3 -o ${OUT}/pipeline/s3.yaml
+./cfnrain build --recommend pipeline s3 -o ${OUT}/pipeline/s3.yaml
 echo "Building ecs cluster..."
-./rain build --recommend ecs cluster -o ${OUT}/ecs/cluster.yaml
+./cfnrain build --recommend ecs cluster -o ${OUT}/ecs/cluster.yaml
 echo "Building VPC..."
-./rain build --recommend vpc vpc -o ${OUT}/vpc/vpc.yaml
+./cfnrain build --recommend vpc vpc -o ${OUT}/vpc/vpc.yaml
 echo "Building Event Bridge..."
-./rain build --recommend eventbridge central-logs -o ${OUT}/eventbridge/central-logs.yaml
+./cfnrain build --recommend eventbridge central-logs -o ${OUT}/eventbridge/central-logs.yaml
 echo "Building Web App..."
-./rain build --recommend webapp webapp -o ${OUT}/webapp/webapp.yaml
+./cfnrain build --recommend webapp webapp -o ${OUT}/webapp/webapp.yaml
 
 echo "Linting..."
 cfn-lint ${FILES}

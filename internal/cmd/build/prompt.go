@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/aws-cloudformation/rain/internal/aws/bedrock"
-	"github.com/aws-cloudformation/rain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/aws/bedrock"
+	"github.com/awesome-foundation/cfnrain/internal/config"
 )
 
 // prompt invokes bedrock to produce a template based on the prompt

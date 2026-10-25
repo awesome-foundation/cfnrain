@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/aws-cloudformation/rain/cft"
+	"github.com/awesome-foundation/cfnrain/cft"
 	"gopkg.in/yaml.v3"
 )
 

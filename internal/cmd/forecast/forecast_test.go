@@ -3,7 +3,7 @@ package forecast
 import (
 	"testing"
 
-	fc "github.com/aws-cloudformation/rain/plugins/forecast"
+	fc "github.com/awesome-foundation/cfnrain/plugins/forecast"
 )
 
 func TestForecastMethods(t *testing.T) {

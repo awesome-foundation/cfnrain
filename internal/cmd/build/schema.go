@@ -1,7 +1,7 @@
 package build
 
 import (
-	"github.com/aws-cloudformation/rain/internal/aws/cfn"
+	"github.com/awesome-foundation/cfnrain/internal/aws/cfn"
 )
 
 func getSchema(typeName string) (*cfn.Schema, error) {

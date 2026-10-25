@@ -1,10 +1,10 @@
 package tree
 
 import (
-	"github.com/aws-cloudformation/rain/internal/ui"
+	"github.com/awesome-foundation/cfnrain/internal/ui"
 
-	"github.com/aws-cloudformation/rain/cft/graph"
-	"github.com/aws-cloudformation/rain/cft/parse"
+	"github.com/awesome-foundation/cfnrain/cft/graph"
+	"github.com/awesome-foundation/cfnrain/cft/parse"
 	"github.com/spf13/cobra"
 )
 

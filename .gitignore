@@ -25,6 +25,8 @@ main
 rain
 !internal/cmd/rain
 !cmd/rain
+cfnrain
+!cmd/cfnrain
 parse-perf
 local/
 .idea

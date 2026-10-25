@@ -1,8 +1,8 @@
 package forecast
 
 import (
-	"github.com/aws-cloudformation/rain/internal/config"
-	fc "github.com/aws-cloudformation/rain/plugins/forecast"
+	"github.com/awesome-foundation/cfnrain/internal/config"
+	fc "github.com/awesome-foundation/cfnrain/plugins/forecast"
 )
 
 // AWS::AutoScaling::LaunchConfiguration

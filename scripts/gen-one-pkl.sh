@@ -11,7 +11,7 @@ fn=$(echo "$1" | awk -F '::' '/^AWS/ {print "pkl/" tolower($1) "/" tolower($2) "
 
 echo "${1}"
 
-./rain build --pkl-class $1 > ${fn} || exit 255
+./cfnrain build --pkl-class $1 > ${fn} || exit 255
 
 pkl eval ${fn} || exit 255
 

@@ -1,7 +1,7 @@
 package module
 
 import (
-	"github.com/aws-cloudformation/rain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -14,7 +14,7 @@ func checkExperimental() {
 var Cmd = &cobra.Command{
 	Use:   "module <command> ",
 	Short: "Interact with Rain modules in CodeArtifact",
-	Long: `The rain module command can be used to publish modules to CodeArtifact, and to install modules from CodeArtifact.
+	Long: `The cfnrain module command can be used to publish modules to CodeArtifact, and to install modules from CodeArtifact.
 
 	You must pass the --experimental (-x) flag to use this command, to acknowledge that it is experimental and likely to be unstable!
 `,

@@ -3,7 +3,7 @@ package watch_test
 import (
 	"os"
 
-	"github.com/aws-cloudformation/rain/internal/cmd/watch"
+	"github.com/awesome-foundation/cfnrain/internal/cmd/watch"
 )
 
 func Example_watch_help() {

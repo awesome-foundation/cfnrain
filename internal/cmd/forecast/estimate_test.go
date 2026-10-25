@@ -3,7 +3,7 @@ package forecast
 import (
 	"testing"
 
-	"github.com/aws-cloudformation/rain/cft/parse"
+	"github.com/awesome-foundation/cfnrain/cft/parse"
 )
 
 func TestResourceEstimate(t *testing.T) {

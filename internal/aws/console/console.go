@@ -10,10 +10,10 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/aws-cloudformation/rain/internal/aws"
-	"github.com/aws-cloudformation/rain/internal/aws/cfn"
-	"github.com/aws-cloudformation/rain/internal/aws/sts"
-	"github.com/aws-cloudformation/rain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/aws"
+	"github.com/awesome-foundation/cfnrain/internal/aws/cfn"
+	"github.com/awesome-foundation/cfnrain/internal/aws/sts"
+	"github.com/awesome-foundation/cfnrain/internal/config"
 	"github.com/aws/smithy-go/ptr"
 )
 
@@ -21,7 +21,7 @@ var signinURI string
 var consoleURI string
 var signoutURI string
 
-const issuer = "https://aws-cloudformation.github.io/rain/rain_console.html"
+const issuer = "https://awesome-foundation.github.io/cfnrain/cfnrain_console.html"
 const defaultService = "cloudformation"
 const sessionDuration = 43200
 
