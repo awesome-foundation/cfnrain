@@ -52,25 +52,6 @@ checksum:
 changelog:
   disable: true
 
-brews:
-  - repository:
-      owner: awesome-foundation
-      name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
-    directory: Formula
-    homepage: https://github.com/awesome-foundation/cfnrain
-    description: Command-line tool for AWS CloudFormation, a community fork of Rain
-    license: Apache-2.0
-    # homebrew-core's rain formula also installs a rain binary
-    conflicts:
-      - rain
-    install: |
-      bin.install "cfnrain"
-      bin.install_symlink "cfnrain" => "rain"
-    test: |
-      system bin/"cfnrain", "--version"
-      system bin/"rain", "--version"
-
 release:
   github:
     owner: awesome-foundation
