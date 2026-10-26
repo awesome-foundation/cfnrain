@@ -96,5 +96,5 @@ cfnrain deploy <template> [stack]
 
 ### SEE ALSO
 
-* [cfnrain](index.md)	 - 
+* [cfnrain](cfnrain.md)	 - 
 

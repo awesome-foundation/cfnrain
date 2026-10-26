@@ -1,0 +1,15 @@
+Modules:
+  Logs:
+    Source: ./bucket-module.yaml
+    Properties:
+      Name: billing-logs
+    Overrides:
+      Bucket:
+        DeletionPolicy: Retain
+        Properties:
+          VersioningConfiguration:
+            Status: Suspended
+
+Outputs:
+  LogsArn:
+    Value: !GetAtt Logs.Arn

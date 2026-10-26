@@ -29,5 +29,5 @@ cfnrain ls <stack> [changeset]
 
 ### SEE ALSO
 
-* [cfnrain](index.md)	 - 
+* [cfnrain](cfnrain.md)	 - 
 

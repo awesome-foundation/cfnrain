@@ -38,3 +38,6 @@ local/
 plugin.so
 dist/
 release-assets/
+
+# Documentation site build output (zensical build)
+site/

@@ -1,0 +1,12 @@
+Resources:
+  LogsBucket:
+    DeletionPolicy: Retain
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: billing-logs
+      VersioningConfiguration:
+        Status: Suspended
+
+Outputs:
+  LogsArn:
+    Value: !GetAtt LogsBucket.Arn

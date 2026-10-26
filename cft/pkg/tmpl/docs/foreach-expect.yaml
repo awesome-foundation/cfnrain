@@ -1,0 +1,37 @@
+Parameters:
+  Envs:
+    Type: CommaDelimitedList
+    Default: dev,stage,prod
+
+Resources:
+  Data0Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: billing-dev-0
+      VersioningConfiguration:
+        Status: Enabled
+
+  Data1Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: billing-stage-1
+      VersioningConfiguration:
+        Status: Enabled
+
+  Data2Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: billing-prod-2
+      VersioningConfiguration:
+        Status: Enabled
+
+Outputs:
+  ProdArn:
+    Value: !GetAtt Data2Bucket.Arn
+
+  AllArns:
+    Value: !Join
+      - ','
+      - - !GetAtt Data0Bucket.Arn
+        - !GetAtt Data1Bucket.Arn
+        - !GetAtt Data2Bucket.Arn

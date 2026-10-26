@@ -27,7 +27,7 @@ You must pass the --experimental (-x) flag to use this command, to acknowledge t
 
 ### SEE ALSO
 
-* [cfnrain](index.md)	 - 
+* [cfnrain](cfnrain.md)	 - 
 * [cfnrain cc deploy](cfnrain_cc_deploy.md)	 - Deploy a local template directly using the Cloud Control API (Experimental!)
 * [cfnrain cc drift](cfnrain_cc_drift.md)	 - Compare the state file to the live state of the resources
 * [cfnrain cc rm](cfnrain_cc_rm.md)	 - Delete a deployment created by cc deploy (Experimental!)

@@ -1,38 +1,51 @@
-## cfnrain
+# cfnrain
 
+cfnrain is a command line tool for AWS CloudFormation templates and stacks. It deploys stacks through change sets, packages local files into templates, formats templates, and shows stack logs.
 
+cfnrain is a community fork of [AWS CloudFormation Rain](https://github.com/aws-cloudformation/rain). AWS archived Rain on 2026-07-29 and plans no more releases. cfnrain continues from Rain's last commit, which is Rain v1.24.4 plus 22 commits.
 
-### Synopsis
+!!! note "Not an AWS project"
+    cfnrain is not affiliated with or endorsed by Amazon Web Services.
 
-cfnrain is a command line tool for working with AWS CloudFormation templates and stacks. It is a community fork of AWS CloudFormation Rain and is not affiliated with AWS.
+## What cfnrain does
 
-### Options
+- **Deploys stacks with change sets.** [`cfnrain deploy`](getting-started.md) packages the template, asks for parameter values, shows the change set, and waits for your confirmation. Then it streams the progress and prints a summary with any failure messages.
+- **Packages local files into templates.** [Template directives](directives/index.md) such as `!Rain::Embed` and `!Rain::S3` put file contents or S3 locations into a template. [Modules](modules/index.md) split one template into many files.
+- **Formats templates.** [`cfnrain fmt`](commands/template.md#fmt) writes templates in one consistent style, keeps your comments, and converts between JSON and YAML.
+- **Shows stack logs.** [`cfnrain logs`](commands/stack.md#logs) shows the events of a stack and its nested stacks, and hides the events that are not interesting.
 
-```
-      --debug       Output debugging information
-  -h, --help        help for cfnrain
-      --no-colour   Disable colour output
-```
+## Compatibility with Rain
 
-### SEE ALSO
+cfnrain works as a replacement for Rain v1.24.4. Your templates, config files and AWS accounts work with no changes:
 
-* [cfnrain bootstrap](cfnrain_bootstrap.md)	 - Creates the artifacts bucket
-* [cfnrain build](cfnrain_build.md)	 - Create CloudFormation templates
-* [cfnrain cat](cfnrain_cat.md)	 - Get the CloudFormation template from a running stack
-* [cfnrain cc](cfnrain_cc.md)	 - Interact with templates using Cloud Control API instead of CloudFormation
-* [cfnrain console](cfnrain_console.md)	 - Login to the AWS console
-* [cfnrain deploy](cfnrain_deploy.md)	 - Deploy a CloudFormation stack or changeset from a local template
-* [cfnrain diff](cfnrain_diff.md)	 - Compare CloudFormation templates
-* [cfnrain fmt](cfnrain_fmt.md)	 - Format CloudFormation templates
-* [cfnrain forecast](cfnrain_forecast.md)	 - Predict deployment failures
-* [cfnrain info](cfnrain_info.md)	 - Show your current configuration
-* [cfnrain logs](cfnrain_logs.md)	 - Show the event log for the named stack
-* [cfnrain ls](cfnrain_ls.md)	 - List running CloudFormation stacks or changesets
-* [cfnrain merge](cfnrain_merge.md)	 - Merge two or more CloudFormation templates
-* [cfnrain module](cfnrain_module.md)	 - Interact with Rain modules in CodeArtifact
-* [cfnrain pkg](cfnrain_pkg.md)	 - Package local artifacts into a template
-* [cfnrain rm](cfnrain_rm.md)	 - Delete a CloudFormation stack or changeset
-* [cfnrain stackset](cfnrain_stackset.md)	 - This command manipulates stack sets.
-* [cfnrain tree](cfnrain_tree.md)	 - Find dependencies of Resources and Outputs in a local template
-* [cfnrain watch](cfnrain_watch.md)	 - Display an updating view of a CloudFormation stack
+- The `!Rain::*` directives, the `Rain:` template section, the `Modules`, `Packages` and `Constants` sections, and the bucket `Metadata.Rain` commands work as before.
+- The `RAIN_VAR_*` and `RAIN_DEFAULT_TAG_*` environment variables work as before.
+- cfnrain uses the same artifact bucket (`rain-artifacts-<account>-<region>`) and the same `rain-bucket` SSM parameter.
+- Scripts that call `rain` keep working when you link the name. See [Install](install.md#keep-the-rain-name).
 
+## What changed
+
+| Item | Rain | cfnrain |
+|------|------|---------|
+| Command name | `rain` | `cfnrain` |
+| Go module | `github.com/aws-cloudformation/rain` | `github.com/awesome-foundation/cfnrain` |
+| User agent that AWS sees | `Rain/<version>` | `cfnrain/<version>` |
+| Role session name when cfnrain assumes a role from your profile | `Rain-<version>` | `cfnrain-<version>` |
+| `Metadata.AWSToolsMetrics` block in packaged templates | Added | Not added. `--no-analytics` is accepted and has no effect. |
+
+If a role trust policy allows only session names that match `Rain-*`, add `cfnrain-*`. See [Migrating from rain](migrating.md) for the full list.
+
+## Where to start
+
+1. [Install cfnrain](install.md).
+2. [Deploy your first stack](getting-started.md).
+3. Read about the [commands](commands/stack.md) and the [template directives](directives/index.md).
+4. Use cfnrain [in CI](ci.md).
+
+The [command reference](cfnrain.md) lists every command and flag. It is generated from the code, so it always matches the binary.
+
+## Project
+
+- Source and releases: [github.com/awesome-foundation/cfnrain](https://github.com/awesome-foundation/cfnrain)
+- Questions and ideas: [GitHub Discussions](https://github.com/awesome-foundation/cfnrain/discussions)
+- License: Apache 2.0. The `NOTICE` file keeps the original Rain copyright.

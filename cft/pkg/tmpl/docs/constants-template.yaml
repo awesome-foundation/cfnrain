@@ -1,0 +1,18 @@
+Parameters:
+  Env:
+    Type: String
+
+Rain:
+  Constants:
+    App: billing
+    Prefix: !Sub ${Env}-${Rain::App}
+
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${Env}-${Rain::App}-uploads
+  Table:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Rain::Constant Prefix

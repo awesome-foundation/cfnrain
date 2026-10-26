@@ -23,7 +23,7 @@ This command manipulates stack sets. It has no action if specific stack set comm
 
 ### SEE ALSO
 
-* [cfnrain](index.md)	 - 
+* [cfnrain](cfnrain.md)	 - 
 * [cfnrain stackset deploy](cfnrain_stackset_deploy.md)	 - Deploy a CloudFormation stack set from a local template
 * [cfnrain stackset ls](cfnrain_stackset_ls.md)	 - List a CloudFormation stack sets in a given region
 * [cfnrain stackset rm](cfnrain_stackset_rm.md)	 - Delete a CloudFormation stack set and/or its instances.

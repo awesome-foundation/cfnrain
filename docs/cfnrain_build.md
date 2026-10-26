@@ -40,5 +40,5 @@ cfnrain build [<resource type>] or <prompt>
 
 ### SEE ALSO
 
-* [cfnrain](index.md)	 - 
+* [cfnrain](cfnrain.md)	 - 
 

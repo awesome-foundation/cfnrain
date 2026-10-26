@@ -41,10 +41,6 @@ func emptyStr(s string) string {
 }
 
 func identity(s string) string {
-	if s == "cfnrain.md" {
-		return "index.md"
-	}
-
 	return s
 }
 
@@ -60,21 +56,9 @@ func main() {
 		panic(err)
 	}
 
-	err = os.Rename("cfnrain.md", "index.md")
-	if err != nil {
-		panic(err)
-	}
-
-	// Generate usage
-	usage := bytes.Buffer{}
-	rain.Cmd.SetOut(&usage)
-	rain.Cmd.Usage()
-
 	// Generate README
 	buf := bytes.Buffer{}
-	err = tmpl.Execute(&buf, map[string]string{
-		"Usage": usage.String(),
-	})
+	err = tmpl.Execute(&buf, nil)
 	if err != nil {
 		panic(err)
 	}

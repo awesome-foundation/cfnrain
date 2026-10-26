@@ -1,0 +1,19 @@
+Parameters:
+  Envs:
+    Type: CommaDelimitedList
+    Default: dev,stage,prod
+
+Modules:
+  Data:
+    Source: ./bucket-module.yaml
+    ForEach: !Ref Envs
+    Properties:
+      Name: billing-$Identifier-$Index
+
+Outputs:
+  ProdArn:
+    Value: !GetAtt Data[2].Arn
+  AllArns:
+    Value: !Join
+      - ","
+      - !GetAtt Data[].Arn

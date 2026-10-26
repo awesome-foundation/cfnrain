@@ -1,0 +1,146 @@
+# Documentation site for cfnrain, built with Zensical.
+# CI pins the Zensical version in .github/workflows/docs.yml.
+# Build locally from the repository root: zensical build --clean --strict
+
+[project]
+site_name = "cfnrain"
+site_description = "A command line tool for AWS CloudFormation templates and stacks"
+site_url = "https://awesome-foundation.github.io/cfnrain/"
+repo_url = "https://github.com/awesome-foundation/cfnrain"
+repo_name = "awesome-foundation/cfnrain"
+edit_uri = "edit/main/docs/"
+docs_dir = "docs"
+site_dir = "site"
+
+# The console federation issuer in internal/aws/console/console.go is
+# https://awesome-foundation.github.io/cfnrain/cfnrain_console.html.
+# Directory URLs would move that page to cfnrain_console/, so keep them off.
+use_directory_urls = false
+
+# Build inputs that live in docs/ but are not pages
+exclude_docs = """
+README.tmpl
+generate.go
+"""
+
+nav = [
+  { "Home" = "index.md" },
+  { "Install" = "install.md" },
+  { "Getting started" = "getting-started.md" },
+  { "Commands" = [
+    { "Stack commands" = "commands/stack.md" },
+    { "Template commands" = "commands/template.md" },
+    { "Other commands" = "commands/other.md" },
+  ] },
+  { "Template directives" = [
+    "directives/index.md",
+    { "Embed" = "directives/embed.md" },
+    { "Include" = "directives/include.md" },
+    { "Env" = "directives/env.md" },
+    { "S3 and S3Http" = "directives/s3.md" },
+    { "Constants" = "directives/constants.md" },
+    { "Implicit uploads" = "directives/implicit-uploads.md" },
+  ] },
+  { "Modules" = [
+    "modules/index.md",
+    { "ForEach" = "modules/foreach.md" },
+    { "Constants section" = "modules/constants.md" },
+    { "Intrinsic functions" = "modules/intrinsics.md" },
+    { "IfParam and conditions" = "modules/conditions.md" },
+    { "Packages" = "modules/packages.md" },
+  ] },
+  { "S3 bucket metadata" = "bucket-metadata.md" },
+  { "CI usage" = "ci.md" },
+  { "Migrating from rain" = "migrating.md" },
+  { "Pkl" = "pkl.md" },
+  { "Known issues" = "known-issues.md" },
+  { "Command reference" = [
+    { "cfnrain" = "cfnrain.md" },
+    { "bootstrap" = "cfnrain_bootstrap.md" },
+    { "build" = "cfnrain_build.md" },
+    { "cat" = "cfnrain_cat.md" },
+    { "cc" = "cfnrain_cc.md" },
+    { "cc deploy" = "cfnrain_cc_deploy.md" },
+    { "cc drift" = "cfnrain_cc_drift.md" },
+    { "cc rm" = "cfnrain_cc_rm.md" },
+    { "cc state" = "cfnrain_cc_state.md" },
+    { "console" = "cfnrain_console.md" },
+    { "deploy" = "cfnrain_deploy.md" },
+    { "diff" = "cfnrain_diff.md" },
+    { "fmt" = "cfnrain_fmt.md" },
+    { "forecast" = "cfnrain_forecast.md" },
+    { "info" = "cfnrain_info.md" },
+    { "logs" = "cfnrain_logs.md" },
+    { "ls" = "cfnrain_ls.md" },
+    { "merge" = "cfnrain_merge.md" },
+    { "module" = "cfnrain_module.md" },
+    { "module bootstrap" = "cfnrain_module_bootstrap.md" },
+    { "module install" = "cfnrain_module_install.md" },
+    { "module publish" = "cfnrain_module_publish.md" },
+    { "pkg" = "cfnrain_pkg.md" },
+    { "rm" = "cfnrain_rm.md" },
+    { "stackset" = "cfnrain_stackset.md" },
+    { "stackset deploy" = "cfnrain_stackset_deploy.md" },
+    { "stackset ls" = "cfnrain_stackset_ls.md" },
+    { "stackset rm" = "cfnrain_stackset_rm.md" },
+    { "tree" = "cfnrain_tree.md" },
+    { "watch" = "cfnrain_watch.md" },
+  ] },
+]
+
+[project.theme]
+language = "en"
+features = [
+  "content.action.edit",
+  "content.code.annotate",
+  "content.code.copy",
+  "content.code.select",
+  "content.tabs.link",
+  "navigation.footer",
+  "navigation.indexes",
+  "navigation.path",
+  "navigation.sections",
+  "navigation.top",
+  "navigation.tracking",
+  "search.highlight",
+]
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme)"
+toggle.icon = "lucide/sun-moon"
+toggle.name = "Switch to light mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to system preference"
+
+[project.markdown_extensions]
+admonition = {}
+attr_list = {}
+def_list = {}
+md_in_html = {}
+tables = {}
+toc.permalink = true
+pymdownx.details = {}
+pymdownx.highlight.anchor_linenums = true
+pymdownx.highlight.line_spans = "__span"
+pymdownx.highlight.pygments_lang_class = true
+pymdownx.inlinehilite = {}
+pymdownx.superfences = {}
+pymdownx.tabbed.alternate_style = true
+pymdownx.tabbed.combine_header_slug = true
+
+# Pages include the tested example templates from cft/pkg/tmpl, so the
+# base path is the repository root. check_paths fails the build when an
+# included file is missing.
+[project.markdown_extensions.pymdownx.snippets]
+base_path = ["."]
+check_paths = true

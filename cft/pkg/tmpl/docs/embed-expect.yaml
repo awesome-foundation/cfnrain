@@ -1,0 +1,14 @@
+Resources:
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.13
+      Handler: index.main
+      Role: !GetAtt FunctionRole.Arn
+      Code:
+        ZipFile: |-
+          import json
+
+
+          def main(event, context):
+              return {"statusCode": 200, "body": json.dumps({"ok": True})}
