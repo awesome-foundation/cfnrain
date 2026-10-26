@@ -56,6 +56,12 @@ release:
   github:
     owner: awesome-foundation
     name: cfnrain
+  # Immutable releases are on, so a published release is locked at once.
+  # release-please creates a draft with its tag, goreleaser fills that draft,
+  # and the workflow publishes it after the provenance attestations.
+  draft: true
+  use_existing_draft: true
+  mode: keep-existing
   extra_files:
     - glob: ./release-assets/modules.zip
     - glob: ./release-assets/modules.sha256
