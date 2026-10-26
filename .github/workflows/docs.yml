@@ -71,7 +71,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-    uses: awesome-foundation/preview/.github/workflows/publish.yml@main
+    uses: awesome-foundation/preview/.github/workflows/publish.yml@c20e296d0888dfe418ef42dabb9e0664e7bc5ade # main as of 2026-10-26
     with:
       project: cfnrain
     secrets: inherit
@@ -84,7 +84,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
-    uses: awesome-foundation/preview/.github/workflows/teardown.yml@main
+    uses: awesome-foundation/preview/.github/workflows/teardown.yml@c20e296d0888dfe418ef42dabb9e0664e7bc5ade # main as of 2026-10-26
     with:
       project: cfnrain
     secrets: inherit
