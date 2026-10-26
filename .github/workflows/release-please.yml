@@ -39,7 +39,9 @@ jobs:
       - uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
-          args: release --clean
+          # Four parallel cross-compiles with the embedded schemas ran the
+          # runner out of memory, so build two targets at a time
+          args: release --clean --parallelism 2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # Build provenance for every archive listed in checksums.txt. Public
@@ -54,3 +56,8 @@ jobs:
         if: ${{ !github.event.repository.private }}
         with:
           subject-path: ./dist/checksums.txt
+      # Publish only now, with every asset attached: immutable releases lock on publish
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "${{ needs.release-please.outputs.tag_name }}" --repo "${{ github.repository }}" --draft=false
