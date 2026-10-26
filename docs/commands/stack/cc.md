@@ -25,10 +25,10 @@ cfnrain cc rm -x app-dev
 | `--s3-owner` | `cc` | The account that owns the bucket |
 | `--params` | `deploy` | Parameter values, in the format `key1=value1,key2=value2` |
 | `--tags` | `deploy` | Tags, in the format `key1=value1,key2=value2` |
-| `-c`, `--config` | `deploy` | A YAML or JSON file with parameters and tags, as for [`deploy`](../../getting-started.md#parameters-and-tags) |
+| `-c`, `--config` | `deploy` | A YAML or JSON file with parameters and tags, as for [`deploy`](../../concepts/deploying.md#config-file) |
 | `--ignore-unknown-params` | `deploy` | Ignore parameters that the template does not declare |
 | `-u`, `--unlock` | `deploy` | Remove the lock with this ID and continue |
 | `-y`, `--yes` | `deploy`, `rm` | Do not ask questions |
 
 !!! warning "State files expire in buckets that cfnrain creates"
-    The artifact bucket that cfnrain creates deletes all objects after 7 days. That includes the `cc` state files. Use `--s3-bucket` with a bucket that keeps its objects.
+    The `cc` state files expire with the other objects in the artifact bucket. See [Objects expire after 7 days](../../concepts/artifact-bucket.md#objects-expire-after-7-days).

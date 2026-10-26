@@ -1,6 +1,6 @@
 # Template commands
 
-These commands work with template files on your computer. `diff`, `fmt`, `merge` and `tree` need no AWS credentials. `pkg`, `bootstrap`, `build`, `forecast` and `module` can call AWS, so they take `-p` (`--profile`) and `-r` (`--region`). Every command also takes `--debug` and `--no-colour`, and prints its usage with `-h` (`--help`).
+These commands work with template files on your computer. `diff`, `fmt`, `merge` and `tree` need no AWS credentials. `pkg`, `bootstrap`, `build`, `forecast` and `module` can call AWS, so they take `-p` (`--profile`) and `-r` (`--region`). See [Common flags](../common-flags.md).
 
 The output on these pages comes from real runs of cfnrain, unless a page says otherwise.
 

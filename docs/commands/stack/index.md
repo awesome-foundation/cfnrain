@@ -1,6 +1,6 @@
 # Stack commands
 
-These commands work with deployed CloudFormation stacks. All of them take `-p` (`--profile`) and `-r` (`--region`). Every command also takes `--debug` and `--no-colour`, and prints its usage with `-h` (`--help`).
+These commands work with deployed CloudFormation stacks. All of them take the [common flags](../common-flags.md), including `-p` (`--profile`) and `-r` (`--region`).
 
 The command output on these pages is illustrative. It needs a real AWS account, so the names, IDs and times in your output will be different.
 

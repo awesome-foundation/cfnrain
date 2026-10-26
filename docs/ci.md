@@ -4,44 +4,44 @@ cfnrain works in CI without changes. This page shows how to install it in GitHub
 
 ## Install in GitHub Actions
 
-Pin the version, download the archive, and check it before you install it:
+Put the install steps in a local composite action, so every job can use them. Save this file as `.github/actions/install-cfnrain/action.yml` in your repository:
 
 ```yaml
-- name: Install cfnrain
-  env:
-    CFNRAIN_VERSION: 1.25.2
-    GH_TOKEN: ${{ github.token }}
-  run: |
-    cd "$RUNNER_TEMP"
-    archive="cfnrain_${CFNRAIN_VERSION}_linux_amd64.tar.gz"
-    gh release download "v${CFNRAIN_VERSION}" -R awesome-foundation/cfnrain \
-      -p "$archive" -p checksums.txt
-    sha256sum --ignore-missing -c checksums.txt
-    gh attestation verify "$archive" -R awesome-foundation/cfnrain
-    tar -xzf "$archive" cfnrain
-    sudo install cfnrain /usr/local/bin/cfnrain
-    cfnrain --version
+name: Install cfnrain
+inputs:
+  version:
+    description: The cfnrain version, for example 1.25.2
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        cd "$RUNNER_TEMP"
+        archive="cfnrain_${VERSION}_linux_amd64.tar.gz"
+        gh release download "v${VERSION}" -R awesome-foundation/cfnrain \
+          -p "$archive" -p checksums.txt
+        sha256sum --ignore-missing -c checksums.txt
+        gh attestation verify "$archive" -R awesome-foundation/cfnrain
+        tar -xzf "$archive" cfnrain
+        sudo install cfnrain /usr/local/bin/cfnrain
+        cfnrain --version
 ```
 
 `sha256sum` fails the step when the archive does not match `checksums.txt`. `gh attestation verify` fails the step when the archive was not built by the cfnrain release workflow. See [Install](install.md) for the details.
 
 ## Deploy without questions
 
-In CI there is nobody to answer a prompt. Use `-y`:
+In CI there is nobody to answer a prompt. Use `-y`, and give every parameter a value from `--params`, a config file or a `RAIN_VAR_*` variable. See [Without questions](concepts/deploying.md#without-questions).
 
 ```sh
-cfnrain deploy app.yaml app-prod -y -c config/prod.yaml
+cfnrain deploy app.yaml app-prod -y -c config/prod.yaml --no-colour
 ```
 
-With `-y`:
-
-- cfnrain does not ask for parameters. Every parameter needs a value from `--params`, the config file, a `RAIN_VAR_*` variable, a default, or the existing stack. If one has none, the deploy fails with an error.
-- cfnrain does not show the change set before it executes it.
-- cfnrain creates the artifact bucket if it does not exist.
-
-The exit status is 0 when the stack reaches `CREATE_COMPLETE`, `UPDATE_COMPLETE` or `IMPORT_COMPLETE`, and when there are no changes. Any other result exits with a status that is not 0, so the CI job fails.
-
-`--no-colour` removes the color codes from the output. This makes CI logs easier to read.
+When the deploy fails, cfnrain exits with a status that is not 0, so the CI job fails. See [Exit status](concepts/deploying.md#exit-status). `--no-colour` removes the color codes from the output, so the CI logs are easier to read.
 
 ## A complete workflow
 
@@ -67,17 +67,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install cfnrain
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          cd "$RUNNER_TEMP"
-          archive="cfnrain_${CFNRAIN_VERSION}_linux_amd64.tar.gz"
-          gh release download "v${CFNRAIN_VERSION}" -R awesome-foundation/cfnrain \
-            -p "$archive" -p checksums.txt
-          sha256sum --ignore-missing -c checksums.txt
-          tar -xzf "$archive" cfnrain
-          sudo install cfnrain /usr/local/bin/cfnrain
+      - uses: ./.github/actions/install-cfnrain
+        with:
+          version: ${{ env.CFNRAIN_VERSION }}
       - name: Check template format
         run: cfnrain fmt -v app.yaml
 
@@ -88,17 +80,9 @@ jobs:
     environment: production
     steps:
       - uses: actions/checkout@v4
-      - name: Install cfnrain
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          cd "$RUNNER_TEMP"
-          archive="cfnrain_${CFNRAIN_VERSION}_linux_amd64.tar.gz"
-          gh release download "v${CFNRAIN_VERSION}" -R awesome-foundation/cfnrain \
-            -p "$archive" -p checksums.txt
-          sha256sum --ignore-missing -c checksums.txt
-          tar -xzf "$archive" cfnrain
-          sudo install cfnrain /usr/local/bin/cfnrain
+      - uses: ./.github/actions/install-cfnrain
+        with:
+          version: ${{ env.CFNRAIN_VERSION }}
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::123456789012:role/github-deploy
@@ -121,7 +105,9 @@ A preview shows the reviewers what a pull request will change in the stack, befo
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-      # Install cfnrain as in the deploy job
+      - uses: ./.github/actions/install-cfnrain
+        with:
+          version: ${{ env.CFNRAIN_VERSION }}
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::123456789012:role/github-preview
@@ -165,10 +151,10 @@ Notes:
 - The `Replacement` column shows `True` when CloudFormation will replace a resource. Look for it in the review.
 - Use a role for the preview that can create change sets but cannot execute them.
 - The `if` condition skips pull requests from forks. Those runs get no AWS credentials, and they should not.
-- For a stack that does not exist yet, the change set leaves an empty stack in `REVIEW_IN_PROGRESS`. The next `cfnrain deploy` deletes it without a question. See [Getting started](getting-started.md#change-the-stack).
+- For a stack that does not exist yet, the change set leaves an empty stack in `REVIEW_IN_PROGRESS`. The next `cfnrain deploy` deletes it without a question. See [Updates](concepts/deploying.md#updates).
 
 !!! warning "-x is --no-exec on deploy"
-    On `deploy`, `-x` means `--no-exec`. On other commands, `-x` means `--experimental`. Write the long flag names in CI scripts, so the intent is clear.
+    Write the long flag names in CI scripts. See [Experimental features](concepts/experimental.md#-x-means-no-exec-on-deploy).
 
 ## Other checks
 
@@ -177,4 +163,4 @@ Notes:
 - `cfnrain forecast -x <file> <stack>` exits with status 1 when a check fails. It is experimental.
 
 !!! danger "Do not run info --creds in CI"
-    `cfnrain info --creds` prints the secret key and session token. CI logs keep them.
+    It prints your secret key, and CI logs keep it. See [`info`](commands/account/info.md).

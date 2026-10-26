@@ -81,6 +81,6 @@ When `EmptyOnDelete` is `true`, `cfnrain rm` asks for confirmation and then dele
     With `--detach`, cfnrain does not wait for the stack. It runs `RunAfter`, the upload and the invalidation right away, while CloudFormation is still working. On a new stack the bucket may not exist yet. Do not use `--detach` with `Metadata.Rain`.
 
 !!! warning "Templates run code"
-    `RunBefore` and `RunAfter` run programs from your computer. Only deploy templates that you trust.
+    `RunBefore` and `RunAfter` run programs from your computer. See [Templates can run code](concepts/packaging.md#templates-can-run-code).
 
 A complete example with modules is in [`test/webapp`](https://github.com/awesome-foundation/cfnrain/tree/main/test/webapp).

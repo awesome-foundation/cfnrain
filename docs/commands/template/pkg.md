@@ -12,7 +12,7 @@ cfnrain pkg app.yaml -o app.packaged.yaml
 |------|--------------|
 | `-o`, `--output` | Write the result to a file |
 | `-x`, `--experimental` | Allow `!Rain::Module` |
-| `--s3-bucket`, `--s3-prefix`, `--s3-owner` | Control where uploads go. See [Artifact bucket](../../getting-started.md#the-artifact-bucket). |
+| `--s3-bucket`, `--s3-prefix`, `--s3-owner` | Control where uploads go. See [Artifact bucket](../common-flags.md#artifact-bucket). |
 | `--node-style` | How to write YAML values, as for [`fmt`](fmt.md) |
 | `--datamodel` | Print the internal YAML data model. This is for debugging cfnrain. |
 | `--no-analytics` | Has no effect. cfnrain keeps it so that old scripts still work. |
