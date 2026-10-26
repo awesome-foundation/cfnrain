@@ -41,15 +41,13 @@ You may use the following, rain-specific directives in templates packaged with "
 
   !Rain::S3 <object>           supply an object with the following properties: 
     Path: <path>               a file or directory to be uploaded to S3
-    Zip: true|false            If "true", cfnrain will zip <path> even if it is a file
+    Zip: true|false            If "true", cfnrain with zip <path> even if it is a file
     BucketProperty: <bucket>   If you supply "BucketProperty" and "KeyProperty", cfnrain pkg will
     KeyProperty: <key>         include the uploaded file/directory's details as an object in the template
                                with the property names you specify.
-    Format: URI|Http|Object    Specify which format cfnrain pkg should return the S3 location as.
-                               The default is "Object" if you supply BucketProperty and KeyProperty,
-                               and "URI" otherwise. The values are case sensitive.
-    Run: <script>              A script to run before the upload, relative to the template
-    Extension: <ext>           An extension to add to the S3 object key
+    Format: Uri|Http           Specify which format cfnrain pkg should return the S3 location as.
+                               Do not specify this property if you supply BucketProperty and KeyProperty.
+                               The default Format is "Uri".
 
   !Rain::Module <url>          Supply a URL to a rain module, which is similar to a CloudFormation module, 
                                but allows for type inheritance. One of the resources in the module yaml file 
