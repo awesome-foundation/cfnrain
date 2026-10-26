@@ -1,0 +1,19 @@
+Parameters:
+  DeadLetterArn:
+    Type: String
+
+Resources:
+  Queue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      Rain:
+        IfParam: DeadLetterArn
+    Properties:
+      RedrivePolicy:
+        deadLetterTargetArn: !Ref DeadLetterArn
+        maxReceiveCount: 5
+  SimpleQueue:
+    Type: AWS::SQS::Queue
+    Metadata:
+      Rain:
+        IfNotParam: DeadLetterArn

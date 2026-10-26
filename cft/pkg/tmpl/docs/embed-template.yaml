@@ -1,0 +1,9 @@
+Resources:
+  Function:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.13
+      Handler: index.main
+      Role: !GetAtt FunctionRole.Arn
+      Code:
+        ZipFile: !Rain::Embed handler.py

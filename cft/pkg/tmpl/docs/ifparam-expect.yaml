@@ -1,0 +1,10 @@
+Resources:
+  OrdersQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      RedrivePolicy:
+        deadLetterTargetArn: arn:aws:sqs:us-east-1:123456789012:orders-dlq
+        maxReceiveCount: 5
+
+  EventsSimpleQueue:
+    Type: AWS::SQS::Queue

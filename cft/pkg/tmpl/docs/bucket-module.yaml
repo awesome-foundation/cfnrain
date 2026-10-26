@@ -1,0 +1,15 @@
+Parameters:
+  Name:
+    Type: String
+
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref Name
+      VersioningConfiguration:
+        Status: Enabled
+
+Outputs:
+  Arn:
+    Value: !GetAtt Bucket.Arn
