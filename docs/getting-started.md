@@ -193,7 +193,7 @@ cfnrain rm -c billing-prod release-42
 | `--role-arn` | The IAM role that CloudFormation assumes to deploy the stack. |
 | `--nested-change-set=false` | Do not include nested stacks in the change set. |
 | `--experimental` | Allow experimental features, such as [S3 bucket metadata](bucket-metadata.md) and `!Rain::Module`. |
-| `--node-style` | How to write YAML values in the template that cfnrain sends. The values are the same as for [`fmt --node-style`](commands/template.md#fmt). The default is `original`. |
+| `--node-style` | How to write YAML values in the template that cfnrain sends. The values are the same as for [`fmt --node-style`](commands/template/fmt.md). The default is `original`. |
 | `--no-analytics` | Has no effect. cfnrain keeps it so that old scripts still work. |
 | `-p`, `--profile` and `-r`, `--region` | The AWS profile and region |
 

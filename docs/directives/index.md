@@ -2,7 +2,7 @@
 
 Directives are YAML tags that start with `!Rain::`. cfnrain processes them when it packages a template, and replaces each one with a plain value. CloudFormation never sees them.
 
-These commands package templates: [`pkg`](../commands/template.md#pkg), [`deploy`](../getting-started.md), [`forecast`](../commands/template.md#forecast-experimental), [`stackset deploy`](../commands/stack.md#stackset-deploy) and [`cc deploy`](../commands/stack.md#cc-experimental). Run `cfnrain pkg` to see the packaged template before you deploy it.
+These commands package templates: [`pkg`](../commands/template/pkg.md), [`deploy`](../getting-started.md), [`forecast`](../commands/template/forecast.md), [`stackset deploy`](../commands/stack/stackset.md#stackset-deploy) and [`cc deploy`](../commands/stack/cc.md). Run `cfnrain pkg` to see the packaged template before you deploy it.
 
 | Directive | What it inserts | Needs AWS |
 |-----------|-----------------|-----------|
