@@ -7,6 +7,8 @@ on:
       - main
   schedule:
     - cron: '0 12 * * *'  # Daily at 12:00 UTC
+  # The release workflow dispatches this for release-please PRs (see release-please.yml)
+  workflow_dispatch:
 
 name: Security Scan
 

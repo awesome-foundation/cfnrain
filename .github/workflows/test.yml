@@ -4,6 +4,8 @@ on:
       - main
   # Any base branch, so stacked PRs get tested too
   pull_request:
+  # The release workflow dispatches this for release-please PRs (see release-please.yml)
+  workflow_dispatch:
 
 name: Unit tests
 
