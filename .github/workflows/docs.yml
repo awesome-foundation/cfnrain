@@ -1,0 +1,90 @@
+name: Documentation
+
+# Builds the site with Zensical. A push to main deploys it to GitHub Pages.
+# A pull request publishes a preview under
+# https://awesome-foundation.github.io/preview/cfnrain/pr-<number>/
+# and closing the pull request removes it.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: read
+
+env:
+  # Zensical is pre-1.0 and releases often. Update this on purpose.
+  ZENSICAL_VERSION: "0.0.73"
+
+jobs:
+  build:
+    if: github.event_name == 'push' || github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: 3.x
+      - run: pip install "zensical==${ZENSICAL_VERSION}"
+      # --strict fails the build on broken links, missing anchors and
+      # missing example files
+      - run: zensical build --clean --strict
+      - if: github.event_name == 'push'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+      - if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: preview-site
+          path: site
+          retention-days: 1
+
+  deploy:
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/deploy-pages@v5
+        id: deployment
+
+  # Secrets do not reach pull requests from forks, so previews cover
+  # branches in this repository only
+  publish:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    needs: build
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: awesome-foundation/preview/.github/workflows/publish.yml@main
+    with:
+      project: cfnrain
+    secrets: inherit
+
+  teardown:
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      pull-requests: read
+    uses: awesome-foundation/preview/.github/workflows/teardown.yml@main
+    with:
+      project: cfnrain
+    secrets: inherit
