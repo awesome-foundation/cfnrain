@@ -1,6 +1,6 @@
-# Other commands
+# Account commands
 
-These commands do not work with templates or stacks directly. Both take `-p` (`--profile`) and `-r` (`--region`). Both also take `--debug` and `--no-colour`, and print their usage with `-h` (`--help`).
+These commands work with your AWS account and credentials. Both take the [common flags](../common-flags.md), including `-p` (`--profile`) and `-r` (`--region`).
 
 The output on these pages is illustrative. It needs a real AWS account.
 

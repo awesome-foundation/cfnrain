@@ -7,4 +7,4 @@ cfnrain bootstrap
 cfnrain bootstrap -y --s3-bucket my-artifacts
 ```
 
-`-y` (`--yes`) creates the bucket without asking. `--s3-bucket`, `--s3-prefix` and `--s3-owner` work as for `pkg`. See [Artifact bucket](../../getting-started.md#the-artifact-bucket) for the bucket name and settings.
+`-y` (`--yes`) creates the bucket without asking. `--s3-bucket`, `--s3-prefix` and `--s3-owner` are the [artifact bucket flags](../common-flags.md#artifact-bucket). See [The artifact bucket](../../concepts/artifact-bucket.md) for the bucket name and settings.

@@ -50,11 +50,7 @@ The cloudformation-pkl package is an AWS project. cfnrain does not maintain it.
 cfnrain fmt -p template.yaml > template.pkl
 ```
 
-| Flag | What it does |
-|------|--------------|
-| `-p`, `--pkl` | Write Pkl |
-| `--pkl-basic` | Do not use the Pkl modules for each resource type |
-| `--pkl-package` | The alias or URI of the Pkl package to import. The default is `@cfn`. |
+`--pkl-basic` and `--pkl-package` change the Pkl output. See [`fmt`](commands/template/fmt.md).
 
 `cfnrain build --pkl-class <type>` writes a Pkl class for a resource type.
 

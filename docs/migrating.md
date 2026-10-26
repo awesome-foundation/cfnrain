@@ -5,11 +5,7 @@ cfnrain starts from Rain v1.24.4 plus 22 later commits. Templates, config files,
 ## Steps
 
 1. [Install cfnrain](install.md).
-2. Replace `rain` with `cfnrain` in your scripts and CI workflows. Or link the old name, so the scripts do not change:
-
-    ```sh
-    ln -s "$(command -v cfnrain)" /usr/local/bin/rain
-    ```
+2. Replace `rain` with `cfnrain` in your scripts and CI workflows. Or [link the old name](install.md#keep-the-rain-name), so the scripts do not change.
 
 3. If an IAM role trust policy limits the session name, allow `cfnrain-*`. See [Role session name](#role-session-name).
 4. Remove the Rain binary or the Homebrew formula when you no longer need it.
@@ -64,13 +60,4 @@ Rain added a `Metadata.AWSToolsMetrics.Rain` block to every packaged template. c
 
 ### Documentation
 
-The Rain documentation at `aws-cloudformation.github.io/rain` is frozen. This site replaces it. Some things that the old README said were wrong:
-
-- On `deploy`, `-x` is `--no-exec`, not `--experimental`. See [Getting started](getting-started.md#change-sets-without-executing).
-- The `Modules` section does not need `--experimental`. Only `!Rain::Module` and bucket metadata do.
-- `!Rain::S3` takes `Format: URI`, not `Uri`. See [S3](directives/s3.md#format).
-- The `ForEach` placeholders are `$Identifier` and `$Index`. There is no `$MapValue`. See [ForEach](modules/foreach.md).
-- Packaged resources get no `SourceMap` metadata.
-- `!Rain::Module` does not need a `ModuleExtension` resource or `Metadata.Extends`.
-
-See [Known issues](known-issues.md) for behavior that is still wrong in the code.
+The Rain documentation at `aws-cloudformation.github.io/rain` is frozen. This site replaces it. Some things in the old documentation were wrong. See [Known issues](known-issues.md#mistakes-in-the-rain-documentation) for the list, and for behavior that is still wrong in the code.

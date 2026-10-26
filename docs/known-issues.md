@@ -6,7 +6,7 @@ These are places where cfnrain does something unexpected. They come from Rain, a
 
 A `Rain:` constant that is itself a `!Sub` string, used with `${Rain::<Name>}` inside another `!Sub`, packages to an empty string. There is no error.
 
-Use `!Rain::Constant <Name>` for that constant instead. See [Constants](directives/constants.md#known-issue-a-sub-constant-inside-another-sub).
+Use `!Rain::Constant <Name>` for that constant instead. See [Constants](constants.md#known-issue-a-sub-constant-inside-another-sub).
 
 ## Fn::Select takes its arguments in the reverse order
 
@@ -16,19 +16,13 @@ cfnrain simplifies `Fn::Select` only when the list comes first and the index sec
 
 `cfnrain build --only-cache` should use only the cached schemas. In the code it sets the same switch as `--no-cache`, so it skips the cache. Do not rely on `--only-cache`.
 
-## The artifact bucket deletes objects after 7 days, not 14
+## The artifact bucket rule says 14 days
 
-When cfnrain creates the artifact bucket, it adds a lifecycle rule with the ID `delete after 14 days`. The rule deletes objects, old object versions and incomplete multipart uploads after 7 days.
-
-CloudFormation does not need the uploaded files after a deploy. But if you deploy an old change set or roll back to a template after more than 7 days, the files can be gone. The `cc` state files are in the same bucket and expire too. Use `--s3-bucket` with your own bucket if you need to keep objects longer.
-
-## info --creds prints the secret key
-
-`cfnrain info --creds` prints the `SecretAccessKey` and the `SessionToken` in plain text. Do not run it where other people or logs can see the output.
+When cfnrain creates the artifact bucket, it adds a lifecycle rule with the ID `delete after 14 days`. The rule deletes objects after 7 days. See [Objects expire after 7 days](concepts/artifact-bucket.md#objects-expire-after-7-days).
 
 ## Failed stacks are deleted without a prompt
 
-If a stack is in `ROLLBACK_COMPLETE`, `CREATE_FAILED` or `REVIEW_IN_PROGRESS`, `cfnrain deploy` deletes it before it deploys, also without `-y`. See [Getting started](getting-started.md#change-the-stack).
+If a stack is in `ROLLBACK_COMPLETE`, `CREATE_FAILED` or `REVIEW_IN_PROGRESS`, `cfnrain deploy` deletes it before it deploys, also without `-y`. See [Updates](concepts/deploying.md#updates).
 
 ## Implicit uploads fail without an error
 
@@ -36,20 +30,23 @@ If an [implicit upload](directives/implicit-uploads.md) fails, for example becau
 
 ## The pkg help text lists the wrong S3 Format values
 
-`cfnrain pkg --help` lists `Format: Uri|Http`. The code expects `URI`, `Http` or `Object`, and `Object` is the default when you set both `BucketProperty` and `KeyProperty`. The help text also leaves out the `Run` and `Extension` options. See [S3 and S3Http](directives/s3.md) for the correct values.
+`cfnrain pkg --help` lists `Format: Uri|Http`. The code expects `URI`, `Http` or `Object`, and `Object` is the default when you set both `BucketProperty` and `KeyProperty`. With `Format: Uri`, packaging stops with an error. The help text also leaves out the `Run` and `Extension` options. See [S3 and S3Http](directives/s3.md#format) for the correct values.
 
 ## The stackset deploy help text says the template is optional
 
 `cfnrain stackset deploy --help` says that without a template file, cfnrain adds a new instance to an existing stack set. The code always reads the first argument as the template file, so you must give one.
 
-## Things that do not exist
+## Mistakes in the Rain documentation
 
-Older Rain documentation describes these, but the code does not have them:
+The Rain documentation at `aws-cloudformation.github.io/rain` is frozen, and some of it is wrong:
 
-- `SourceMap` metadata on packaged resources
-- A `VersionProperty` option for `!Rain::S3`
-- Pkl input for `diff`, `merge` and `tree`
-- The `$MapValue` placeholder in `ForEach`
-- The `ModuleExtension` resource and `Metadata.Extends` for `!Rain::Module`
+- On `deploy`, `-x` is `--no-exec`, not `--experimental`. See [Experimental features](concepts/experimental.md#-x-means-no-exec-on-deploy).
+- The `Modules` section does not need `--experimental`. Only `!Rain::Module` and bucket metadata do.
+- `!Rain::S3` takes `Format: URI`, not `Uri`. See [above](#the-pkg-help-text-lists-the-wrong-s3-format-values).
+- The `ForEach` placeholders are `$Identifier` and `$Index`. There is no `$MapValue`. See [ForEach](modules/foreach.md).
+- `!Rain::Module` does not need a `ModuleExtension` resource or `Metadata.Extends`.
+- Packaged resources get no `SourceMap` metadata.
+- `!Rain::S3` has no `VersionProperty` option.
+- `diff`, `merge` and `tree` do not read Pkl files.
 
 If you find another difference between this site and the code, please [open an issue](https://github.com/awesome-foundation/cfnrain/issues).

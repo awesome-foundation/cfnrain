@@ -19,4 +19,4 @@ The packaged template, with `DEPLOYED_BY=ci-pipeline` in the environment:
 ```
 
 !!! note "Parameters are often a better fit"
-    The value is fixed in the packaged template. CloudFormation does not see where it came from. For values that change between environments, a template parameter with [`RAIN_VAR_<Name>`](../getting-started.md#environment-variables) shows the value in the stack parameters.
+    The value is fixed in the packaged template. CloudFormation does not see where it came from. For values that change between environments, a template parameter with [`RAIN_VAR_<Name>`](../concepts/deploying.md#environment-variables) shows the value in the stack parameters.

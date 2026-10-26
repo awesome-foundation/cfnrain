@@ -44,7 +44,7 @@ Like `deploy`, `stackset deploy` packages the template first, and creates the ar
 | `-y`, `--yes` | Do not ask for confirmation |
 | `-d`, `--detach` | Start the operation and exit |
 | `--admin` | Use delegated administrator permissions |
-| `--s3-bucket`, `--s3-prefix`, `--s3-owner` | Control where uploads go. See [Artifact bucket](../../getting-started.md#the-artifact-bucket). |
+| `--s3-bucket`, `--s3-prefix`, `--s3-owner` | Control where uploads go. See [Artifact bucket](../common-flags.md#artifact-bucket). |
 
 ## stackset ls
 
