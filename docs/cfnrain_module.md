@@ -26,7 +26,7 @@ The cfnrain module command can be used to publish modules to CodeArtifact, and t
 
 ### SEE ALSO
 
-* [cfnrain](index.md)	 - 
+* [cfnrain](cfnrain.md)	 - 
 * [cfnrain module bootstrap](cfnrain_module_bootstrap.md)	 - Bootstrap the CodeArtifact domain and repository
 * [cfnrain module install](cfnrain_module_install.md)	 - Install a package of Rain modules from CodeArtifact
 * [cfnrain module publish](cfnrain_module_publish.md)	 - Publish a directory of Rain modules to CodeArtifact

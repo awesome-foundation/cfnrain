@@ -28,5 +28,5 @@ cfnrain watch <stack>
 
 ### SEE ALSO
 
-* [cfnrain](index.md)	 - 
+* [cfnrain](cfnrain.md)	 - 
 

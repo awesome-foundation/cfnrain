@@ -26,5 +26,5 @@ cfnrain diff <from> <to>
 
 ### SEE ALSO
 
-* [cfnrain](index.md)	 - 
+* [cfnrain](cfnrain.md)	 - 
 

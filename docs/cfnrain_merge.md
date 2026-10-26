@@ -29,5 +29,5 @@ cfnrain merge <template> <template> ...
 
 ### SEE ALSO
 
-* [cfnrain](index.md)	 - 
+* [cfnrain](cfnrain.md)	 - 
 

@@ -35,5 +35,5 @@ cfnrain logs <stack> (<resource>)
 
 ### SEE ALSO
 
-* [cfnrain](index.md)	 - 
+* [cfnrain](cfnrain.md)	 - 
 

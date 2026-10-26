@@ -41,10 +41,6 @@ func emptyStr(s string) string {
 }
 
 func identity(s string) string {
-	if s == "cfnrain.md" {
-		return "index.md"
-	}
-
 	return s
 }
 
@@ -56,11 +52,6 @@ func main() {
 	rain.Cmd.DisableAutoGenTag = true
 
 	err := doc.GenMarkdownTreeCustom(rain.Cmd, "./", emptyStr, identity)
-	if err != nil {
-		panic(err)
-	}
-
-	err = os.Rename("cfnrain.md", "index.md")
 	if err != nil {
 		panic(err)
 	}

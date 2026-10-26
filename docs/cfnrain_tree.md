@@ -28,5 +28,5 @@ cfnrain tree [template]
 
 ### SEE ALSO
 
-* [cfnrain](index.md)	 - 
+* [cfnrain](cfnrain.md)	 - 
 

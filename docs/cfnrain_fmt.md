@@ -36,5 +36,5 @@ cfnrain fmt <filename>...
 
 ### SEE ALSO
 
-* [cfnrain](index.md)	 - 
+* [cfnrain](cfnrain.md)	 - 
 

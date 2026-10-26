@@ -53,5 +53,5 @@ cfnrain forecast --experimental <template> [stackName]
 
 ### SEE ALSO
 
-* [cfnrain](index.md)	 - 
+* [cfnrain](cfnrain.md)	 - 
 

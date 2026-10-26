@@ -32,5 +32,5 @@ cfnrain rm <stack> [changeset]
 
 ### SEE ALSO
 
-* [cfnrain](index.md)	 - 
+* [cfnrain](cfnrain.md)	 - 
 
