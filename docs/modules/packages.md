@@ -110,5 +110,3 @@ cfnrain module install -x my-modules --path vendor/my-modules --version 1.0.0
 | `--version` | | The package version. `install` uses the latest version when you do not set it. |
 
 `install` checks the SHA-256 hash of the package against CodeArtifact before it unzips it. After the install, refer to the modules with a local `Source` path.
-
-Reference: [cfnrain module](../cfnrain_module.md), [publish](../cfnrain_module_publish.md), [install](../cfnrain_module_install.md), [bootstrap](../cfnrain_module_bootstrap.md)

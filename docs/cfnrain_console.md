@@ -1,41 +1,5 @@
-## cfnrain console
+# AWS console session
 
-Login to the AWS console
+You came here from the AWS console. [`cfnrain console`](commands/other.md#console) signed you in, and this site is the issuer of that sign-in. AWS links back to this page when the console session ends.
 
-### Synopsis
-
-Use your current credentials to create a sign-in URL for the AWS console and open it in a web browser.
-
-If you supply a stack name (and didn't use the --service option), the browser will open with that stack selected.
-
-The console command is only valid with an IAM role; not an IAM user.
-
-Unless you specify the --name/-n flag, your AWS console user name will be derived from the role name.
-
-```
-cfnrain console [stack]
-```
-
-### Options
-
-```
-  -h, --help             help for console
-  -l, --logout           Log out of the AWS console
-  -n, --name string      Specify a user name to use in the AWS console
-  -p, --profile string   AWS profile name; read from the AWS CLI configuration file
-  -r, --region string    AWS region to use
-  -s, --service string   Choose an AWS service home page to launch (default "cloudformation")
-  -u, --url              Just construct the sign-in URL; don't attempt to open it
-```
-
-### Options inherited from parent commands
-
-```
-      --debug       Output debugging information
-      --no-colour   Disable colour output
-```
-
-### SEE ALSO
-
-* [cfnrain](cfnrain.md)	 - 
-
+To sign in again, run `cfnrain console` in your terminal.

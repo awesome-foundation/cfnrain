@@ -38,6 +38,10 @@ If an [implicit upload](directives/implicit-uploads.md) fails, for example becau
 
 `cfnrain pkg --help` lists `Format: Uri|Http`. The code expects `URI`, `Http` or `Object`, and `Object` is the default when you set both `BucketProperty` and `KeyProperty`. The help text also leaves out the `Run` and `Extension` options. See [S3 and S3Http](directives/s3.md) for the correct values.
 
+## The stackset deploy help text says the template is optional
+
+`cfnrain stackset deploy --help` says that without a template file, cfnrain adds a new instance to an existing stack set. The code always reads the first argument as the template file, so you must give one.
+
 ## Things that do not exist
 
 Older Rain documentation describes these, but the code does not have them:

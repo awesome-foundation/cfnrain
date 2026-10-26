@@ -39,7 +39,7 @@ See [Install](https://awesome-foundation.github.io/cfnrain/install.html) and [Mi
 
 cfnrain is written in [Go](https://go.dev/). To contribute, [fork this repository](https://github.com/awesome-foundation/cfnrain/fork), make your change, and open a pull request. Questions and ideas go to [GitHub Discussions](https://github.com/awesome-foundation/cfnrain/discussions).
 
-`go generate` makes this README, the command reference in `docs/` and the shell completion scripts. Edit `docs/README.tmpl`, not `README.md`, and run `cd docs && go generate ./...`. To build the documentation site, install [Zensical](https://zensical.org/) and run `zensical build --clean --strict` in the repository root.
+The documentation site is the Markdown in `docs/`. When you add or change a command or a flag, update the page in `docs/` that describes it. A unit test fails when a command has no page. To build the site, install [Zensical](https://zensical.org/) and run `zensical build --clean --strict` in the repository root.
 
 ## License
 

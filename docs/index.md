@@ -42,7 +42,7 @@ If a role trust policy allows only session names that match `Rain-*`, add `cfnra
 3. Read about the [commands](commands/stack.md) and the [template directives](directives/index.md).
 4. Use cfnrain [in CI](ci.md).
 
-The [command reference](cfnrain.md) lists every command and flag. It is generated from the code, so it always matches the binary.
+Every command prints its flags with `--help`, for example `cfnrain deploy --help`.
 
 ## Project
 

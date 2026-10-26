@@ -74,16 +74,32 @@ Scripts that call `rain` keep working when you link the name to `cfnrain`:
 ln -s "$(command -v cfnrain)" /usr/local/bin/rain
 ```
 
-You can use any directory on your `PATH`. The shell completion scripts complete both names.
+You can use any directory on your `PATH`. [Shell completion](#shell-completion) can complete both names.
 
 ## Shell completion
 
-The repository has completion scripts for bash and zsh:
+`cfnrain completion` prints a completion script for bash, zsh, fish or PowerShell. `cfnrain completion <shell> --help` shows more ways to install it.
 
-- [`docs/bash_completion.sh`](https://github.com/awesome-foundation/cfnrain/blob/main/docs/bash_completion.sh)
-- [`docs/zsh_completion.sh`](https://github.com/awesome-foundation/cfnrain/blob/main/docs/zsh_completion.sh)
+```sh
+# bash: add this line to ~/.bashrc
+source <(cfnrain completion bash)
 
-For bash, source the script from your `~/.bashrc`. For zsh, copy the script to a directory on your `fpath` with the name `_cfnrain`.
+# zsh: add this line to ~/.zshrc, after compinit
+source <(cfnrain completion zsh)
+
+# fish
+cfnrain completion fish > ~/.config/fish/completions/cfnrain.fish
+```
+
+If you linked `rain` to `cfnrain`, add a second line to complete that name too:
+
+```sh
+# bash
+complete -o default -F __start_cfnrain rain
+
+# zsh
+compdef _cfnrain rain
+```
 
 ## AWS credentials
 

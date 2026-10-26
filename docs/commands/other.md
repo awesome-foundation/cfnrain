@@ -1,6 +1,6 @@
 # Other commands
 
-These commands do not work with templates or stacks directly. Both take `-p` (`--profile`) and `-r` (`--region`).
+These commands do not work with templates or stacks directly. Both take `-p` (`--profile`) and `-r` (`--region`). Both also take `--debug` and `--no-colour`, and print their usage with `-h` (`--help`).
 
 The output on this page is illustrative. It needs a real AWS account.
 
@@ -23,8 +23,6 @@ Identity: arn:aws:sts::123456789012:assumed-role/Developer/jane
 !!! danger "--creds prints your secret key"
     `cfnrain info --creds` prints the `SecretAccessKey` and the `SessionToken` in plain text. Do not run it in CI logs, screen shares or recorded terminals.
 
-Reference: [cfnrain info](../cfnrain_info.md)
-
 ## console
 
 `cfnrain console` makes a sign-in URL for the AWS console from your current credentials and opens it in a browser.
@@ -45,13 +43,11 @@ cfnrain console -u
 
 | Flag | What it does |
 |------|--------------|
-| `-s`, `--service` | The service home page to open. The default is `cloudformation`. |
+| `-s`, `--service` | The service home page to open. The default is `cloudformation`. cfnrain selects the stack only on the `cloudformation` page. |
 | `-u`, `--url` | Print the URL only |
 | `-n`, `--name` | The user name to show in the console. The default comes from the role name. |
 | `-l`, `--logout` | Sign out of the AWS console |
 
 `console` works only with IAM role credentials, not with IAM user credentials.
 
-The sign-in URL names `https://awesome-foundation.github.io/cfnrain/cfnrain_console.html` as the issuer. That is the [reference page](../cfnrain_console.md) for this command on this site. When your console session expires, AWS links back to it.
-
-Reference: [cfnrain console](../cfnrain_console.md)
+The sign-in URL names `https://awesome-foundation.github.io/cfnrain/cfnrain_console.html` as the issuer. When your console session expires, AWS links back to [that page](../cfnrain_console.md).

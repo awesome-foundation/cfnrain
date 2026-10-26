@@ -35,10 +35,3 @@ jobs:
 
       - name: Run unit tests
         run: go test ./...
-
-      - name: Check generated docs are up to date
-        run: |
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-          cd docs && go generate ./... && git diff --exit-code
-          # A new command adds a new page, which git diff does not see
-          test -z "$(git status --porcelain)" || { git status --porcelain; exit 1; }

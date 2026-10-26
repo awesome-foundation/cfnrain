@@ -1,6 +1,6 @@
 # Template commands
 
-These commands work with template files on your computer. `diff`, `fmt`, `merge` and `tree` need no AWS credentials. `pkg`, `bootstrap`, `build`, `forecast` and `module` can call AWS, so they take `-p` (`--profile`) and `-r` (`--region`).
+These commands work with template files on your computer. `diff`, `fmt`, `merge` and `tree` need no AWS credentials. `pkg`, `bootstrap`, `build`, `forecast` and `module` can call AWS, so they take `-p` (`--profile`) and `-r` (`--region`). Every command also takes `--debug` and `--no-colour`, and prints its usage with `-h` (`--help`).
 
 The output on this page comes from real runs of cfnrain, unless a section says otherwise.
 
@@ -39,8 +39,11 @@ Outputs:
 | `-j`, `--json` | Write JSON instead of YAML |
 | `-u`, `--unsorted` | Keep the original order of sections and properties |
 | `--uncdk` | Remove CDK metadata, simplify logical IDs, and turn `Fn::Join` into `Fn::Sub` |
-| `--node-style` | Choose how to write YAML values, for example `quotescalars` or `strict-boolean` |
+| `--node-style` | Choose how to write YAML values: `tagged`, `doublequoted`, `singlequoted`, `literal`, `folded`, `strict-boolean`, `quotescalars`, `original` or `flow` |
 | `-p`, `--pkl` | Write [Pkl](../pkl.md) instead of YAML |
+| `--pkl-basic` | With `--pkl`, do not use the Pkl modules of the `cfn` package |
+| `--pkl-package` | With `--pkl`, the alias or full URI of the Pkl package. The default is `@cfn`. |
+| `--datamodel` | Print the internal YAML data model. This is for debugging cfnrain. |
 
 With no file names, `fmt` reads standard input.
 
@@ -62,8 +65,6 @@ templates/app.yaml: would reformat
 
 `--verify` compares the input text with the formatted YAML. A JSON file never passes unless you also give `-j`.
 
-Reference: [cfnrain fmt](../cfnrain_fmt.md)
-
 ## pkg
 
 `cfnrain pkg <template>` packages a template. It processes the [template directives](../directives/index.md), [modules](../modules/index.md) and [implicit uploads](../directives/implicit-uploads.md), and prints the result. It is like `aws cloudformation package`, with more features. `package` is an alias.
@@ -79,8 +80,9 @@ cfnrain pkg app.yaml -o app.packaged.yaml
 | `-o`, `--output` | Write the result to a file |
 | `-x`, `--experimental` | Allow `!Rain::Module` |
 | `--s3-bucket`, `--s3-prefix`, `--s3-owner` | Control where uploads go. See [Artifact bucket](../getting-started.md#the-artifact-bucket). |
-
-Reference: [cfnrain pkg](../cfnrain_pkg.md)
+| `--node-style` | How to write YAML values, as for [`fmt`](#fmt) |
+| `--datamodel` | Print the internal YAML data model. This is for debugging cfnrain. |
+| `--no-analytics` | Has no effect. cfnrain keeps it so that old scripts still work. |
 
 ## diff
 
@@ -102,8 +104,6 @@ cfnrain diff old.yaml new.yaml
 
 `(+)` is an addition, `(-)` is a removal, `(>)` is a change and `(|)` is a parent of a change. `-l` (`--long`) also shows the parts that did not change. `diff` compares two local files. It does not compare a file with a deployed stack.
 
-Reference: [cfnrain diff](../cfnrain_diff.md)
-
 ## merge
 
 `cfnrain merge` merges two or more templates into one.
@@ -123,9 +123,7 @@ Resources:
     Type: AWS::SQS::Queue
 ```
 
-If two templates use the same logical ID, `merge` stops with an error. `-f` (`--force`) renames the second one instead. It does not update the `Ref`, `GetAtt` and `Sub` references to the renamed item. `--merge-imports` replaces an `Fn::ImportValue` with a direct reference when the export comes from another template in the merge. `-o` writes the result to a file.
-
-Reference: [cfnrain merge](../cfnrain_merge.md)
+If two templates use the same logical ID, `merge` stops with an error. `-f` (`--force`) renames the second one instead. It does not update the `Ref`, `GetAtt` and `Sub` references to the renamed item. `--merge-imports` replaces an `Fn::ImportValue` with a direct reference when the export comes from another template in the merge. `-o` (`--output`) writes the result to a file. `--node-style` sets how to write YAML values, as for [`fmt`](#fmt).
 
 ## tree
 
@@ -153,8 +151,6 @@ Outputs:
 ```sh
 cfnrain tree -d bucket.yaml | dot -Tsvg > bucket.svg
 ```
-
-Reference: [cfnrain tree](../cfnrain_tree.md)
 
 ## build
 
@@ -201,13 +197,16 @@ AWS::SQS::QueuePolicy
 | `--recommend` | Print a recommended template for a use case. With no more arguments, cfnrain shows a menu. `cfnrain build --recommend bucket bucket` prints the recommended bucket template. |
 | `--pkl-class` | Print a [Pkl](../pkl.md) class for a type |
 | `--prompt` | Write a template with Amazon Bedrock from a text prompt. The default model is `claude2`, which is old. Bedrock usage costs money. |
+| `--model` | The Bedrock model ID for `--prompt`. The short names `claude2`, `claude3haiku`, `claude3sonnet`, `claude3opus` and `claude3.5sonnet` also work. |
+| `--prompt-lang` | What `--prompt` writes: `cfn` (CloudFormation YAML, the default), `guard` (CloudFormation Guard) or `rego` (Open Policy Agent Rego) |
+| `--omit-patches` | Use the raw registry schema. By default, cfnrain applies its own fixes to the schemas. |
+| `--no-cache` | Do not use the schemas in the binary. Get them from the CloudFormation registry. |
+| `--only-cache` | Meant to use only the schemas in the binary. See the warning below. |
 
 With no arguments, `build` shows an interactive menu.
 
 !!! warning "--only-cache does the same as --no-cache"
     In the code, `--only-cache` sets the same switch as `--no-cache`. Both make cfnrain skip the cached schemas. See [Known issues](../known-issues.md).
-
-Reference: [cfnrain build](../cfnrain_build.md)
 
 ## bootstrap
 
@@ -218,9 +217,7 @@ cfnrain bootstrap
 cfnrain bootstrap -y --s3-bucket my-artifacts
 ```
 
-See [Artifact bucket](../getting-started.md#the-artifact-bucket) for the bucket name and settings.
-
-Reference: [cfnrain bootstrap](../cfnrain_bootstrap.md)
+`-y` (`--yes`) creates the bucket without asking. `--s3-bucket`, `--s3-prefix` and `--s3-owner` work as for `pkg`. See [Artifact bucket](../getting-started.md#the-artifact-bucket) for the bucket name and settings.
 
 ## forecast (experimental)
 
@@ -249,14 +246,12 @@ When all checks pass, the output starts with `Clear skies!` and the number of ch
 | `--role-arn` | The role to use for the IAM checks |
 | `--type` | Check only one resource type |
 | `--ignore` | Skip resource types or check codes, for example `AWS::S3::Bucket,F0002` |
-| `--params`, `--tags`, `-c` | Parameter and tag values, as for `deploy` |
+| `--params`, `--tags`, `-c` (`--config`) | Parameter and tag values, as for `deploy` |
+| `--plugin` | The path to a forecast plugin `.so` file with more checks. The release binaries cannot load plugins. See [#13](https://github.com/awesome-foundation/cfnrain/issues/13). |
+| `--plugin-only` | Run only the plugin checks, not the built-in ones |
 
 The checks cover S3 buckets and bucket policies, EC2 instances, launch templates and security groups, RDS clusters, load balancer listeners and target groups, SNS topics, Lambda functions and SageMaker notebook instances.
-
-Reference: [cfnrain forecast](../cfnrain_forecast.md)
 
 ## module (experimental)
 
 `cfnrain module` publishes and installs packages of modules with AWS CodeArtifact. See [Packages](../modules/packages.md#codeartifact-modules-experimental).
-
-Reference: [cfnrain module](../cfnrain_module.md)
