@@ -17,7 +17,7 @@ jobs:
       tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - id: release
-        uses: googleapis/release-please-action@v4
+        uses: googleapis/release-please-action@v5
         with:
           manifest-file: .release-please-manifest.json
           config-file: release-please-config.json
@@ -45,13 +45,13 @@ jobs:
       id-token: write
       attestations: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - uses: goreleaser/goreleaser-action@v6
+      - uses: goreleaser/goreleaser-action@v7
         with:
           version: "~> v2"
           # Four parallel cross-compiles with the embedded schemas ran the
@@ -62,12 +62,12 @@ jobs:
       # Build provenance for every archive listed in checksums.txt. Public
       # repositories only: attestations are public, and private repositories
       # need GitHub Enterprise for them.
-      - uses: actions/attest-build-provenance@v2
+      - uses: actions/attest-build-provenance@v4
         if: ${{ !github.event.repository.private }}
         with:
           subject-checksums: ./dist/checksums.txt
       # subject-checksums covers the files listed in checksums.txt, not the file itself
-      - uses: actions/attest-build-provenance@v2
+      - uses: actions/attest-build-provenance@v4
         if: ${{ !github.event.repository.private }}
         with:
           subject-path: ./dist/checksums.txt
