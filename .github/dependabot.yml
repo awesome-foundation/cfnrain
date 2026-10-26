@@ -11,3 +11,15 @@ updates:
         update-types:
           - "minor"
           - "patch"
+  # Keeps action versions and commit pins current, including the reusable
+  # workflows from awesome-foundation/preview that docs.yml pins to a commit
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions:
+        patterns:
+          - "*"
