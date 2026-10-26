@@ -56,16 +56,9 @@ func main() {
 		panic(err)
 	}
 
-	// Generate usage
-	usage := bytes.Buffer{}
-	rain.Cmd.SetOut(&usage)
-	rain.Cmd.Usage()
-
 	// Generate README
 	buf := bytes.Buffer{}
-	err = tmpl.Execute(&buf, map[string]string{
-		"Usage": usage.String(),
-	})
+	err = tmpl.Execute(&buf, nil)
 	if err != nil {
 		panic(err)
 	}
