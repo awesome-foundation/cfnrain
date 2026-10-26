@@ -11,8 +11,8 @@ cfnrain is a community fork of [AWS CloudFormation Rain](https://github.com/aws-
 
 - **Deploys stacks with change sets.** [`cfnrain deploy`](getting-started.md) packages the template, asks for parameter values, shows the change set, and waits for your confirmation. Then it streams the progress and prints a summary with any failure messages.
 - **Packages local files into templates.** [Template directives](directives/index.md) such as `!Rain::Embed` and `!Rain::S3` put file contents or S3 locations into a template. [Modules](modules/index.md) split one template into many files.
-- **Formats templates.** [`cfnrain fmt`](commands/template.md#fmt) writes templates in one consistent style, keeps your comments, and converts between JSON and YAML.
-- **Shows stack logs.** [`cfnrain logs`](commands/stack.md#logs) shows the events of a stack and its nested stacks, and hides the events that are not interesting.
+- **Formats templates.** [`cfnrain fmt`](commands/template/fmt.md) writes templates in one consistent style, keeps your comments, and converts between JSON and YAML.
+- **Shows stack logs.** [`cfnrain logs`](commands/stack/logs.md) shows the events of a stack and its nested stacks, and hides the events that are not interesting.
 
 ## Compatibility with Rain
 
@@ -39,10 +39,10 @@ If a role trust policy allows only session names that match `Rain-*`, add `cfnra
 
 1. [Install cfnrain](install.md).
 2. [Deploy your first stack](getting-started.md).
-3. Read about the [commands](commands/stack.md) and the [template directives](directives/index.md).
+3. Read about the [commands](commands/stack/index.md) and the [template directives](directives/index.md).
 4. Use cfnrain [in CI](ci.md).
 
-The [command reference](cfnrain.md) lists every command and flag. It is generated from the code, so it always matches the binary.
+Every command prints its flags with `--help`, for example `cfnrain deploy --help`.
 
 ## Project
 
