@@ -70,7 +70,7 @@ Do not add a unit test that needs AWS credentials.
 - The site is the Markdown in `docs/`. Build it with `zensical build --clean --strict`.
 - Each fact has one page. Link to that page. Do not copy the fact to a second page.
 - When you add or change a command or a flag, update its page in `docs/commands/` in the same pull request.
-- When you find a bug while you write docs, add it to `docs/known-issues.md`. Do not change behavior in a docs pull request.
+- When you find a bug while you write docs, open an issue and add an entry that links to it in `docs/known-issues.md`. Do not change behavior in a docs pull request. The pull request that fixes the bug removes the entry.
 
 ## Pull requests and commits
 
