@@ -154,13 +154,25 @@ func DownloadFromZip(uriString string, verifyHash string, path string) ([]byte, 
 	defer os.RemoveAll(dir) // Clean up the temp directory
 
 	// Read the requested file from the unzipped directory
-	filePath := filepath.Join(dir, path)
+	filePath, err := safeJoin(dir, path)
+	if err != nil {
+		return nil, err
+	}
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read %s from zip: %v", path, err)
 	}
 
 	return content, nil
+}
+
+// safeJoin joins name onto dir and returns an error if the result is outside dir
+func safeJoin(dir, name string) (string, error) {
+	p := filepath.Join(dir, name)
+	if !strings.HasPrefix(p, filepath.Clean(dir)+string(os.PathSeparator)) {
+		return "", fmt.Errorf("illegal path in zip: %s", name)
+	}
+	return p, nil
 }
 
 // Unzip unzips a zip file to a destination directory
@@ -191,7 +203,10 @@ func Unzip(f *os.File, dest string) error {
 			}
 		}(rc)
 
-		fpath := filepath.Join(dest, f.Name)
+		fpath, err := safeJoin(dest, f.Name)
+		if err != nil {
+			return err
+		}
 		if f.FileInfo().IsDir() {
 			mode := fs.ModePerm
 			err := os.MkdirAll(fpath, mode)
