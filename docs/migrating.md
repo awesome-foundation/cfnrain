@@ -60,4 +60,15 @@ Rain added a `Metadata.AWSToolsMetrics.Rain` block to every packaged template. c
 
 ### Documentation
 
-The Rain documentation at `aws-cloudformation.github.io/rain` is frozen. This site replaces it. Some things in the old documentation were wrong. See [Known issues](known-issues.md#mistakes-in-the-rain-documentation) for the list, and for behavior that is still wrong in the code.
+The Rain documentation at `aws-cloudformation.github.io/rain` is frozen. This site replaces it. Some things in the old documentation are wrong:
+
+- On `deploy`, `-x` is `--no-exec`, not `--experimental`. See [Experimental features](concepts/experimental.md#-x-means-no-exec-on-deploy).
+- The `Modules` section does not need `--experimental`. Only `!Rain::Module` and bucket metadata do.
+- `!Rain::S3` takes `Format: URI`, not `Uri`. See [S3 and S3Http](directives/s3.md#format).
+- The `ForEach` placeholders are `$Identifier` and `$Index`. There is no `$MapValue`. See [ForEach](modules/foreach.md).
+- `!Rain::Module` does not need a `ModuleExtension` resource or `Metadata.Extends`.
+- Packaged resources get no `SourceMap` metadata.
+- `!Rain::S3` has no `VersionProperty` option.
+- `diff`, `merge` and `tree` do not read Pkl files.
+
+For behavior that is still wrong in the code, see [Known issues](known-issues.md).
