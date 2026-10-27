@@ -20,7 +20,7 @@ var EvaluatorOptionsFunc = func(opts *pkl.EvaluatorOptions) {
 func Yaml(filename string) (string, error) {
 	// Convert the template to YAML
 	evaluator, err := pkl.NewProjectEvaluator(
-		context.Background(), filepath.Dir(filename), EvaluatorOptionsFunc)
+		context.Background(), pkl.FileSource(filepath.Dir(filename)).Uri, EvaluatorOptionsFunc)
 	if err != nil {
 		return "", err
 	}
