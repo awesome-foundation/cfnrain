@@ -17,7 +17,7 @@ jobs:
       tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - id: release
-        uses: googleapis/release-please-action@v5
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         with:
           manifest-file: .release-please-manifest.json
           config-file: release-please-config.json
@@ -51,7 +51,7 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
-      - uses: goreleaser/goreleaser-action@v7
+      - uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
         with:
           version: "~> v2"
           # Four parallel cross-compiles with the embedded schemas ran the
