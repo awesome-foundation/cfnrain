@@ -4,34 +4,7 @@ cfnrain works in CI without changes. This page shows how to install it in GitHub
 
 ## Install in GitHub Actions
 
-Put the install steps in a local composite action, so every job can use them. Save this file as `.github/actions/install-cfnrain/action.yml` in your repository:
-
-```yaml
-name: Install cfnrain
-inputs:
-  version:
-    description: The cfnrain version, for example 1.25.2
-    required: true
-runs:
-  using: composite
-  steps:
-    - shell: bash
-      env:
-        VERSION: ${{ inputs.version }}
-        GH_TOKEN: ${{ github.token }}
-      run: |
-        cd "$RUNNER_TEMP"
-        archive="cfnrain_${VERSION}_linux_amd64.tar.gz"
-        gh release download "v${VERSION}" -R awesome-foundation/cfnrain \
-          -p "$archive" -p checksums.txt
-        sha256sum --ignore-missing -c checksums.txt
-        gh attestation verify "$archive" -R awesome-foundation/cfnrain
-        tar -xzf "$archive" cfnrain
-        sudo install cfnrain /usr/local/bin/cfnrain
-        cfnrain --version
-```
-
-`sha256sum` fails the step when the archive does not match `checksums.txt`. `gh attestation verify` fails the step when the archive was not built by the cfnrain release workflow. See [Install](install.md) for the details.
+Use the [install-cfnrain](install.md#github-actions) action in each job that runs cfnrain. The workflows on this page set the version once, in `CFNRAIN_VERSION`, and give it to every install step.
 
 ## Deploy without questions
 
@@ -67,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/install-cfnrain
+      - uses: awesome-foundation/install-cfnrain@v1
         with:
           version: ${{ env.CFNRAIN_VERSION }}
       - name: Check template format
@@ -80,7 +53,7 @@ jobs:
     environment: production
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/install-cfnrain
+      - uses: awesome-foundation/install-cfnrain@v1
         with:
           version: ${{ env.CFNRAIN_VERSION }}
       - uses: aws-actions/configure-aws-credentials@v4
@@ -105,7 +78,7 @@ A preview shows the reviewers what a pull request will change in the stack, befo
       pull-requests: write
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/actions/install-cfnrain
+      - uses: awesome-foundation/install-cfnrain@v1
         with:
           version: ${{ env.CFNRAIN_VERSION }}
       - uses: aws-actions/configure-aws-credentials@v4
