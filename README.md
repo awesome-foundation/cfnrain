@@ -33,6 +33,12 @@ Coming from Rain? Link the old name, so your scripts keep working:
 ln -s "$(command -v cfnrain)" /usr/local/bin/rain
 ```
 
+In GitHub Actions, use [install-cfnrain](https://github.com/awesome-foundation/install-cfnrain):
+
+```yaml
+- uses: awesome-foundation/install-cfnrain@v1
+```
+
 See [Install](https://awesome-foundation.github.io/cfnrain/install.html) and [Migrating from rain](https://awesome-foundation.github.io/cfnrain/migrating.html) for the details.
 
 ## Contributing

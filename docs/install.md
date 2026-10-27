@@ -1,6 +1,18 @@
 # Install
 
-cfnrain is one static binary. Download a release archive, or build it with Go.
+cfnrain is one static binary. Download a release archive, or build it with Go. In GitHub Actions, use the install action.
+
+## GitHub Actions
+
+The [install-cfnrain](https://github.com/awesome-foundation/install-cfnrain) action installs cfnrain on Linux, macOS and Windows runners. Before the install, it verifies the checksum and the build provenance:
+
+```yaml
+- uses: awesome-foundation/install-cfnrain@v1
+  with:
+    version: 1.25.2
+```
+
+The README of the action lists its inputs and outputs. [CI usage](ci.md) shows complete workflows.
 
 ## Release archives
 

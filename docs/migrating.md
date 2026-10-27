@@ -5,7 +5,7 @@ cfnrain starts from Rain v1.24.4 plus 22 later commits. Templates, config files,
 ## Steps
 
 1. [Install cfnrain](install.md).
-2. Replace `rain` with `cfnrain` in your scripts and CI workflows. Or [link the old name](install.md#keep-the-rain-name), so the scripts do not change.
+2. Replace `rain` with `cfnrain` in your scripts and CI workflows. Or [link the old name](install.md#keep-the-rain-name), so the scripts do not change. In GitHub Actions, replace the install step. See [GitHub Actions](#github-actions).
 
 3. If an IAM role trust policy limits the session name, allow `cfnrain-*`. See [Role session name](#role-session-name).
 4. Remove the Rain binary or the Homebrew formula when you no longer need it.
@@ -37,6 +37,22 @@ go install github.com/awesome-foundation/cfnrain/cmd/cfnrain@latest
 ```
 
 `cfnrain --version` prints `cfnrain v<version> <os>/<arch>`. Scripts that parse the version output need an update.
+
+### GitHub Actions
+
+`allixsenos/install-rain` installs Rain, and it is deprecated. Replace it with [install-cfnrain](install.md#github-actions):
+
+```yaml
+# Before
+- uses: allixsenos/install-rain@v1
+
+# After
+- uses: awesome-foundation/install-cfnrain@v1
+  with:
+    rain-alias: true
+```
+
+`rain-alias: true` also puts `rain` on the `PATH`, so steps that call `rain` work without changes. When your steps call `cfnrain`, remove the input.
 
 ### User agent
 
