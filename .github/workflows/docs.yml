@@ -5,12 +5,24 @@ name: Documentation
 # https://awesome-foundation.github.io/preview/cfnrain/pr-<number>/
 # and closing the pull request removes it.
 
+# Runs only when the site can change. The docs include example files
+# from cft/pkg/tmpl/ through snippets.
 on:
   push:
     branches:
       - main
+    paths:
+      - "docs/**"
+      - "cft/pkg/tmpl/**"
+      - "zensical.toml"
+      - ".github/workflows/docs.yml"
   pull_request:
     types: [opened, synchronize, reopened, closed]
+    paths:
+      - "docs/**"
+      - "cft/pkg/tmpl/**"
+      - "zensical.toml"
+      - ".github/workflows/docs.yml"
 
 permissions:
   contents: read
