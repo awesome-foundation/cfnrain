@@ -1,9 +1,9 @@
 name: Documentation
 
 # Builds the site with Zensical. A push to main deploys it to GitHub Pages.
-# A pull request publishes a preview under
-# https://awesome-foundation.github.io/preview/cfnrain/pr-<number>/
-# and closing the pull request removes it.
+# A pull request with the docs-preview label publishes a preview under
+# https://awesome-foundation.github.io/preview/cfnrain/pr-<number>/.
+# Closing the pull request or removing the label removes it.
 
 # Runs only when the site can change. The docs include example files
 # from cft/pkg/tmpl/ through snippets.
@@ -18,7 +18,7 @@ on:
       - "overrides/**"
       - ".github/workflows/docs.yml"
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [opened, synchronize, reopened, closed, labeled, unlabeled]
     paths:
       - "docs/**"
       - "cft/pkg/tmpl/**"
@@ -35,7 +35,11 @@ env:
 
 jobs:
   build:
-    if: github.event_name == 'push' || github.event.action != 'closed'
+    # Other labels do not change the site
+    if: >-
+      github.event_name == 'push' ||
+      contains(fromJSON('["opened", "synchronize", "reopened"]'), github.event.action) ||
+      (github.event.action == 'labeled' && github.event.label.name == 'docs-preview')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -79,7 +83,7 @@ jobs:
   publish:
     if: >-
       github.event_name == 'pull_request' &&
-      github.event.action != 'closed' &&
+      contains(github.event.pull_request.labels.*.name, 'docs-preview') &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       github.event.pull_request.user.login != 'dependabot[bot]'
     needs: build
@@ -94,7 +98,8 @@ jobs:
   teardown:
     if: >-
       github.event_name == 'pull_request' &&
-      github.event.action == 'closed' &&
+      ((github.event.action == 'closed' && contains(github.event.pull_request.labels.*.name, 'docs-preview')) ||
+       (github.event.action == 'unlabeled' && github.event.label.name == 'docs-preview')) &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       github.event.pull_request.user.login != 'dependabot[bot]'
     permissions:

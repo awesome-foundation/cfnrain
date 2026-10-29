@@ -16,8 +16,35 @@ permissions:
   contents: read
 
 jobs:
+  # Skips govulncheck when a pull request changes no Go code and no
+  # module file.
+  # A skipped job counts as passed for the required check, so the merge
+  # gate stays. Pushes, schedules and dispatches always run.
+  changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      run: ${{ steps.files.outputs.run }}
+    steps:
+      - id: files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --paginate \
+            -q '.[] | .filename, (.previous_filename // empty)' > files.txt
+          if grep -qE '\.go$|(^|/)go\.(mod|sum)$|^\.github/workflows/security\.yml$' files.txt; then
+            echo run=true >> "$GITHUB_OUTPUT"
+          else
+            echo run=false >> "$GITHUB_OUTPUT"
+          fi
+
   govulncheck:
     name: Go Vulnerability Check
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

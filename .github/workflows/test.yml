@@ -16,8 +16,36 @@ permissions:
   contents: read
 
 jobs:
+  # Skips the tests when a pull request changes only files that the Go
+  # build and tests do not read. docs/ counts as code, because
+  # TestEveryCommandIsDocumented reads it.
+  # A skipped job counts as passed for the required check, so the merge
+  # gate stays. Pushes, schedules and dispatches always run.
+  changes:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      run: ${{ steps.files.outputs.run }}
+    steps:
+      - id: files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR/files" --paginate \
+            -q '.[] | .filename, (.previous_filename // empty)' > files.txt
+          if grep -qvE '^[^/]+\.md$|^LICENSE|^NOTICE|^zensical\.toml$|^overrides/|^\.github/(dependabot\.yml|ISSUE_TEMPLATE/|workflows/(docs|release-please|security)\.yml)' files.txt; then
+            echo run=true >> "$GITHUB_OUTPUT"
+          else
+            echo run=false >> "$GITHUB_OUTPUT"
+          fi
+
   test:
     name: Test
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.run != 'false' }}
     runs-on: ubuntu-latest
     container: golang:latest
     steps:
