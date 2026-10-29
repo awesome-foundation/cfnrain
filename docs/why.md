@@ -40,7 +40,7 @@ Choose CloudFormation when:
 
 ### Compared with Pulumi
 
-Pulumi defines infrastructure in general-purpose languages, such as TypeScript, Python and Go. Pulumi is open source under the Apache 2.0 license. Like Terraform, Pulumi needs a service or extra setup to block concurrent updates.
+Pulumi defines infrastructure in general-purpose languages, such as TypeScript, Python and Go. Pulumi is open source under the Apache 2.0 license.
 
 Choose Pulumi when your team wants loops and functions in a program. Choose CloudFormation when you want a template that AWS evaluates, with no program to run.
 
@@ -57,7 +57,7 @@ Use these tools to configure servers. Use infrastructure-as-code tools to provis
 | Template language | YAML or JSON | HCL | TypeScript, Python, Go and other languages |
 | Resource coverage | AWS resources, plus custom resources for other systems | Providers for AWS, other clouds and SaaS products | Providers for AWS, other clouds and SaaS products |
 | Where state lives | AWS, managed for you | A backend that you configure | A Pulumi Cloud service or a backend that you configure |
-| Blocks concurrent updates | Yes, on the same stack, at no cost | With a locking backend or a paid service | With a service or extra setup |
+| Blocks concurrent updates | Yes, on the same stack, at no cost | With a locking backend or a paid service | Not covered here |
 | Automatic rollback | Yes | Not built in | Not built in |
 | Drift detection | Built in | Through plan and refresh | Through refresh |
 | Preview before change | Change sets | `terraform plan` | `pulumi preview` |
@@ -95,8 +95,7 @@ cfnrain does not add serverless resource types. It works with CloudFormation tem
 
 ### Compared with the Serverless Framework
 
-The Serverless Framework has a plugin ecosystem. Version 4 requires a login. Organizations with more than $2 million in annual revenue need a paid subscription. Small businesses and nonprofits can get a discount.
-
+The Serverless Framework has a plugin ecosystem. Version 4 requires a login. Organizations with more than $2 million in annual revenue need a paid subscription. 
 cfnrain uses your AWS credentials. It does not need another account or license.
 
 ### Compared with AWS CDK
