@@ -20,6 +20,7 @@ use_directory_urls = false
 
 nav = [
   { "Home" = "index.md" },
+  { "Why CloudFormation and Rain" = "why.md" },
   { "Get started" = [
     { "Install" = "install.md" },
     { "Your first deploy" = "getting-started.md" },
