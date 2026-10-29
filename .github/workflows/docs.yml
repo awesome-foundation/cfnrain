@@ -50,6 +50,12 @@ jobs:
       # --strict fails the build on broken links, missing anchors and
       # missing example files
       - run: zensical build --clean --strict
+      # Search Console often fails to fetch sitemap.xml from GitHub Pages.
+      # sitemap.txt lists the same URLs, one per line, as a fallback.
+      - name: Write sitemap.txt
+        run: |
+          sed -n 's|.*<loc>\(.*\)</loc>.*|\1|p' site/sitemap.xml > site/sitemap.txt
+          test -s site/sitemap.txt
       - if: github.event_name == 'push'
         uses: actions/upload-pages-artifact@v5
         with:
