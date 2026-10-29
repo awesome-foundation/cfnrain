@@ -93,6 +93,8 @@ nav = [
 
 [project.theme]
 language = "en"
+# overrides/main.html adds the Umami page view counter.
+custom_dir = "overrides"
 features = [
   "content.action.edit",
   "content.code.annotate",

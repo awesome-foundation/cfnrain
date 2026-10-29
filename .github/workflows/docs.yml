@@ -15,6 +15,7 @@ on:
       - "docs/**"
       - "cft/pkg/tmpl/**"
       - "zensical.toml"
+      - "overrides/**"
       - ".github/workflows/docs.yml"
   pull_request:
     types: [opened, synchronize, reopened, closed]
@@ -22,6 +23,7 @@ on:
       - "docs/**"
       - "cft/pkg/tmpl/**"
       - "zensical.toml"
+      - "overrides/**"
       - ".github/workflows/docs.yml"
 
 permissions:
