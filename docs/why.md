@@ -1,6 +1,8 @@
 # Why CloudFormation and Rain
 
-This page explains why cfnrain deploys AWS CloudFormation stacks. It compares CloudFormation with Terraform and Pulumi. Then it compares cfnrain with other ways to deploy stacks.
+`cfnrain` is an AWS CloudFormation client, enhancing the standard `aws` CLI experience.
+
+CloudFormation is an Infrastructure-as-Code (IaC) service from AWS.
 
 ## Why CloudFormation
 
