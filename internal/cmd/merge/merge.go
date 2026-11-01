@@ -7,6 +7,7 @@ import (
 	"github.com/awesome-foundation/cfnrain/cft"
 	"github.com/awesome-foundation/cfnrain/cft/format"
 	"github.com/awesome-foundation/cfnrain/cft/parse"
+	"github.com/awesome-foundation/cfnrain/internal/cmd"
 	"github.com/awesome-foundation/cfnrain/internal/config"
 	"github.com/awesome-foundation/cfnrain/internal/node"
 	"github.com/awesome-foundation/cfnrain/internal/ui"
@@ -21,8 +22,8 @@ var outFn = ""
 var Cmd = &cobra.Command{
 	Use:                   "merge <template> <template> ...",
 	Short:                 "Merge two or more CloudFormation templates",
-	Long:                  "Merges all specified CloudFormation templates, print the resultant template to standard out",
-	Args:                  cobra.MinimumNArgs(2),
+	Long:                  "Merges all specified CloudFormation templates, print the resultant template to standard out. Give \"-\" as one of the templates to read it from stdin.",
+	Args:                  cobra.MatchAll(cobra.MinimumNArgs(2), cmd.StdinOnce),
 	DisableFlagsInUseLine: true,
 	Run: func(cmd *cobra.Command, args []string) {
 		var err error
@@ -30,7 +31,7 @@ var Cmd = &cobra.Command{
 		templates := make([]*cft.Template, len(args))
 
 		for i, fn := range args {
-			templates[i], err = parse.File(fn)
+			templates[i], err = parse.FileOrReader(fn, os.Stdin)
 			if err != nil {
 				panic(ui.Errorf(err, "unable to open template '%s'", fn))
 			}

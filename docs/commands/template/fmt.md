@@ -39,7 +39,7 @@ Outputs:
 | `--pkl-package` | With `--pkl`, the alias or full URI of the Pkl package. The default is `@cfn`. |
 | `--datamodel` | Print the internal YAML data model. This is for debugging cfnrain. |
 
-With no file names, `fmt` reads standard input.
+With no file names, `fmt` reads standard input. A file name of `-` also reads standard input. You can use it with other file names: `cfnrain fmt - other.yaml`. You can give `-` only once, and you cannot use it with `-w`. To use a file that has the name `-`, give it as `./-`.
 
 Format every template in place:
 

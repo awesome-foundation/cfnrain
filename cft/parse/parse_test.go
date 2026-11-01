@@ -132,6 +132,29 @@ func TestReadFile(t *testing.T) {
 	}
 }
 
+func TestFileOrReaderDash(t *testing.T) {
+	actual, err := parse.FileOrReader("-", strings.NewReader(testTemplate))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(actual.Map(), expected.Map()); diff != "" {
+		t.Errorf("%s", diff)
+	}
+}
+
+func TestFileOrReaderFile(t *testing.T) {
+	// The reader must be ignored when the name is not "-"
+	actual, err := parse.FileOrReader(testFile, strings.NewReader("not: [valid"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(actual.Map(), expected.Map()); diff != "" {
+		t.Errorf("%s", diff)
+	}
+}
+
 func TestReadString(t *testing.T) {
 	actual, err := parse.String(testTemplate)
 	if err != nil {
