@@ -73,3 +73,9 @@ cfnrain deploy app.yaml app-dev --express
 - With `--no-exec`, the change set keeps the Express mode setting. A later `--changeset` run executes it in Express mode. The change set also records the rollback setting, so give `--keep` on both runs or on neither.
 - You cannot use `--express` with `--changeset`, because the mode is set when CloudFormation creates the change set.
 - Custom resources still wait for their response, as in a standard deploy.
+
+## When the change set fails
+
+If CloudFormation [Early Validation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/validate-stack-deployments.html) stops the change set, cfnrain gets the validation events with the `DescribeEvents` API. The error then shows each failed resource, the validation name and the reason.
+
+The identity that runs cfnrain needs the `cloudformation:DescribeEvents` permission for this. Without it, cfnrain shows the original CloudFormation message.
