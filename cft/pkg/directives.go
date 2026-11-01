@@ -132,26 +132,33 @@ func includeEnv(ctx *directiveContext) (bool, error) {
 	return true, nil
 }
 
+// runS3Command runs the Run script of a !Rain::S3 directive in root
+func runS3Command(root, run string) error {
+	absPath, absErr := filepath.Abs(filepath.Join(root, run))
+	if absErr != nil {
+		config.Debugf("filepath.Abs failed? %s", absErr)
+		return absErr
+	}
+	cmd := exec.Command(absPath)
+	var stdout strings.Builder
+	var stderr strings.Builder
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	cmd.Dir = root
+	err := cmd.Run()
+	if err != nil {
+		config.Debugf("s3Option Run %s failed with %s: %s",
+			run, err, stderr.String())
+		return err
+	}
+	return nil
+}
+
 func handleS3(root string, options s3Options) (*yaml.Node, error) {
 
 	// Check to see if we need to run a build command first
 	if options.Run != "" {
-		relativePath := filepath.Join(".", root, options.Run)
-		absPath, absErr := filepath.Abs(relativePath)
-		if absErr != nil {
-			config.Debugf("filepath.Abs failed? %s", absErr)
-			return nil, absErr
-		}
-		cmd := exec.Command(absPath)
-		var stdout strings.Builder
-		var stderr strings.Builder
-		cmd.Stdout = &stdout
-		cmd.Stderr = &stderr
-		cmd.Dir = root
-		err := cmd.Run()
-		if err != nil {
-			config.Debugf("s3Option Run %s failed with %s: %s",
-				options.Run, err, stderr.String())
+		if err := runS3Command(root, options.Run); err != nil {
 			return nil, err
 		}
 	}
