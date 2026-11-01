@@ -2,6 +2,7 @@ package parse
 
 import (
 	"errors"
+	"maps"
 	"strings"
 
 	"github.com/awesome-foundation/cfnrain/cft"
@@ -42,6 +43,14 @@ func parseGetAtt(n *yaml.Node) error {
 	return nil
 }
 
+// allTags holds every short tag the parser expands
+var allTags = func() map[string]string {
+	m := make(map[string]string, len(cft.Tags)+len(cft.ParseOnlyTags))
+	maps.Copy(m, cft.Tags)
+	maps.Copy(m, cft.ParseOnlyTags)
+	return m
+}()
+
 // NormalizeNode takes a *yaml.Node and convert tag-style names into map-style,
 // and converts other scalars into a canonical format
 func NormalizeNode(n *yaml.Node) error {
@@ -56,7 +65,7 @@ func NormalizeNode(n *yaml.Node) error {
 	}
 
 	// Convert tag-style intrinsics into map-style
-	for tag, funcName := range cft.Tags {
+	for tag, funcName := range allTags {
 		if n.ShortTag() == tag {
 			body := node.Clone(n)
 
@@ -80,6 +89,12 @@ func NormalizeNode(n *yaml.Node) error {
 					},
 					body,
 				},
+			}
+
+			// fmt keeps parse-only tags in long form, so an anchor must label
+			// the whole function, not its argument, or an alias changes meaning
+			if _, ok := cft.ParseOnlyTags[tag]; ok {
+				n.Anchor, body.Anchor = body.Anchor, ""
 			}
 
 			break

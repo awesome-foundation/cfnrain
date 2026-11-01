@@ -86,9 +86,10 @@ Rules:
       - !Ref Environment
       - test
     Assertions:
-      - Assert: !Contains
-          - - a1.medium
-          - !Ref InstanceType
+      - Assert:
+          Fn::Contains:
+            - - a1.medium
+            - !Ref InstanceType
 
 # Multiline comment
 # starting at indent 0
@@ -180,9 +181,10 @@ Rules:
       - !Ref Environment
       - test
     Assertions:
-      - Assert: !Contains
-          - - a1.medium
-          - !Ref InstanceType
+      - Assert:
+          Fn::Contains:
+            - - a1.medium
+            - !Ref InstanceType
 
 Parameters:
   Name:
