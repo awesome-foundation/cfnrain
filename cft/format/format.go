@@ -37,7 +37,7 @@ func String(t *cft.Template, opt Options) string {
 	enc := yaml.NewEncoder(&buf)
 	enc.SetIndent(2)
 
-	node = formatNode(node)
+	node = formatNode(node, false)
 
 	if !opt.Unsorted {
 		node = orderTemplate(node)

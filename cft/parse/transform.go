@@ -76,10 +76,13 @@ func NormalizeNode(n *yaml.Node) error {
 				body.Tag = ""
 			}
 
-			// Wrap in a map
+			// Wrap in a map. The anchor labels the whole function, so an alias
+			// still means the function when fmt writes the long form.
 			*n = yaml.Node{
-				Kind: yaml.MappingNode,
-				Tag:  "!!map",
+				Kind:   yaml.MappingNode,
+				Style:  cft.ShortForm,
+				Tag:    "!!map",
+				Anchor: body.Anchor,
 				Content: []*yaml.Node{
 					{
 						Kind:  yaml.ScalarNode,
@@ -90,12 +93,7 @@ func NormalizeNode(n *yaml.Node) error {
 					body,
 				},
 			}
-
-			// fmt keeps parse-only tags in long form, so an anchor must label
-			// the whole function, not its argument, or an alias changes meaning
-			if _, ok := cft.ParseOnlyTags[tag]; ok {
-				n.Anchor, body.Anchor = body.Anchor, ""
-			}
+			body.Anchor = ""
 
 			break
 		}
