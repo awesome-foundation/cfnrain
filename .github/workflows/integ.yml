@@ -1,0 +1,180 @@
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "17 4 * * 1"
+  # A maintainer runs a reviewed commit, for example the head of a pull request from a fork
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Full commit SHA to test (40 hex characters)
+        required: true
+  # Pull requests from branches in this repository, after a maintainer adds the integ label
+  pull_request:
+    types: [labeled, synchronize]
+
+name: Integration tests
+
+env:
+  GOFLAGS: "-buildvcs=false"
+  # The commit to test: an immutable SHA, so an approval covers exactly this code
+  TEST_SHA: ${{ inputs.sha || github.event.pull_request.head.sha || github.sha }}
+
+permissions: {}
+
+# No job restores or saves a cache. A manual run executes the given commit
+# under main's workflow, so a cache it saved could reach trusted workflows.
+cache-mode: none
+
+jobs:
+  # The checks that need no AWS account. Runs without credentials.
+  offline:
+    name: Offline checks
+    if: >-
+      github.event_name != 'pull_request' ||
+      (contains(github.event.pull_request.labels.*.name, 'integ') &&
+       github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 30
+    steps:
+      - name: Check the commit SHA
+        run: '[[ "$TEST_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "not a full commit SHA: $TEST_SHA"; exit 1; }'
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TEST_SHA }}
+          persist-credentials: false
+
+      # No cache: a manual run executes the given commit here before any
+      # approval, under main's workflow, and must not write main's cache
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - name: Install test tools
+        env:
+          STATICCHECK_VERSION: "2026.2.2"
+          CFN_LINT_VERSION: 1.57.2
+          CHECKOV_VERSION: 3.3.29
+          PKL_VERSION: 0.32.1
+          PKL_SHA256: 3180b62da95c0cad1d904e9bb6c5f4a8f9032413c21e53194bb91ff1ee5f3211
+          GUARD_VERSION: 3.2.1
+          GUARD_SHA256: 09c2b8cfd81d513374a8da89d4805dc55006a3da52bbf598e272022d4d198e94
+        run: |
+          go install "honnef.co/go/tools/cmd/staticcheck@${STATICCHECK_VERSION}"
+          pip install "cfn-lint==${CFN_LINT_VERSION}" "checkov==${CHECKOV_VERSION}"
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL -o "$HOME/.local/bin/pkl" "https://github.com/apple/pkl/releases/download/${PKL_VERSION}/pkl-linux-amd64"
+          echo "${PKL_SHA256}  $HOME/.local/bin/pkl" | sha256sum -c -
+          chmod +x "$HOME/.local/bin/pkl"
+          curl -fsSL -o guard.tar.gz "https://github.com/aws-cloudformation/cloudformation-guard/releases/download/${GUARD_VERSION}/cfn-guard-v3-x86_64-ubuntu-latest.tar.gz"
+          echo "${GUARD_SHA256}  guard.tar.gz" | sha256sum -c -
+          tar -xzf guard.tar.gz
+          install -m 0755 cfn-guard-v3-x86_64-ubuntu-latest/cfn-guard "$HOME/.local/bin/cfn-guard"
+          rm -rf guard.tar.gz cfn-guard-v3-x86_64-ubuntu-latest
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - run: ./scripts/integ-offline.sh
+
+  # The tests that deploy real stacks. The only job with AWS credentials.
+  aws:
+    name: AWS tests
+    if: >-
+      github.event_name != 'pull_request' ||
+      (contains(github.event.pull_request.labels.*.name, 'integ') &&
+       github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    # Code on main uses the trusted environment, which only main can enter.
+    # Everything else waits for a maintainer to approve the run.
+    environment: ${{ (github.event_name == 'push' || github.event_name == 'schedule') && 'aws-integration' || 'aws-integration-review' }}
+    permissions:
+      contents: read
+      id-token: write
+    # The tests use fixed stack names, so only one AWS run at a time
+    concurrency:
+      group: integ-aws
+      cancel-in-progress: false
+    timeout-minutes: 45
+    steps:
+      - name: Check the commit SHA
+        run: '[[ "$TEST_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "not a full commit SHA: $TEST_SHA"; exit 1; }'
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TEST_SHA }}
+          persist-credentials: false
+
+      # No cache: a cache can come from a run that had no review
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      # Only Go tools, from the checksum database, and one checksummed binary.
+      # No Python packages in the job that has credentials.
+      - name: Install test tools
+        env:
+          STATICCHECK_VERSION: "2026.2.2"
+          YQ_VERSION: v4.54.1
+          PKL_VERSION: 0.32.1
+          PKL_SHA256: 3180b62da95c0cad1d904e9bb6c5f4a8f9032413c21e53194bb91ff1ee5f3211
+        run: |
+          go install "honnef.co/go/tools/cmd/staticcheck@${STATICCHECK_VERSION}"
+          go install "github.com/mikefarah/yq/v4@${YQ_VERSION}"
+          mkdir -p "$HOME/.local/bin"
+          curl -fsSL -o "$HOME/.local/bin/pkl" "https://github.com/apple/pkl/releases/download/${PKL_VERSION}/pkl-linux-amd64"
+          echo "${PKL_SHA256}  $HOME/.local/bin/pkl" | sha256sum -c -
+          chmod +x "$HOME/.local/bin/pkl"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_INTEG_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_INTEG_REGION }}
+          role-session-name: cfnrain-integ-${{ github.run_id }}
+          role-duration-seconds: 3600
+
+      - name: Run the AWS tests
+        env:
+          INTEG_BUCKET_NAME: ${{ vars.INTEG_BUCKET_NAME }}
+          INTEG_OUT: integ-out
+        run: ./scripts/integ-aws.sh
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: packaged-templates
+          path: integ-out/
+          retention-days: 7
+
+  # Lints the templates that the AWS job packaged. Runs without credentials.
+  lint-packaged:
+    name: Lint packaged templates
+    needs: aws
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: packaged-templates
+          path: integ-out
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.13"
+
+      - env:
+          CFN_LINT_VERSION: 1.57.2
+        run: |
+          pip install "cfn-lint==${CFN_LINT_VERSION}"
+          cfn-lint integ-out/webapp.yaml integ-out/webapp-pkl.yaml
