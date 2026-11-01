@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/awesome-foundation/cfnrain/cft"
+	"github.com/awesome-foundation/cfnrain/cft/format"
 	"github.com/awesome-foundation/cfnrain/cft/parse"
 	"github.com/awesome-foundation/cfnrain/internal/config"
 	"gopkg.in/yaml.v3"
@@ -152,6 +153,13 @@ func mergeTemplates(dstTemplate, srcTemplate *cft.Template) (*cft.Template, erro
 		return retval, err
 	}
 
+	// The map round trip loses the source quotes, and the encoder quotes
+	// values such as ON on its own. Clear those quotes so that the default
+	// node style does not keep quotes that the source did not have.
+	if format.NodeStyle == "" {
+		clearQuotes(retval.Node)
+	}
+
 	// parse.Map does not actually return a correct cft.Template
 	// It's mostly used for unit tests except for here.
 
@@ -165,5 +173,12 @@ func mergeTemplates(dstTemplate, srcTemplate *cft.Template) (*cft.Template, erro
 		return mergeOutputImports(retval)
 	} else {
 		return retval, nil
+	}
+}
+
+func clearQuotes(n *yaml.Node) {
+	n.Style &^= yaml.DoubleQuotedStyle | yaml.SingleQuotedStyle
+	for _, child := range n.Content {
+		clearQuotes(child)
 	}
 }
