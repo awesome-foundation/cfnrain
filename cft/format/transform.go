@@ -80,6 +80,9 @@ func formatNode(n *yaml.Node) *yaml.Node {
 		}
 	}
 
+	// The source quote style, before the reformat below replaces it
+	sourceQuotes := n.Style & (yaml.DoubleQuotedStyle | yaml.SingleQuotedStyle)
+
 	// Is it a scalar?
 	if n.Kind == yaml.ScalarNode {
 		// Is it a string
@@ -127,8 +130,13 @@ func formatNode(n *yaml.Node) *yaml.Node {
 			n.Style = 0
 		}
 	case "":
-		// Default style for consistent formatting
-		n.Style = 0
+		// Default style for consistent formatting, but keep source quotes on
+		// values that YAML 1.1 reads as booleans, such as "ON" (issue #65)
+		if n.Kind == yaml.ScalarNode && n.Tag == "!!str" && sourceQuotes != 0 && isAmbiguousScalar(n.Value) {
+			n.Style = sourceQuotes
+		} else {
+			n.Style = 0
+		}
 	default:
 		panic("invalid --node-style: " + NodeStyle)
 	}
