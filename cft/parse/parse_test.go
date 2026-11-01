@@ -252,3 +252,19 @@ Resources:
 		t.Fatal("should have found 1 resource")
 	}
 }
+
+// rm parses the stack template and looks for buckets. For a stack in
+// REVIEW_IN_PROGRESS we believe GetTemplate returns an empty body (issue #67).
+// This test covers the empty body only, not the AWS response.
+func TestGetResourcesOfTypeEmptyTemplate(t *testing.T) {
+	template, err := parse.String("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resources := template.GetResourcesOfType("AWS::S3::Bucket")
+
+	if len(resources) != 0 {
+		t.Fatal("should have found no resources")
+	}
+}
