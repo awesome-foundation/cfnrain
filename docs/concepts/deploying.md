@@ -95,7 +95,7 @@ cfnrain deploy bucket.yaml -y
 ```
 
 !!! warning "Unknown parameters stop the deploy"
-    cfnrain treats every `RAIN_VAR_*` variable as a parameter. If the template has no parameter with that name, the deploy stops with `unknown parameter`. Add `--ignore-unknown-params` to print a warning and continue. The same rule applies to `--params` and the config file.
+    cfnrain treats every `RAIN_VAR_*` variable as a parameter. If the template has no parameter with that name, the deploy stops with `unknown parameter` and lists every unknown name. Add `--ignore-unknown-params` to ignore them and continue. No warning prints. The same rule applies to `--params` and the config file.
 
 ### Precedence
 

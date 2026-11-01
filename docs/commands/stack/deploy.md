@@ -29,7 +29,7 @@ If you do not give a stack name, the stack name is the template file name withou
 | `--params` | Parameter values, in the format `key1=value1,key2=value2` |
 | `--tags` | Stack tags, in the format `key1=value1,key2=value2` |
 | `-c`, `--config` | A YAML or JSON file with parameters and tags. See [Config file](../../concepts/deploying.md#config-file). |
-| `--ignore-unknown-params` | Warn about parameters that the template does not declare, and continue |
+| `--ignore-unknown-params` | Ignore parameters that the template does not declare, and continue without a warning |
 | `-x`, `--no-exec` | Create the change set and do not execute it. See [Change sets](../../concepts/deploying.md#change-sets). |
 | `--changeset` | Execute an existing change set: `cfnrain deploy --changeset <stack> <changeset>` |
 | `-d`, `--detach` | Start the deploy and exit. Watch it later with [`cfnrain watch`](watch.md). |
