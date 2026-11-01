@@ -110,15 +110,29 @@ func zipPath(root string) (string, error) {
 	return tmpFile.Name(), err
 }
 
-// Upload a file or directory to S3.
-// If path is a directory, it will be zipped first.
-func upload(root, path string, force bool, extension string) (*s3Path, error) {
+// resolvePath returns path resolved against root, unless path is absolute
+func resolvePath(root, path string) string {
 	if !filepath.IsAbs(path) {
 		path = filepath.Join(root, path)
 		if abs, err := filepath.Abs(path); err == nil {
 			path = abs
 		}
 	}
+	return path
+}
+
+// forgetUploads drops the cached uploads of path, so the next upload reads
+// the files again. A Run script may have changed them.
+func forgetUploads(root, path string) {
+	path = resolvePath(root, path)
+	delete(uploads, path)
+	delete(uploads, "zip:"+path)
+}
+
+// Upload a file or directory to S3.
+// If path is a directory, it will be zipped first.
+func upload(root, path string, force bool, extension string) (*s3Path, error) {
+	path = resolvePath(root, path)
 
 	artifactName := path
 	if force {
