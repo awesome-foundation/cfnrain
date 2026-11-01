@@ -55,7 +55,8 @@ The `literal` and `folded` node styles apply block formatting only to strings. N
 
 The `folded` style uses a literal block when folded output changes a string's value. If literal output also changes the value, it uses double quotes.
 
-With no file names, `fmt` reads standard input.
+
+With no file names, `fmt` reads standard input. A file name of `-` also reads standard input. You can use it with other file names: `cfnrain fmt - other.yaml`. You can give `-` only once, and you cannot use it with `-w`. To use a file that has the name `-`, give it as `./-`.
 
 JSON output preserves empty function arguments as `""`. A bare short-form function tag with no value also becomes `""`, including tags from `pkg` output. This does not change `~` or `null` arguments.
 
