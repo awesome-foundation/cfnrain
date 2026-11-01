@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/awesome-foundation/cfnrain/cft"
 	"github.com/awesome-foundation/cfnrain/cft/diff"
@@ -58,6 +59,12 @@ func Map(input map[string]interface{}) (*cft.Template, error) {
 
 // String returns a cft.Template parsed from a string
 func String(input string) (*cft.Template, error) {
+	// yaml.v3 keeps \r line endings in comments, which breaks fmt.
+	// YAML reads CRLF and a lone CR as one line break each, so this keeps values.
+	// UTF-16 input is not valid UTF-8 and is left alone.
+	if utf8.ValidString(input) {
+		input = strings.NewReplacer("\r\n", "\n", "\r", "\n").Replace(input)
+	}
 	var n yaml.Node
 	err := yaml.Unmarshal([]byte(input), &n)
 	if err != nil {
