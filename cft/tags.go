@@ -5,6 +5,7 @@ var Tags = map[string]string{
 	"!And":            "Fn::And",
 	"!Base64":         "Fn::Base64",
 	"!Cidr":           "Fn::Cidr",
+	"!Contains":       "Fn::Contains",
 	"!Equals":         "Fn::Equals",
 	"!FindInMap":      "Fn::FindInMap",
 	"!GetAZs":         "Fn::GetAZs",
