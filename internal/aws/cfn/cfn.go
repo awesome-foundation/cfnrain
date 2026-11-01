@@ -298,6 +298,12 @@ type ChangeSetContext struct {
 
 	// Whether or not to include nested stacks in the change set
 	IncludeNested bool
+
+	// Express turns on CloudFormation Express mode for the change set
+	Express bool
+
+	// DisableRollback is sent with Express mode, which disables rollback unless told otherwise
+	DisableRollback bool
 }
 
 // CreateChangeSet creates a changeset
@@ -305,10 +311,8 @@ func CreateChangeSet(ctx *ChangeSetContext) (string, error) {
 
 	template := ctx.Template
 	params := ctx.Params
-	tags := ctx.Tags
 	stackName := ctx.StackName
 	changeSetName := ctx.ChangeSetName
-	roleArn := ctx.RoleArn
 
 	templateBody, err := checkTemplate(template)
 	if err != nil {
@@ -330,27 +334,9 @@ func CreateChangeSet(ctx *ChangeSetContext) (string, error) {
 		changeSetName = stackName + "-" + fmt.Sprint(time.Now().Unix())
 	}
 
-	input := &cloudformation.CreateChangeSetInput{
-		ChangeSetType:       types.ChangeSetType(changeSetType),
-		ChangeSetName:       ptr.String(changeSetName),
-		StackName:           ptr.String(stackName),
-		Tags:                dc.MakeTags(tags),
-		IncludeNestedStacks: ptr.Bool(ctx.IncludeNested),
-		Parameters:          params,
-		Capabilities: []types.Capability{
-			"CAPABILITY_NAMED_IAM",
-			"CAPABILITY_AUTO_EXPAND",
-		},
-	}
+	input := newChangeSetInput(ctx, changeSetType, changeSetName, templateBody)
 
-	if roleArn != "" {
-		input.RoleARN = ptr.String(roleArn)
-	}
-
-	if strings.HasPrefix(templateBody, "http") {
-		input.TemplateURL = ptr.String(templateBody)
-	} else {
-		input.TemplateBody = ptr.String(templateBody)
+	if !strings.HasPrefix(templateBody, "http") {
 		config.Debugf("About to create changeset with body:\n%s", templateBody)
 		for _, param := range params {
 			var k, v string
@@ -393,6 +379,41 @@ func CreateChangeSet(ctx *ChangeSetContext) (string, error) {
 	}
 
 	return changeSetName, nil
+}
+
+// newChangeSetInput builds the CreateChangeSet request without calling AWS
+func newChangeSetInput(ctx *ChangeSetContext, changeSetType, changeSetName, templateBody string) *cloudformation.CreateChangeSetInput {
+	input := &cloudformation.CreateChangeSetInput{
+		ChangeSetType:       types.ChangeSetType(changeSetType),
+		ChangeSetName:       ptr.String(changeSetName),
+		StackName:           ptr.String(ctx.StackName),
+		Tags:                dc.MakeTags(ctx.Tags),
+		IncludeNestedStacks: ptr.Bool(ctx.IncludeNested),
+		Parameters:          ctx.Params,
+		Capabilities: []types.Capability{
+			"CAPABILITY_NAMED_IAM",
+			"CAPABILITY_AUTO_EXPAND",
+		},
+	}
+
+	if ctx.RoleArn != "" {
+		input.RoleARN = ptr.String(ctx.RoleArn)
+	}
+
+	if ctx.Express {
+		input.DeploymentConfig = &types.DeploymentConfig{
+			Mode:            types.DeploymentConfigModeExpress,
+			DisableRollback: ptr.Bool(ctx.DisableRollback),
+		}
+	}
+
+	if strings.HasPrefix(templateBody, "http") {
+		input.TemplateURL = ptr.String(templateBody)
+	} else {
+		input.TemplateBody = ptr.String(templateBody)
+	}
+
+	return input
 }
 
 // GetChangeSet returns the named changeset
