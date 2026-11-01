@@ -2,6 +2,7 @@ package parse
 
 import (
 	"errors"
+	"maps"
 	"strings"
 
 	"github.com/awesome-foundation/cfnrain/cft"
@@ -42,6 +43,14 @@ func parseGetAtt(n *yaml.Node) error {
 	return nil
 }
 
+// allTags holds every short tag the parser expands
+var allTags = func() map[string]string {
+	m := make(map[string]string, len(cft.Tags)+len(cft.ParseOnlyTags))
+	maps.Copy(m, cft.Tags)
+	maps.Copy(m, cft.ParseOnlyTags)
+	return m
+}()
+
 // NormalizeNode takes a *yaml.Node and convert tag-style names into map-style,
 // and converts other scalars into a canonical format
 func NormalizeNode(n *yaml.Node) error {
@@ -56,7 +65,7 @@ func NormalizeNode(n *yaml.Node) error {
 	}
 
 	// Convert tag-style intrinsics into map-style
-	for tag, funcName := range cft.Tags {
+	for tag, funcName := range allTags {
 		if n.ShortTag() == tag {
 			body := node.Clone(n)
 
@@ -67,10 +76,13 @@ func NormalizeNode(n *yaml.Node) error {
 				body.Tag = ""
 			}
 
-			// Wrap in a map
+			// Wrap in a map. The anchor labels the whole function, so an alias
+			// still means the function when fmt writes the long form.
 			*n = yaml.Node{
-				Kind: yaml.MappingNode,
-				Tag:  "!!map",
+				Kind:   yaml.MappingNode,
+				Style:  cft.ShortForm,
+				Tag:    "!!map",
+				Anchor: body.Anchor,
 				Content: []*yaml.Node{
 					{
 						Kind:  yaml.ScalarNode,
@@ -81,6 +93,7 @@ func NormalizeNode(n *yaml.Node) error {
 					body,
 				},
 			}
+			body.Anchor = ""
 
 			break
 		}

@@ -1,6 +1,6 @@
 # fmt
 
-`cfnrain fmt` formats templates. It sorts the sections and properties in a fixed order, uses the short form of intrinsic functions (`!Sub`, `!Ref`), and keeps your YAML comments. `format` is an alias.
+`cfnrain fmt` formats templates. It sorts the sections and properties in a fixed order, uses the short form of most intrinsic functions (`!Sub`, `!Ref`), and keeps your YAML comments. `format` is an alias.
 
 Input, `bucket.json`:
 
@@ -25,6 +25,8 @@ Outputs:
   Name:
     Value: !Ref Bucket
 ```
+
+Ten functions keep the form that your template uses, short or long: `Fn::Contains`, `Fn::EachMemberEquals`, `Fn::EachMemberIn`, `Fn::RefAll`, `Fn::ValueOf`, `Fn::ValueOfAll`, `Fn::Length`, `Fn::ToJsonString`, `Fn::GetStackOutput` and `Fn::Transform`. The AWS template reference does not document a short form for most of them. Inside a short `!GetStackOutput`, every function keeps its form, because AWS does not allow a short `!Sub` or `!Ref` there. JSON output always uses the long form.
 
 | Flag | What it does |
 |------|--------------|

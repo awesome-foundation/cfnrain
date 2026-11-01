@@ -1,5 +1,12 @@
 package cft
 
+import "gopkg.in/yaml.v3"
+
+// ShortForm is a yaml.Node Style bit that the parser sets on the mapping it
+// makes from a short tag, so fmt can write the form the source used.
+// yaml.v3 tests only its own Style bits, so it never writes this one.
+const ShortForm yaml.Style = 1 << 31
+
 // Tags is a mapping from YAML short tags to full instrincic function names
 var Tags = map[string]string{
 	"!And":            "Fn::And",
@@ -29,4 +36,20 @@ var Tags = map[string]string{
 	"!Invoke":         "Fn::Invoke",
 	"!InsertFile":     "Fn::InsertFile",
 	"!Merge":          "Fn::Merge",
+}
+
+// ParseOnlyTags are short tags that fmt writes only where the source used them.
+// The AWS template reference does not document most of them as short forms,
+// and !GetStackOutput forbids the short form around !Sub and !Ref.
+var ParseOnlyTags = map[string]string{
+	"!Contains":         "Fn::Contains",
+	"!EachMemberEquals": "Fn::EachMemberEquals",
+	"!EachMemberIn":     "Fn::EachMemberIn",
+	"!GetStackOutput":   "Fn::GetStackOutput",
+	"!Length":           "Fn::Length",
+	"!RefAll":           "Fn::RefAll",
+	"!ToJsonString":     "Fn::ToJsonString",
+	"!Transform":        "Fn::Transform",
+	"!ValueOf":          "Fn::ValueOf",
+	"!ValueOfAll":       "Fn::ValueOfAll",
 }
