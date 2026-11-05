@@ -129,6 +129,7 @@ Resources {
       [logicalId] = (resource) {
         Properties {
           ["AuthorizationType"] = "NONE"
+          ["AuthorizerId"] = cfn.Ref("AWS::NoValue")
         }
       }
     } 
