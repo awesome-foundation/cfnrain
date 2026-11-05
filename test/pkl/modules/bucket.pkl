@@ -217,7 +217,7 @@ fixed Resources: Mapping<String, cfn.Resource> = new Mapping {
                         Action {
                                 "s3:ReplicateObject"
                                 "s3:ReplicateDelete"
-                                "s3:ReplicationTags"
+                                "s3:ReplicateTags"
                             }
                         Effect = "Allow"
                         Resource = cfn.Sub("arn:${AWS::Partition}:s3:::${AppName}-replicas-${AWS::Region}-${AWS::AccountId}/*")
