@@ -160,30 +160,30 @@ trap on_exit EXIT
 # 1. Create, no-op, previous values, tags, config, and environment parameters.
 bucket_stack="${STACK_PREFIX}bucket"
 RAIN_DEFAULT_TAG_Team=integ ./cfnrain deploy test/templates/integ-bucket.yaml "$bucket_stack" -y \
-  --params "BucketName=$INTEG_BUCKET_NAME,Env=Yes,Secret=hidden" --tags Stage=initial > "$WORK_DIR/bucket-create.log"
+  --params "BucketName=$INTEG_BUCKET_NAME,Env=prod,Secret=hidden" --tags Stage=initial > "$WORK_DIR/bucket-create.log"
 assert_status "$bucket_stack" CREATE_COMPLETE
-assert_eq "$(stack_param "$bucket_stack" Env)" Yes 'create Env'
+assert_eq "$(stack_param "$bucket_stack" Env)" prod 'create Env'
 assert_eq "$(stack_tag "$bucket_stack" Team)" integ 'default tag'
 assert_eq "$(stack_tag "$bucket_stack" Stage)" initial 'initial tag'
 RAIN_DEFAULT_TAG_Team=integ ./cfnrain deploy test/templates/integ-bucket.yaml "$bucket_stack" -y \
-  --params "BucketName=$INTEG_BUCKET_NAME,Env=Yes,Secret=hidden" --tags Stage=initial > "$WORK_DIR/noop.log"
+  --params "BucketName=$INTEG_BUCKET_NAME,Env=prod,Secret=hidden" --tags Stage=initial > "$WORK_DIR/noop.log"
 grep -q 'Deploy was skipped' "$WORK_DIR/noop.log" || fail 'no-op deploy message'
 RAIN_DEFAULT_TAG_Team=integ ./cfnrain deploy test/templates/integ-bucket.yaml "$bucket_stack" -y \
   --tags Stage=second > "$WORK_DIR/bucket-update.log"
 grep -q 'Successfully updated' "$WORK_DIR/bucket-update.log" || fail 'update message'
-assert_eq "$(stack_param "$bucket_stack" Env)" Yes 'previous Env'
+assert_eq "$(stack_param "$bucket_stack" Env)" prod 'previous Env'
 assert_eq "$(stack_param "$bucket_stack" BucketName)" "$INTEG_BUCKET_NAME" 'previous bucket name'
 cat > "$WORK_DIR/config.yaml" <<'YAML'
 Parameters:
-  Env: "No"
+  Env: dev
 Tags:
   Stage: config
   Team: config-team
 YAML
-RAIN_DEFAULT_TAG_Team=integ RAIN_VAR_Env=Yes RAIN_VAR_Note=from-env ./cfnrain deploy test/templates/integ-bucket.yaml "$bucket_stack" -y \
+RAIN_DEFAULT_TAG_Team=integ RAIN_VAR_Env=prod RAIN_VAR_Note=from-env ./cfnrain deploy test/templates/integ-bucket.yaml "$bucket_stack" -y \
   -c "$WORK_DIR/config.yaml" > "$WORK_DIR/config-update.log"
 assert_status "$bucket_stack" UPDATE_COMPLETE
-assert_eq "$(stack_param "$bucket_stack" Env)" No 'config parameter precedence'
+assert_eq "$(stack_param "$bucket_stack" Env)" dev 'config parameter precedence'
 assert_eq "$(stack_param "$bucket_stack" Note)" from-env 'environment parameter'
 assert_eq "$(stack_tag "$bucket_stack" Stage)" config 'config tag'
 assert_eq "$(stack_tag "$bucket_stack" Team)" config-team 'config tag precedence'

@@ -4,7 +4,7 @@ Parameters:
     Type: String
   Env:
     Type: String
-    AllowedValues: ["Yes", "No"]
+    AllowedValues: [prod, dev]
   Secret:
     Type: String
     NoEcho: true
