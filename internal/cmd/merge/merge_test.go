@@ -1,12 +1,61 @@
 package merge
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/awesome-foundation/cfnrain/cft/diff"
+	"github.com/awesome-foundation/cfnrain/cft/format"
 	"github.com/awesome-foundation/cfnrain/cft/parse"
 	"github.com/google/go-cmp/cmp"
 )
+
+// merge must not add quotes to a value that the source does not quote
+func TestMergeKeepsUnquotedAmbiguousScalars(t *testing.T) {
+	dst, err := parse.String("Parameters:\n  Mode:\n    Default: ON\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	src, err := parse.String("Resources: {}\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	merged, err := mergeTemplates(dst, src)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	actual := format.String(merged, format.Options{})
+	if !strings.Contains(actual, "Default: ON\n") {
+		t.Errorf("expected Default: ON without quotes, got:\n%s", actual)
+	}
+}
+
+// Other node styles keep the merge output they had before
+func TestMergeOriginalStyleKeepsQuotes(t *testing.T) {
+	defer func(s string) { format.NodeStyle = s }(format.NodeStyle)
+	format.NodeStyle = "original"
+
+	dst, err := parse.String("Outputs:\n  Flag:\n    Value:\n      Fn::Sub: \"ON\"\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	src, err := parse.String("Resources: {}\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	merged, err := mergeTemplates(dst, src)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	actual := format.String(merged, format.Options{})
+	if !strings.Contains(actual, "Value: !Sub \"ON\"\n") {
+		t.Errorf("expected Value: !Sub \"ON\", got:\n%s", actual)
+	}
+}
 
 func TestMergeTemplatesSuccess(t *testing.T) {
 	dst, _ := parse.Map(map[string]interface{}{

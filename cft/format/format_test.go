@@ -926,16 +926,16 @@ Param13:
 	// while a non-ambiguous value (Param7) may be unquoted.
 	expected := `
 Param1:
-  Default: ON
+  Default: "ON"
 
 Param2:
-  Default: OFF
+  Default: "OFF"
 
 Param3:
-  Default: Yes
+  Default: "Yes"
 
 Param4:
-  Default: No
+  Default: "No"
 
 Param5:
   Default: "True"
@@ -963,6 +963,60 @@ Param12:
 
 Param13:
   Default: False
+`
+	template, err := parse.String(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	actual := format.String(template, format.Options{Unsorted: true})
+	if d := cmp.Diff(strings.TrimSpace(expected), strings.TrimSpace(actual)); d != "" {
+		t.Fatalf("Diff: %s", d)
+	}
+}
+
+// The default style keeps the quotes on an ambiguous value when the source
+// quotes it, because YAML 1.1 readers such as cfn-lint read bare ON as a boolean.
+func TestAmbiguousScalars_DefaultKeepsSourceQuotes(t *testing.T) {
+	input := `
+Resources:
+  Group:
+    Properties:
+      Parameters:
+        require_secure_transport: "ON"
+        flag: "OFF"
+        a: "yes"
+        b: "no"
+        c: "y"
+        d: "n"
+        e: "Yes"
+        f: 'oN'
+        g: 'N'
+        "On": quoted key
+        h: ON
+        i: yes
+        j: "Maybe"
+        k: !Sub "ON"
+`
+	expected := `
+Resources:
+  Group:
+    Properties:
+      Parameters:
+        require_secure_transport: "ON"
+        flag: "OFF"
+        a: "yes"
+        b: "no"
+        c: "y"
+        d: "n"
+        e: "Yes"
+        f: 'oN'
+        g: 'N'
+        "On": quoted key
+        h: ON
+        i: yes
+        j: Maybe
+        k: !Sub ON
 `
 	template, err := parse.String(input)
 	if err != nil {
