@@ -15,6 +15,25 @@ mkdir -p "$INTEG_OUT"
 
 go build ./cmd/cfnrain
 
+# Issue #67: an unexecuted create change set leaves a stack in REVIEW_IN_PROGRESS.
+# Preserve a failed deploy, rm, or deletion check while cleaning up this stack.
+cleanup_repro_67_on_failure() {
+  local status=$?
+  trap - EXIT
+  if ! aws cloudformation delete-stack --stack-name success-repro-67; then
+    echo "Could not request deletion of success-repro-67; checking if it is already absent" >&2
+  fi
+  if ! aws cloudformation wait stack-delete-complete --stack-name success-repro-67; then
+    echo "Could not confirm deletion of success-repro-67" >&2
+  fi
+  exit "$status"
+}
+trap cleanup_repro_67_on_failure EXIT
+./cfnrain deploy --no-exec test/repro/67/template.yaml success-repro-67 -y
+./cfnrain rm -y success-repro-67
+aws cloudformation wait stack-delete-complete --stack-name success-repro-67
+trap - EXIT
+
 ./cfnrain ls
 
 ./cfnrain deploy test/templates/success.template success-test7 -y --params BucketName="$INTEG_BUCKET_NAME"

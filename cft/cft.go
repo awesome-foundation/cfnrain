@@ -153,6 +153,10 @@ func (t Template) GetSection(section Section) (*yaml.Node, error) {
 	if t.Node == nil {
 		return nil, fmt.Errorf("unable to get section because t.Node is nil")
 	}
+	// An empty template has no document content (likely a stack in REVIEW_IN_PROGRESS)
+	if len(t.Node.Content) == 0 {
+		return nil, fmt.Errorf("unable to locate the %s section", section)
+	}
 	m := t.Node.Content[0]
 	_, s, _ := s11n.GetMapValue(m, string(section))
 	if s == nil {
