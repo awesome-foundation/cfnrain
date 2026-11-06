@@ -42,3 +42,9 @@ If you do not give a stack name, the stack name is the template file name withou
 | `--no-analytics` | Has no effect. cfnrain keeps it so that old scripts still work. |
 | `--s3-bucket`, `--s3-prefix`, `--s3-owner` | See [Artifact bucket](../common-flags.md#artifact-bucket) |
 | `-p`, `--profile`, `-r`, `--region` | See [AWS profile and region](../common-flags.md#aws-profile-and-region) |
+
+## When the change set fails
+
+If CloudFormation [Early Validation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/validate-stack-deployments.html) stops the change set, cfnrain gets the validation events with the `DescribeEvents` API. The error then shows each failed resource, the validation name and the reason.
+
+The identity that runs cfnrain needs the `cloudformation:DescribeEvents` permission for this. Without it, cfnrain shows the original CloudFormation message.
