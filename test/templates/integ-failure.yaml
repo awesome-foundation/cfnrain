@@ -1,0 +1,10 @@
+Description: Integration test failure with a short wait condition
+Resources:
+  Handle:
+    Type: AWS::CloudFormation::WaitConditionHandle
+  NeverSignalled:
+    Type: AWS::CloudFormation::WaitCondition
+    Properties:
+      Handle: !Ref Handle
+      Timeout: "1"
+      Count: 1

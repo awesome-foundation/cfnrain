@@ -1,0 +1,27 @@
+Description: Integration test bucket and parameter updates
+Parameters:
+  BucketName:
+    Type: String
+  Env:
+    Type: String
+    AllowedValues: [prod, dev]
+  Secret:
+    Type: String
+    NoEcho: true
+    Default: unchanged
+  Note:
+    Type: String
+    Default: initial
+Conditions:
+  HaveSecret: !Not [!Equals [!Ref Secret, ""]]
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Condition: HaveSecret
+    Properties:
+      BucketName: !Ref BucketName
+Outputs:
+  Env:
+    Value: !Ref Env
+  Note:
+    Value: !Ref Note
