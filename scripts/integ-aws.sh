@@ -130,7 +130,7 @@ trap 'on_error "$LINENO" "$BASH_COMMAND"' ERR
 trap 'exit 130' INT
 trap 'exit 143' TERM
 if [[ "${GITHUB_ACTIONS:-}" == true ]]; then
-  sweep_stale
+  sweep_stale || echo 'stale stack sweep incomplete; continuing' >&2
 fi
 
 go build ./cmd/cfnrain
