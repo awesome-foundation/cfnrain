@@ -176,7 +176,7 @@ Resources:
     Type: AWS::ApiGateway::Method
     Properties:
       AuthorizationType: NONE
-      AuthorizerId: !Sub AWS::NoValue
+      AuthorizerId: !Ref AWS::NoValue
       HttpMethod: GET
       Integration:
         IntegrationHttpMethod: POST

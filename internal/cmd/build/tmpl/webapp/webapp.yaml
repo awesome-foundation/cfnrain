@@ -820,7 +820,6 @@ Resources:
       ResourceId: !Ref JwtResourceResource
       RestApiId: !Ref RestApi
       AuthorizationType: NONE
-      AuthorizerId: AWS::NoValue
       Integration:
         IntegrationHttpMethod: POST
         Type: AWS_PROXY

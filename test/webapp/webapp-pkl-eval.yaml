@@ -206,7 +206,7 @@ Resources:
     Properties:
       AuthorizationType: NONE
       AuthorizerId:
-        Fn::Sub: AWS::NoValue
+        Ref: AWS::NoValue
       HttpMethod: GET
       Integration:
         IntegrationHttpMethod: POST
