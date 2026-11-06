@@ -54,7 +54,7 @@ stack_tag() { aws cloudformation describe-stacks --stack-name "$1" --query "Stac
 
 # The list includes deleted stacks for 90 days. Only act on live root stacks.
 list_test_stacks() {
-  aws cloudformation list-stacks --query 'StackSummaries[?starts_with(StackName, `success-`) && StackStatus!=`DELETE_COMPLETE` && ParentId==`null`].StackName' --output text
+  aws cloudformation list-stacks --query 'StackSummaries[?starts_with(StackName, `success-`) && StackStatus!=`DELETE_COMPLETE` && ParentId==`null`].[StackName]' --output text
 }
 delete_stack() {
   local name="$1" status protected deadline=$((SECONDS + 900))
