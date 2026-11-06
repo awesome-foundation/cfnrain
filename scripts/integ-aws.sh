@@ -1,7 +1,7 @@
 #!/bin/bash
 # Integration checks against a real account. Only success* stacks and the
 # configured test bucket are created; AWS CLI is the assertion and cleanup oracle.
-set -euo pipefail
+set -eEuo pipefail
 
 : "${INTEG_BUCKET_NAME:?set INTEG_BUCKET_NAME to the test bucket name}"
 INTEG_OUT="${INTEG_OUT:-integ-out}"
@@ -10,55 +10,110 @@ STACK_PREFIX="success-${RUN_TOKEN}-"
 mkdir -p "$INTEG_OUT"
 WORK_DIR=$(mktemp -d)
 
-fail() { echo "integration assertion failed: $*" >&2; exit 1; }
+print_recent_log() {
+  local log
+  log=$(ls -t "$WORK_DIR"/*.log 2>/dev/null | head -n 1) || return 0
+  if [[ -s "$log" ]]; then
+    echo "Recent cfnrain output ($log):" >&2
+    tail -n 80 "$log" >&2
+  fi
+}
+fail() { echo "integration assertion failed: $*" >&2; print_recent_log; exit 1; }
+on_error() {
+  local result=$?
+  echo "integration command failed at line $1: $2" >&2
+  print_recent_log
+  return "$result"
+}
 assert_eq() { [[ "$1" == "$2" ]] || fail "expected '$2', got '$1': $3"; }
 stack_status() { aws cloudformation describe-stacks --stack-name "$1" --query 'Stacks[0].StackStatus' --output text; }
-stack_exists() { aws cloudformation describe-stacks --stack-name "$1" --query 'Stacks[0].StackStatus' --output text >/dev/null 2>&1; }
+stack_exists() {
+  local output
+  if output=$(aws cloudformation describe-stacks --stack-name "$1" --query 'Stacks[0].StackStatus' --output text 2>&1); then
+    return 0
+  fi
+  if [[ "$output" == *'does not exist'* ]]; then
+    return 1
+  fi
+  echo "$output" >&2
+  return 2
+}
 assert_status() { assert_eq "$(stack_status "$1")" "$2" "$1 status"; }
-assert_absent() { if stack_exists "$1"; then fail "$1 still exists"; fi; }
+assert_absent() {
+  local result=0
+  stack_exists "$1" || result=$?
+  case "$result" in
+    1) return 0 ;;
+    0) echo "integration assertion failed: $1 still exists" >&2 ;;
+    *) echo "unable to confirm deletion of $1" >&2 ;;
+  esac
+  return 1
+}
 stack_param() { aws cloudformation describe-stacks --stack-name "$1" --query "Stacks[0].Parameters[?ParameterKey=='$2'].ParameterValue | [0]" --output text; }
 stack_tag() { aws cloudformation describe-stacks --stack-name "$1" --query "Stacks[0].Tags[?Key=='$2'].Value | [0]" --output text; }
 
 # The list includes deleted stacks for 90 days. Only act on live root stacks.
 list_test_stacks() {
-  aws cloudformation list-stacks --query 'StackSummaries[?starts_with(StackName, `success`) && StackStatus!=`DELETE_COMPLETE` && ParentId==`null`].[StackName,CreationTime,StackStatus]' --output text
+  aws cloudformation list-stacks --query 'StackSummaries[?starts_with(StackName, `success-`) && StackStatus!=`DELETE_COMPLETE` && ParentId==`null`].StackName' --output text
 }
 delete_stack() {
-  local name="$1" status="$2" protected
-  if [[ "$status" != DELETE_IN_PROGRESS ]]; then
-    protected=$(aws cloudformation describe-stacks --stack-name "$name" --query 'Stacks[0].EnableTerminationProtection' --output text)
-    if [[ "$protected" == True ]]; then
-      aws cloudformation update-termination-protection --stack-name "$name" --no-enable-termination-protection >/dev/null
-    fi
-    aws cloudformation delete-stack --stack-name "$name"
+  local name="$1" status protected deadline=$((SECONDS + 900))
+  while :; do
+    status=$(stack_status "$name") || { assert_absent "$name"; return $?; }
+    case "$status" in
+      DELETE_IN_PROGRESS)
+        timeout 900 aws cloudformation wait stack-delete-complete --stack-name "$name" || return 1
+        assert_absent "$name"
+        return $?
+        ;;
+      REVIEW_IN_PROGRESS) break ;; # Empty preview stacks can be deleted by the AWS CLI.
+      *_IN_PROGRESS)
+        if (( SECONDS >= deadline )); then
+          echo "timed out waiting for $name to finish $status" >&2
+          return 1
+        fi
+        sleep 5
+        ;;
+      *) break ;;
+    esac
+  done
+  protected=$(aws cloudformation describe-stacks --stack-name "$name" --query 'Stacks[0].EnableTerminationProtection' --output text) || return 1
+  if [[ "$protected" == True ]]; then
+    aws cloudformation update-termination-protection --stack-name "$name" --no-enable-termination-protection >/dev/null || return 1
   fi
-  aws cloudformation wait stack-delete-complete --stack-name "$name"
+  aws cloudformation delete-stack --stack-name "$name" || return 1
+  timeout 900 aws cloudformation wait stack-delete-complete --stack-name "$name" || return 1
   assert_absent "$name"
 }
 cleanup_prefix() {
-  local prefix="$1" name created status result=0
-  while read -r name created status; do
+  local prefix="$1" name stacks result=0
+  stacks=$(list_test_stacks) || { echo 'unable to list stacks for cleanup' >&2; return 1; }
+  while read -r name; do
     [[ "$name" == "$prefix"* ]] || continue
-    delete_stack "$name" "$status" || result=1
-  done < <(list_test_stacks)
+    case "${name#"$prefix"}" in
+      bucket|failure|keep|changeset|unnamed|protected|large|nested) ;;
+      *) continue ;;
+    esac
+    delete_stack "$name" || result=1
+  done <<< "$stacks"
   return "$result"
 }
 sweep_stale() {
-  local name created status now age
-  now=$(date -u +%s)
-  while read -r name created status; do
-    [[ "$name" == success* ]] || continue
-    age=$((now - $(date -u -d "$created" +%s)))
-    if (( age > 7200 )); then
-      echo "Removing stale integration stack $name"
-      delete_stack "$name" "$status"
-    fi
-  done < <(list_test_stacks)
+  local name stacks result=0
+  stacks=$(list_test_stacks) || { echo 'unable to list stacks for stale cleanup' >&2; return 1; }
+  while read -r name; do
+    [[ "$name" =~ ^success-[0-9]+-[0-9]+-(bucket|failure|keep|changeset|unnamed|protected|large|nested)$ ]] || continue
+    [[ "$name" == "$STACK_PREFIX"* ]] && continue
+    echo "Removing stale integration stack $name"
+    delete_stack "$name" || result=1
+  done <<< "$stacks"
+  return "$result"
 }
 if [[ "${1:-}" == --cleanup ]]; then
-  cleanup_prefix "$STACK_PREFIX"
+  result=0
+  cleanup_prefix "$STACK_PREFIX" || result=1
   rm -rf "$WORK_DIR"
-  exit
+  exit "$result"
 fi
 on_exit() {
   local result=$?
@@ -71,9 +126,12 @@ on_exit() {
   exit "$result"
 }
 trap on_exit EXIT
+trap 'on_error "$LINENO" "$BASH_COMMAND"' ERR
 trap 'exit 130' INT
 trap 'exit 143' TERM
-sweep_stale
+if [[ "${GITHUB_ACTIONS:-}" == true ]]; then
+  sweep_stale
+fi
 
 go build ./cmd/cfnrain
 ./cfnrain ls >/dev/null
@@ -116,13 +174,16 @@ grep -q 'Successfully updated' "$WORK_DIR/bucket-update.log" || fail 'update mes
 assert_eq "$(stack_param "$bucket_stack" Env)" Yes 'previous Env'
 assert_eq "$(stack_param "$bucket_stack" BucketName)" "$INTEG_BUCKET_NAME" 'previous bucket name'
 cat > "$WORK_DIR/config.yaml" <<'YAML'
+Parameters:
+  Env: "No"
 Tags:
   Stage: config
   Team: config-team
 YAML
-RAIN_VAR_Note=from-env ./cfnrain deploy test/templates/integ-bucket.yaml "$bucket_stack" -y \
+RAIN_DEFAULT_TAG_Team=integ RAIN_VAR_Env=Yes RAIN_VAR_Note=from-env ./cfnrain deploy test/templates/integ-bucket.yaml "$bucket_stack" -y \
   -c "$WORK_DIR/config.yaml" > "$WORK_DIR/config-update.log"
 assert_status "$bucket_stack" UPDATE_COMPLETE
+assert_eq "$(stack_param "$bucket_stack" Env)" No 'config parameter precedence'
 assert_eq "$(stack_param "$bucket_stack" Note)" from-env 'environment parameter'
 assert_eq "$(stack_tag "$bucket_stack" Stage)" config 'config tag'
 assert_eq "$(stack_tag "$bucket_stack" Team)" config-team 'config tag precedence'
@@ -137,6 +198,7 @@ assert_eq "$(yq -r '.Tags.Stage' "$WORK_DIR/deployed-config.yaml")" config 'cat 
 assert_eq "$(yq -r '.Resources.Bucket.Type' "$WORK_DIR/bucket-cat.yaml")" AWS::S3::Bucket 'cat template'
 ./cfnrain ls "$bucket_stack" > "$WORK_DIR/bucket-ls.log"
 grep -q "$bucket_stack" "$WORK_DIR/bucket-ls.log" || fail 'ls summary'
+grep -q 'UPDATE_COMPLETE' "$WORK_DIR/bucket-ls.log" || fail 'ls updated status'
 ./cfnrain rm "$bucket_stack" -y >/dev/null
 assert_absent "$bucket_stack"
 
@@ -188,13 +250,20 @@ aws s3api head-object --bucket "$artifact_bucket" --key "$hash" >/dev/null
 ./cfnrain pkg cft/pkg/tmpl/s3-template.yaml --s3-prefix "integ-$RUN_TOKEN" > "$WORK_DIR/s3-prefix.yaml"
 assert_eq "$(yq -r '.Resources.Test.Properties.TheS3URI' "$WORK_DIR/s3-prefix.yaml")" "s3://$artifact_bucket/integ-$RUN_TOKEN/$hash" 'S3 prefix'
 aws s3api head-object --bucket "$artifact_bucket" --key "integ-$RUN_TOKEN/$hash" >/dev/null
+aws s3api get-object --bucket "$artifact_bucket" --key "integ-$RUN_TOKEN/$hash" "$WORK_DIR/prefixed-upload.txt" >/dev/null
+cmp cft/pkg/tmpl/s3.txt "$WORK_DIR/prefixed-upload.txt"
 ./cfnrain pkg cft/pkg/tmpl/s3-template.yaml --s3-owner "$account" > "$WORK_DIR/s3-owner.yaml"
+assert_eq "$(yq -r '.Resources.Test.Properties.TheS3URI' "$WORK_DIR/s3-owner.yaml")" "s3://$artifact_bucket/$hash" 'correct S3 owner'
 if ./cfnrain pkg cft/pkg/tmpl/s3-template.yaml --s3-owner 000000000000 > "$WORK_DIR/wrong-owner.log" 2>&1; then
   fail 'wrong S3 owner returned zero'
 fi
+grep -q 'HeadBucket' "$WORK_DIR/wrong-owner.log" || fail 'wrong S3 owner failure path'
+grep -Eiq '403|Forbidden|AccessDenied' "$WORK_DIR/wrong-owner.log" || fail 'wrong S3 owner error'
 ./cfnrain pkg cft/pkg/tmpl/s3http-template.yaml > "$WORK_DIR/s3http.yaml"
 http_url=$(yq -r '.Resources.Test.Properties.TheS3URL' "$WORK_DIR/s3http.yaml")
-[[ "$http_url" == https://*"$artifact_bucket"* ]] || fail 'regional HTTPS upload URL'
+region="${AWS_REGION:-${AWS_DEFAULT_REGION:-$(aws configure get region)}}"
+http_hash=$(sha256sum cft/pkg/tmpl/s3http.txt | cut -d' ' -f1)
+assert_eq "$http_url" "https://${artifact_bucket}.s3.${region}.amazonaws.com/${http_hash}" 'regional HTTPS upload URL'
 aws s3api head-object --bucket "$artifact_bucket" --key "${http_url##*/}" >/dev/null
 ./cfnrain pkg cft/pkg/tmpl/s3-extension-template.yaml > "$WORK_DIR/s3-extension.yaml"
 [[ "$(yq -r '.Resources.Test.Properties.TheS3URI' "$WORK_DIR/s3-extension.yaml")" == *.txt ]] || fail 'S3 extension'
@@ -218,6 +287,7 @@ assert_status "$unnamed_stack" CREATE_COMPLETE
 diff -u "$WORK_DIR/unnamed-expected.yaml" "$WORK_DIR/unnamed-cat.yaml"
 ./cfnrain ls "$unnamed_stack" > "$WORK_DIR/unnamed-ls.log"
 grep -q "$unnamed_stack" "$WORK_DIR/unnamed-ls.log" || fail 'unnamed stack summary'
+grep -q 'CREATE_COMPLETE' "$WORK_DIR/unnamed-ls.log" || fail 'unnamed stack status'
 ./cfnrain rm "$unnamed_stack" -y >/dev/null
 assert_absent "$unnamed_stack"
 
