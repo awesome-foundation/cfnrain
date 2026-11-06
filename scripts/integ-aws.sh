@@ -1,19 +1,82 @@
 #!/bin/bash
-#
-# The cfnrain integration tests that need an AWS account. They deploy real stacks.
-#
-# Set INTEG_BUCKET_NAME to a globally unique S3 bucket name that the
-# test stack may create, for example: INTEG_BUCKET_NAME=myname-cfnrain-integ
-# Packaged templates go to INTEG_OUT (default: integ-out), so that a later
-# step can lint them without AWS credentials.
+# Integration checks against a real account. Only success* stacks and the
+# configured test bucket are created; AWS CLI is the assertion and cleanup oracle.
+set -euo pipefail
 
-set -eoux pipefail
-
-: "${INTEG_BUCKET_NAME:?set INTEG_BUCKET_NAME to a unique bucket name for the test stack}"
+: "${INTEG_BUCKET_NAME:?set INTEG_BUCKET_NAME to the test bucket name}"
 INTEG_OUT="${INTEG_OUT:-integ-out}"
+RUN_TOKEN="${INTEG_RUN_TOKEN:-${GITHUB_RUN_ID:-local-$(date +%s)-$$}-${GITHUB_RUN_ATTEMPT:-1}}"
+STACK_PREFIX="success-${RUN_TOKEN}-"
 mkdir -p "$INTEG_OUT"
+WORK_DIR=$(mktemp -d)
+
+fail() { echo "integration assertion failed: $*" >&2; exit 1; }
+assert_eq() { [[ "$1" == "$2" ]] || fail "expected '$2', got '$1': $3"; }
+stack_status() { aws cloudformation describe-stacks --stack-name "$1" --query 'Stacks[0].StackStatus' --output text; }
+stack_exists() { aws cloudformation describe-stacks --stack-name "$1" --query 'Stacks[0].StackStatus' --output text >/dev/null 2>&1; }
+assert_status() { assert_eq "$(stack_status "$1")" "$2" "$1 status"; }
+assert_absent() { if stack_exists "$1"; then fail "$1 still exists"; fi; }
+stack_param() { aws cloudformation describe-stacks --stack-name "$1" --query "Stacks[0].Parameters[?ParameterKey=='$2'].ParameterValue | [0]" --output text; }
+stack_tag() { aws cloudformation describe-stacks --stack-name "$1" --query "Stacks[0].Tags[?Key=='$2'].Value | [0]" --output text; }
+
+# The list includes deleted stacks for 90 days. Only act on live root stacks.
+list_test_stacks() {
+  aws cloudformation list-stacks --query 'StackSummaries[?starts_with(StackName, `success`) && StackStatus!=`DELETE_COMPLETE` && ParentId==`null`].[StackName,CreationTime,StackStatus]' --output text
+}
+delete_stack() {
+  local name="$1" status="$2" protected
+  if [[ "$status" != DELETE_IN_PROGRESS ]]; then
+    protected=$(aws cloudformation describe-stacks --stack-name "$name" --query 'Stacks[0].EnableTerminationProtection' --output text)
+    if [[ "$protected" == True ]]; then
+      aws cloudformation update-termination-protection --stack-name "$name" --no-enable-termination-protection >/dev/null
+    fi
+    aws cloudformation delete-stack --stack-name "$name"
+  fi
+  aws cloudformation wait stack-delete-complete --stack-name "$name"
+  assert_absent "$name"
+}
+cleanup_prefix() {
+  local prefix="$1" name created status result=0
+  while read -r name created status; do
+    [[ "$name" == "$prefix"* ]] || continue
+    delete_stack "$name" "$status" || result=1
+  done < <(list_test_stacks)
+  return "$result"
+}
+sweep_stale() {
+  local name created status now age
+  now=$(date -u +%s)
+  while read -r name created status; do
+    [[ "$name" == success* ]] || continue
+    age=$((now - $(date -u -d "$created" +%s)))
+    if (( age > 7200 )); then
+      echo "Removing stale integration stack $name"
+      delete_stack "$name" "$status"
+    fi
+  done < <(list_test_stacks)
+}
+if [[ "${1:-}" == --cleanup ]]; then
+  cleanup_prefix "$STACK_PREFIX"
+  rm -rf "$WORK_DIR"
+  exit
+fi
+on_exit() {
+  local result=$?
+  trap - EXIT
+  if [[ -n "${WATCH_PID:-}" ]]; then
+    kill "$WATCH_PID" 2>/dev/null || true
+  fi
+  cleanup_prefix "$STACK_PREFIX" || result=1
+  rm -rf "$WORK_DIR"
+  exit "$result"
+}
+trap on_exit EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+sweep_stale
 
 go build ./cmd/cfnrain
+./cfnrain ls >/dev/null
 
 # Issue #67: an unexecuted create change set leaves a stack in REVIEW_IN_PROGRESS.
 # Preserve a failed deploy, rm, or deletion check while cleaning up this stack.
@@ -32,44 +95,183 @@ trap cleanup_repro_67_on_failure EXIT
 ./cfnrain deploy --no-exec test/repro/67/template.yaml success-repro-67 -y
 ./cfnrain rm -y success-repro-67
 aws cloudformation wait stack-delete-complete --stack-name success-repro-67
-trap - EXIT
+trap on_exit EXIT
 
 ./cfnrain ls
 
-./cfnrain deploy test/templates/success.template success-test7 -y --params BucketName="$INTEG_BUCKET_NAME"
+# 1. Create, no-op, previous values, tags, config, and environment parameters.
+bucket_stack="${STACK_PREFIX}bucket"
+RAIN_DEFAULT_TAG_Team=integ ./cfnrain deploy test/templates/integ-bucket.yaml "$bucket_stack" -y \
+  --params "BucketName=$INTEG_BUCKET_NAME,Env=Yes,Secret=hidden" --tags Stage=initial > "$WORK_DIR/bucket-create.log"
+assert_status "$bucket_stack" CREATE_COMPLETE
+assert_eq "$(stack_param "$bucket_stack" Env)" Yes 'create Env'
+assert_eq "$(stack_tag "$bucket_stack" Team)" integ 'default tag'
+assert_eq "$(stack_tag "$bucket_stack" Stage)" initial 'initial tag'
+RAIN_DEFAULT_TAG_Team=integ ./cfnrain deploy test/templates/integ-bucket.yaml "$bucket_stack" -y \
+  --params "BucketName=$INTEG_BUCKET_NAME,Env=Yes,Secret=hidden" --tags Stage=initial > "$WORK_DIR/noop.log"
+grep -q 'Deploy was skipped' "$WORK_DIR/noop.log" || fail 'no-op deploy message'
+RAIN_DEFAULT_TAG_Team=integ ./cfnrain deploy test/templates/integ-bucket.yaml "$bucket_stack" -y \
+  --tags Stage=second > "$WORK_DIR/bucket-update.log"
+grep -q 'Successfully updated' "$WORK_DIR/bucket-update.log" || fail 'update message'
+assert_eq "$(stack_param "$bucket_stack" Env)" Yes 'previous Env'
+assert_eq "$(stack_param "$bucket_stack" BucketName)" "$INTEG_BUCKET_NAME" 'previous bucket name'
+cat > "$WORK_DIR/config.yaml" <<'YAML'
+Tags:
+  Stage: config
+  Team: config-team
+YAML
+RAIN_VAR_Note=from-env ./cfnrain deploy test/templates/integ-bucket.yaml "$bucket_stack" -y \
+  -c "$WORK_DIR/config.yaml" > "$WORK_DIR/config-update.log"
+assert_status "$bucket_stack" UPDATE_COMPLETE
+assert_eq "$(stack_param "$bucket_stack" Note)" from-env 'environment parameter'
+assert_eq "$(stack_tag "$bucket_stack" Stage)" config 'config tag'
+assert_eq "$(stack_tag "$bucket_stack" Team)" config-team 'config tag precedence'
+assert_eq "$(aws s3api get-bucket-tagging --bucket "$INTEG_BUCKET_NAME" --query "TagSet[?Key=='Team'].Value | [0]" --output text)" config-team 'bucket tag propagation'
+./cfnrain cat -c "$bucket_stack" > "$WORK_DIR/deployed-config.yaml"
+assert_eq "$(yq -r '.Parameters.Note' "$WORK_DIR/deployed-config.yaml")" from-env 'cat config parameter'
+assert_eq "$(yq -r '.Tags.Stage' "$WORK_DIR/deployed-config.yaml")" config 'cat config tag'
+./cfnrain logs "$bucket_stack" --length 5 >/dev/null
+./cfnrain logs "$bucket_stack" --since-user-initiated >/dev/null
+./cfnrain logs "$bucket_stack" --chart >/dev/null
+./cfnrain cat "$bucket_stack" > "$WORK_DIR/bucket-cat.yaml"
+assert_eq "$(yq -r '.Resources.Bucket.Type' "$WORK_DIR/bucket-cat.yaml")" AWS::S3::Bucket 'cat template'
+./cfnrain ls "$bucket_stack" > "$WORK_DIR/bucket-ls.log"
+grep -q "$bucket_stack" "$WORK_DIR/bucket-ls.log" || fail 'ls summary'
+./cfnrain rm "$bucket_stack" -y >/dev/null
+assert_absent "$bucket_stack"
 
-./cfnrain cat success-test7
+# 2. Failed create must exit nonzero, then a fixed template must recover.
+failed_stack="${STACK_PREFIX}failure"
+if ./cfnrain deploy test/templates/integ-failure.yaml "$failed_stack" -y > "$WORK_DIR/failure.log" 2>&1; then
+  fail 'failed create returned zero'
+fi
+grep -q 'failed deploying stack' "$WORK_DIR/failure.log" || fail 'failure message'
+assert_status "$failed_stack" ROLLBACK_COMPLETE
+./cfnrain deploy test/templates/integ-handle.yaml "$failed_stack" -y >/dev/null
+assert_status "$failed_stack" CREATE_COMPLETE
+./cfnrain rm "$failed_stack" -y >/dev/null
+assert_absent "$failed_stack"
+keep_stack="${STACK_PREFIX}keep"
+if ./cfnrain deploy test/templates/integ-failure.yaml "$keep_stack" -y --keep > "$WORK_DIR/keep.log" 2>&1; then
+  fail '--keep failure returned zero'
+fi
+assert_status "$keep_stack" CREATE_FAILED
+assert_eq "$(aws cloudformation describe-stacks --stack-name "$keep_stack" --query 'Stacks[0].DisableRollback' --output text)" True 'rollback disabled'
+./cfnrain rm "$keep_stack" -y >/dev/null
+assert_absent "$keep_stack"
 
-./cfnrain logs success-test7
+# 3. Change-set preview and execute on an existing stack. New-stack preview
+# cleanup remains excluded until #67 and #95 are fixed.
+change_stack="${STACK_PREFIX}changeset"
+./cfnrain deploy test/templates/integ-handle.yaml "$change_stack" -y >/dev/null
+./cfnrain deploy test/templates/integ-handle-two.yaml "$change_stack" add-handle --no-exec -y > "$WORK_DIR/preview.log"
+assert_eq "$(aws cloudformation describe-change-set --stack-name "$change_stack" --change-set-name add-handle --query Status --output text)" CREATE_COMPLETE 'change set status'
+./cfnrain ls -c "$change_stack" add-handle > "$WORK_DIR/changeset-ls.log"
+grep -q 'SecondHandle' "$WORK_DIR/changeset-ls.log" || fail 'change set listing'
+./cfnrain deploy --changeset "$change_stack" add-handle > "$WORK_DIR/changeset-exec.log"
+assert_status "$change_stack" UPDATE_COMPLETE
+assert_eq "$(aws cloudformation describe-stack-resource --stack-name "$change_stack" --logical-resource-id SecondHandle --query 'StackResourceDetail.ResourceStatus' --output text)" CREATE_COMPLETE 'change set resource'
+./cfnrain deploy test/templates/integ-handle-two.yaml "$change_stack" empty-preview --no-exec -y > "$WORK_DIR/empty-preview.log"
+grep -q 'Deploy was skipped' "$WORK_DIR/empty-preview.log" || fail 'empty change set message'
+./cfnrain rm -c "$change_stack" empty-preview -y >/dev/null
+./cfnrain rm "$change_stack" -y >/dev/null
+assert_absent "$change_stack"
 
-./cfnrain logs --chart success-test7
+# 4. Upload keys and URLs are checked against the object store, not pkg output alone.
+artifact_bucket=$(aws ssm get-parameter --name rain-bucket --query 'Parameter.Value' --output text)
+account=$(aws sts get-caller-identity --query Account --output text)
+./cfnrain pkg cft/pkg/tmpl/s3-props-template.yaml > "$WORK_DIR/s3-props.yaml"
+./cfnrain pkg cft/pkg/tmpl/s3-template.yaml > "$WORK_DIR/s3.yaml"
+hash=$(sha256sum cft/pkg/tmpl/s3.txt | cut -d' ' -f1)
+assert_eq "$(yq -r '.Resources.Test.Properties.TheS3URI' "$WORK_DIR/s3.yaml")" "s3://$artifact_bucket/$hash" 'S3 URI and SHA-256 key'
+aws s3api head-object --bucket "$artifact_bucket" --key "$hash" >/dev/null
+./cfnrain pkg cft/pkg/tmpl/s3-template.yaml --s3-prefix "integ-$RUN_TOKEN" > "$WORK_DIR/s3-prefix.yaml"
+assert_eq "$(yq -r '.Resources.Test.Properties.TheS3URI' "$WORK_DIR/s3-prefix.yaml")" "s3://$artifact_bucket/integ-$RUN_TOKEN/$hash" 'S3 prefix'
+aws s3api head-object --bucket "$artifact_bucket" --key "integ-$RUN_TOKEN/$hash" >/dev/null
+./cfnrain pkg cft/pkg/tmpl/s3-template.yaml --s3-owner "$account" > "$WORK_DIR/s3-owner.yaml"
+if ./cfnrain pkg cft/pkg/tmpl/s3-template.yaml --s3-owner 000000000000 > "$WORK_DIR/wrong-owner.log" 2>&1; then
+  fail 'wrong S3 owner returned zero'
+fi
+./cfnrain pkg cft/pkg/tmpl/s3http-template.yaml > "$WORK_DIR/s3http.yaml"
+http_url=$(yq -r '.Resources.Test.Properties.TheS3URL' "$WORK_DIR/s3http.yaml")
+[[ "$http_url" == https://*"$artifact_bucket"* ]] || fail 'regional HTTPS upload URL'
+aws s3api head-object --bucket "$artifact_bucket" --key "${http_url##*/}" >/dev/null
+./cfnrain pkg cft/pkg/tmpl/s3-extension-template.yaml > "$WORK_DIR/s3-extension.yaml"
+[[ "$(yq -r '.Resources.Test.Properties.TheS3URI' "$WORK_DIR/s3-extension.yaml")" == *.txt ]] || fail 'S3 extension'
+module_key="integ-$RUN_TOKEN/module.yaml"
+aws s3api put-object --bucket "$artifact_bucket" --key "$module_key" --body test/templates/integ-handle.yaml >/dev/null
+cat > "$WORK_DIR/remote-module.yaml" <<YAML
+Modules:
+  Remote:
+    Source: s3://$artifact_bucket/$module_key
+YAML
+./cfnrain pkg -x "$WORK_DIR/remote-module.yaml" > "$WORK_DIR/remote-module-packaged.yaml"
+assert_eq "$(yq -r '.Resources.RemoteHandle.Type' "$WORK_DIR/remote-module-packaged.yaml")" AWS::CloudFormation::WaitConditionHandle 'S3 module source'
 
-./cfnrain rm success-test7 -y
+# 8. The unnamed stack path uses the filename and returns the deployed template.
+unnamed_stack="${STACK_PREFIX}unnamed"
+cp test/templates/integ-handle.yaml "$WORK_DIR/$unnamed_stack.yaml"
+./cfnrain deploy "$WORK_DIR/$unnamed_stack.yaml" -y >/dev/null
+assert_status "$unnamed_stack" CREATE_COMPLETE
+./cfnrain fmt "$WORK_DIR/$unnamed_stack.yaml" > "$WORK_DIR/unnamed-expected.yaml"
+./cfnrain cat "$unnamed_stack" > "$WORK_DIR/unnamed-cat.yaml"
+diff -u "$WORK_DIR/unnamed-expected.yaml" "$WORK_DIR/unnamed-cat.yaml"
+./cfnrain ls "$unnamed_stack" > "$WORK_DIR/unnamed-ls.log"
+grep -q "$unnamed_stack" "$WORK_DIR/unnamed-ls.log" || fail 'unnamed stack summary'
+./cfnrain rm "$unnamed_stack" -y >/dev/null
+assert_absent "$unnamed_stack"
 
-# Unnamed stack
-./cfnrain deploy test/templates/success.template -y --params BucketName="$INTEG_BUCKET_NAME"
-./cfnrain cat success
-./cfnrain ls success
-./cfnrain rm -y success
+# 6. rm must disable termination protection before deleting the stack.
+protected_stack="${STACK_PREFIX}protected"
+./cfnrain deploy test/templates/integ-handle.yaml "$protected_stack" -y -t >/dev/null
+assert_eq "$(aws cloudformation describe-stacks --stack-name "$protected_stack" --query 'Stacks[0].EnableTerminationProtection' --output text)" True 'termination protection enabled'
+./cfnrain rm "$protected_stack" -y >/dev/null
+assert_absent "$protected_stack"
 
-# Change sets
-# Create a named changeset
-#./cfnrain deploy --no-exec test/templates/success.template success-test7 success-changeset-name -y --params BucketName="$INTEG_BUCKET_NAME"
-#./cfnrain ls -c success-test7 success-changeset-name
+# 5 and 7 take longer and run on the weekly schedule and release PRs.
+if [[ "${INTEG_SLOW:-false}" == true ]]; then
+  large_stack="${STACK_PREFIX}large"
+  {
+    printf 'Description: Large integration template\nMetadata:\n  Padding: "'
+    head -c 52000 /dev/zero | tr '\0' x
+    printf '"\nResources:\n  Handle:\n    Type: AWS::CloudFormation::WaitConditionHandle\n'
+  } > "$WORK_DIR/large.yaml"
+  ./cfnrain deploy "$WORK_DIR/large.yaml" "$large_stack" -y >/dev/null
+  assert_status "$large_stack" CREATE_COMPLETE
+  ./cfnrain rm "$large_stack" -y >/dev/null
+  assert_absent "$large_stack"
 
-#./cfnrain rm -c -y success-test7 success-changeset-name
-# This leaves the stack as review in progress, and then you can't delete it
-# Seems like a bug!
-# It also fails if we try to delete the stack, not just the stackset
-#./cfnrain rm -y success-test7
+  nested_stack="${STACK_PREFIX}nested"
+  cp test/templates/integ-handle.yaml "$WORK_DIR/child.yaml"
+  cat > "$WORK_DIR/parent.yaml" <<'YAML'
+Description: Integration nested stack
+Resources:
+  Child:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: child.yaml
+YAML
+  ./cfnrain deploy "$WORK_DIR/parent.yaml" "$nested_stack" -y -d > "$WORK_DIR/detach.log"
+  grep -q 'Detaching' "$WORK_DIR/detach.log" || fail 'detach message'
+  timeout 240 ./cfnrain watch "$nested_stack" > "$WORK_DIR/watch-create.log"
+  grep -q 'CREATE_COMPLETE' "$WORK_DIR/watch-create.log" || fail 'watch create status'
+  assert_status "$nested_stack" CREATE_COMPLETE
+  cp test/templates/integ-handle-two.yaml "$WORK_DIR/child.yaml"
+  ./cfnrain deploy "$WORK_DIR/parent.yaml" "$nested_stack" nested-update --no-exec -y > "$WORK_DIR/nested-preview.log"
+  grep -q 'SecondHandle' "$WORK_DIR/nested-preview.log" || fail 'nested change set details'
+  timeout 240 ./cfnrain watch --wait "$nested_stack" > "$WORK_DIR/watch-update.log" &
+  WATCH_PID=$!
+  sleep 2
+  ./cfnrain deploy --changeset "$nested_stack" nested-update -d > "$WORK_DIR/nested-detach.log"
+  wait "$WATCH_PID"
+  WATCH_PID=
+  grep -q 'UPDATE_COMPLETE' "$WORK_DIR/watch-update.log" || fail 'watch update status'
+  assert_status "$nested_stack" UPDATE_COMPLETE
+  ./cfnrain logs "$nested_stack" --length 5 >/dev/null
+  ./cfnrain rm "$nested_stack" -y >/dev/null
+  assert_absent "$nested_stack"
+fi
 
-# These upload to the artifact bucket
-./cfnrain pkg cft/pkg/tmpl/s3-props-template.yaml
-./cfnrain pkg cft/pkg/tmpl/s3-template.yaml
-./cfnrain pkg cft/pkg/tmpl/s3http-template.yaml
-# Given a Template with an Extension value of txt, When Packaged, Then the S3 URI ends '.txt'
-./cfnrain pkg cft/pkg/tmpl/s3-extension-template.yaml | yq --exit-status '.Resources.Test.Properties.TheS3URI | test("\.txt$")'
-
-# Modules and Pkl package and upload. integ.sh lints the output.
+# The packaged modules and Pkl templates are linted in a credential-free job.
 ./cfnrain pkg -x test/webapp/webapp.yaml > "$INTEG_OUT/webapp.yaml"
 ./cfnrain pkg test/webapp/webapp.pkl > "$INTEG_OUT/webapp-pkl.yaml"

@@ -1,0 +1,4 @@
+Description: Integration test stack with no service resources
+Resources:
+  Handle:
+    Type: AWS::CloudFormation::WaitConditionHandle

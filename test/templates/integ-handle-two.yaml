@@ -1,0 +1,6 @@
+Description: Integration test stack with two handles
+Resources:
+  Handle:
+    Type: AWS::CloudFormation::WaitConditionHandle
+  SecondHandle:
+    Type: AWS::CloudFormation::WaitConditionHandle
