@@ -15,6 +15,7 @@ import (
 	"github.com/awesome-foundation/cfnrain/internal/s11n"
 	"github.com/awesome-foundation/cfnrain/internal/ui"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
+	"github.com/aws/smithy-go/ptr"
 	"github.com/spf13/cobra"
 )
 
@@ -151,7 +152,7 @@ var Cmd = &cobra.Command{
 			}
 		}
 
-		if *stack.EnableTerminationProtection {
+		if ptr.ToBool(stack.EnableTerminationProtection) {
 
 			if yes || console.Confirm(false, "This stack has termination protection enabled. Do you wish to disable it?") {
 				spinner.Push("Disabling termination protection")

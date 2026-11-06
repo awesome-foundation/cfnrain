@@ -261,7 +261,7 @@ Resources:
           - Action:
               - s3:ReplicateObject
               - s3:ReplicateDelete
-              - s3:ReplicationTags
+              - s3:ReplicateTags
             Effect: Allow
             Resource: !Sub arn:${AWS::Partition}:s3:::${AppName}-content-replicas-${AWS::Region}-${AWS::AccountId}/*
         Version: "2012-10-17"
@@ -489,7 +489,7 @@ Resources:
           - Action:
               - s3:ReplicateObject
               - s3:ReplicateDelete
-              - s3:ReplicationTags
+              - s3:ReplicateTags
             Effect: Allow
             Resource: !Sub arn:${AWS::Partition}:s3:::${AppName}-cflogs-replicas-${AWS::Region}-${AWS::AccountId}/*
         Version: "2012-10-17"
@@ -820,7 +820,6 @@ Resources:
       ResourceId: !Ref JwtResourceResource
       RestApiId: !Ref RestApi
       AuthorizationType: NONE
-      AuthorizerId: AWS::NoValue
       Integration:
         IntegrationHttpMethod: POST
         Type: AWS_PROXY

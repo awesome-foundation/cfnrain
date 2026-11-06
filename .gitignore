@@ -29,6 +29,7 @@ cfnrain
 !cmd/cfnrain
 parse-perf
 local/
+integ-out/
 .idea
 
 .env

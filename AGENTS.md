@@ -63,7 +63,7 @@ CI runs the same checks on every pull request (`.github/workflows/test.yml`). In
 - The golden tests in `cft/pkg/tmpl/`. Each `*-template.yaml` file has a `*-expect.yaml` file with the expected `pkg` output. If you change packaging output on purpose, update the expected file in the same commit.
 - `TestEveryCommandIsDocumented`. It fails when a command has no mention in `docs/`.
 
-Do not add a unit test that needs AWS credentials.
+Do not add a unit test that needs AWS credentials. Tests that need AWS go in `scripts/integ.sh`. The Integration tests workflow runs it on `main` and weekly. A maintainer runs it for a pull request after a review: with the `integ` label for a branch in this repository, or by hand with the commit SHA for a fork.
 
 ## Documentation
 

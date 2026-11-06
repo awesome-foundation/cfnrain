@@ -206,7 +206,7 @@ Resources:
     Properties:
       AuthorizationType: NONE
       AuthorizerId:
-        Fn::Sub: AWS::NoValue
+        Ref: AWS::NoValue
       HttpMethod: GET
       Integration:
         IntegrationHttpMethod: POST
@@ -648,7 +648,7 @@ Resources:
         - Action:
           - s3:ReplicateObject
           - s3:ReplicateDelete
-          - s3:ReplicationTags
+          - s3:ReplicateTags
           Effect: Allow
           Resource:
             Fn::Sub: arn:${AWS::Partition}:s3:::${AppName}-replicas-${AWS::Region}-${AWS::AccountId}/*
@@ -883,7 +883,7 @@ Resources:
         - Action:
           - s3:ReplicateObject
           - s3:ReplicateDelete
-          - s3:ReplicationTags
+          - s3:ReplicateTags
           Effect: Allow
           Resource:
             Fn::Sub: arn:${AWS::Partition}:s3:::${AppName}-cflogs-replicas-${AWS::Region}-${AWS::AccountId}/*

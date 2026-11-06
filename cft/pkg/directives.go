@@ -132,28 +132,55 @@ func includeEnv(ctx *directiveContext) (bool, error) {
 	return true, nil
 }
 
+// maxRunStderr caps how much of a failed Run script's stderr goes in the error
+const maxRunStderr = 4096
+
+// lastBytes returns the end of s, at most n bytes, marked when it is cut
+func lastBytes(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return "[...] " + strings.ToValidUTF8(s[len(s)-n:], "")
+}
+
+// runS3Command runs the Run script of a !Rain::S3 directive in root.
+// A relative script path is relative to root.
+func runS3Command(root, run string) error {
+	script := run
+	if !filepath.IsAbs(script) {
+		script = filepath.Join(root, script)
+	}
+	absPath, absErr := filepath.Abs(script)
+	if absErr != nil {
+		config.Debugf("filepath.Abs failed? %s", absErr)
+		return absErr
+	}
+	cmd := exec.Command(absPath)
+	var stdout strings.Builder
+	var stderr strings.Builder
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+	cmd.Dir = root
+	err := cmd.Run()
+	if err != nil {
+		config.Debugf("s3Option Run %s failed with %s: %s",
+			run, err, stderr.String())
+		if msg := lastBytes(strings.TrimSpace(stderr.String()), maxRunStderr); msg != "" {
+			return fmt.Errorf("run %s: %w: %s", run, err, msg)
+		}
+		return fmt.Errorf("run %s: %w", run, err)
+	}
+	return nil
+}
+
 func handleS3(root string, options s3Options) (*yaml.Node, error) {
 
 	// Check to see if we need to run a build command first
 	if options.Run != "" {
-		relativePath := filepath.Join(".", root, options.Run)
-		absPath, absErr := filepath.Abs(relativePath)
-		if absErr != nil {
-			config.Debugf("filepath.Abs failed? %s", absErr)
-			return nil, absErr
-		}
-		cmd := exec.Command(absPath)
-		var stdout strings.Builder
-		var stderr strings.Builder
-		cmd.Stdout = &stdout
-		cmd.Stderr = &stderr
-		cmd.Dir = root
-		err := cmd.Run()
-		if err != nil {
-			config.Debugf("s3Option Run %s failed with %s: %s",
-				options.Run, err, stderr.String())
+		if err := runS3Command(root, options.Run); err != nil {
 			return nil, err
 		}
+		forgetUploads(root, options.Path)
 	}
 
 	s, err := upload(root, options.Path, options.Zip, options.Extension)

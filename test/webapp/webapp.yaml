@@ -101,7 +101,7 @@ Modules:
       CodePath: api/dist/jwt/lambda-handler.zip
       ResourcePath: jwt
       StageName: staging
-      AuthorizerId: AWS::NoValue
+      AuthorizerId: !Ref AWS::NoValue
     Overrides:
       Handler:
         Properties:

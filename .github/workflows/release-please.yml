@@ -51,6 +51,9 @@ jobs:
       - uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
+          # The release job builds and attests the binaries, so it must not
+          # restore a cache that a less trusted run could have written
+          cache: false
       - uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
         with:
           version: "~> v2"
