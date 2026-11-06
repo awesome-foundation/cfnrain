@@ -1,14 +1,17 @@
 package fmt
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 
 	rainpkl "github.com/awesome-foundation/cfnrain/pkl"
 
 	"github.com/awesome-foundation/cfnrain/cft/format"
+	"github.com/awesome-foundation/cfnrain/internal/cmd"
 	"github.com/awesome-foundation/cfnrain/internal/config"
 	"github.com/awesome-foundation/cfnrain/internal/console"
 	"github.com/awesome-foundation/cfnrain/internal/node"
@@ -120,6 +123,10 @@ func formatFile(filename string) result {
 		return res
 	}
 
+	if filename == "-" {
+		return formatReader("<stdin>", os.Stdin)
+	}
+
 	r, err := os.Open(filename)
 	if err != nil {
 		return result{
@@ -136,7 +143,8 @@ var Cmd = &cobra.Command{
 	Use:                   "fmt <filename>...",
 	Aliases:               []string{"format"},
 	Short:                 "Format CloudFormation templates",
-	Long:                  "Reads CloudFormation templates from filename arguments (or stdin if no filenames are supplied) and formats them",
+	Long:                  "Reads CloudFormation templates from filename arguments (or stdin if no filenames are supplied) and formats them. A filename of \"-\" also reads stdin.",
+	Args:                  cmd.StdinOnce,
 	DisableFlagsInUseLine: true,
 	Run: func(cmd *cobra.Command, args []string) {
 		var results []result
@@ -159,6 +167,10 @@ var Cmd = &cobra.Command{
 				formatReader("<stdin>", os.Stdin),
 			}
 		} else {
+			if writeFlag && slices.Contains(args, "-") {
+				panic(errors.New("--write cannot write back to stdin"))
+			}
+
 			results = make([]result, len(args))
 			for i, filename := range args {
 				results[i] = formatFile(filename)
