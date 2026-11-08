@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"errors"
 	"github.com/awesome-foundation/cfnrain/cft/format"
 	"github.com/awesome-foundation/cfnrain/cft/parse"
 	"os"
@@ -18,7 +19,7 @@ func TestImplicitUploadFailure(t *testing.T) {
 			}
 			_, err := File(path)
 			if value == "does-not-exist" {
-				if err == nil || !strings.Contains(err.Error(), "Resources/Function/Properties/Code") || !strings.Contains(err.Error(), value) || !strings.Contains(err.Error(), "no such file") {
+				if err == nil || !strings.Contains(err.Error(), "Resources/Function/Properties/Code") || !strings.Contains(err.Error(), value) || !errors.Is(err, os.ErrNotExist) {
 					t.Fatalf("expected missing-path error, got %v", err)
 				}
 			} else if err != nil {
