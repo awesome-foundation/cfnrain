@@ -216,6 +216,10 @@ func GetStack(stackName string) (types.Stack, error) {
 		return types.Stack{}, err
 	}
 
+	if len(res.Stacks) == 0 {
+		return types.Stack{}, fmt.Errorf("DescribeStacks returned no stacks for %q", stackName)
+	}
+
 	return res.Stacks[0], nil
 }
 
