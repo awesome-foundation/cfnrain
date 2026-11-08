@@ -142,16 +142,24 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 			// Comments on a shortened function describe the containing property,
 			// not the next key or the first item of a sequence argument.
 			key := n.Content[i-1]
-			key.HeadComment = joinComments([]string{key.HeadComment, formatted.HeadComment})
-			if formatted.Kind == yaml.SequenceNode {
-				// A line comment on a tagged sequence is emitted on the next key.
-				// Keep it with this property by placing it above the key instead.
-				key.HeadComment = joinComments([]string{key.HeadComment, formatted.LineComment})
+			moveLineComments := formatted.Kind == yaml.SequenceNode || strings.Contains(formatted.LineComment, "\n") ||
+				(key.LineComment != "" && formatted.LineComment != "")
+			if moveLineComments {
+				// Sequences and multiple line comments cannot share the property line.
+				// Keep their text above this key instead of on the next node.
+				key.HeadComment = joinComments([]string{key.HeadComment, key.LineComment, formatted.HeadComment, formatted.LineComment})
+				key.LineComment = ""
 				formatted.LineComment = ""
+			} else {
+				key.HeadComment = joinComments([]string{key.HeadComment, formatted.HeadComment})
 			}
 			key.FootComment = joinComments([]string{formatted.FootComment, key.FootComment})
 			formatted.HeadComment = ""
 			formatted.FootComment = ""
+		} else if n.Kind == yaml.SequenceNode && child.Kind == yaml.MappingNode && formatted.Kind == yaml.SequenceNode {
+			// A sequence item has no property key to hold this comment.
+			// Retain the previous loss rather than attach it to an unrelated node.
+			formatted.LineComment = ""
 		}
 		n.Content[i] = formatted
 	}

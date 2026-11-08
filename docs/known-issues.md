@@ -2,6 +2,10 @@
 
 These are places where cfnrain does something unexpected. They come from Rain, and cfnrain has not fixed them yet. Each one says what to do instead, and links to its issue. When a fix ships, its entry goes away.
 
+## fmt drops a line comment on a function inside a list
+
+When a list item is a function with sequence arguments, `fmt` drops a line comment on the function key. Examples include `Fn::Join` in a list and `Fn::Split` inside `Fn::Select`. Put the comment above the property that contains the list instead. See [#85](https://github.com/awesome-foundation/cfnrain/issues/85).
+
 ## A !Sub constant inside another !Sub packages to an empty value
 
 A `Rain:` constant that is itself a `!Sub` string, used with `${Rain::<Name>}` inside another `!Sub`, packages to an empty string. There is no error.
