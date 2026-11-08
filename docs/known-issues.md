@@ -24,10 +24,6 @@ When cfnrain creates the artifact bucket, it adds a lifecycle rule with the ID `
 
 If an [implicit upload](directives/implicit-uploads.md) fails, for example because the local path does not exist, cfnrain leaves the path in the template and continues. CloudFormation then fails on the path. Run `cfnrain pkg --debug` to see the reason. Issue: [#44](https://github.com/awesome-foundation/cfnrain/issues/44).
 
-## The pkg help text lists the wrong S3 Format values
-
-`cfnrain pkg --help` lists `Format: Uri|Http`. The code expects `URI`, `Http` or `Object`, and `Object` is the default when you set both `BucketProperty` and `KeyProperty`. With `Format: Uri`, packaging stops with an error. The help text also leaves out the `Run` and `Extension` options. See [S3 and S3Http](directives/s3.md#format) for the correct values. Issue: [#45](https://github.com/awesome-foundation/cfnrain/issues/45).
-
 ## The stackset deploy help text says the template is optional
 
 `cfnrain stackset deploy --help` says that without a template file, cfnrain adds a new instance to an existing stack set. The code always reads the first argument as the template file, so you must give one. Issue: [#46](https://github.com/awesome-foundation/cfnrain/issues/46).

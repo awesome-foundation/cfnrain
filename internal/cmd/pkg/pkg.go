@@ -41,19 +41,19 @@ You may use the following, rain-specific directives in templates packaged with "
 
   !Rain::S3 <object>           supply an object with the following properties: 
     Path: <path>               a file or directory to be uploaded to S3
-    Zip: true|false            If "true", cfnrain with zip <path> even if it is a file
+    Zip: true|false            If "true", cfnrain will zip <path> even if it is a file
     BucketProperty: <bucket>   If you supply "BucketProperty" and "KeyProperty", cfnrain pkg will
     KeyProperty: <key>         include the uploaded file/directory's details as an object in the template
                                with the property names you specify.
-    Format: Uri|Http           Specify which format cfnrain pkg should return the S3 location as.
-                               Do not specify this property if you supply BucketProperty and KeyProperty.
-                               The default Format is "Uri".
+    Format: URI|Http|Object    Specify which format cfnrain pkg should return the S3 location as.
+                               The default is "Object" when both BucketProperty and KeyProperty are set,
+                               and "URI" otherwise. "Object" requires both property names.
+    Run: <script>             Run an executable script before uploading, from the template's directory.
+                               The script path is relative to the template file or absolute.
+    Extension: <extension>    Append a file extension to the S3 object key.
 
-  !Rain::Module <url>          Supply a URL to a rain module, which is similar to a CloudFormation module, 
-                               but allows for type inheritance. One of the resources in the module yaml file 
-                               must be called "ModuleExtension", and it must have a Metadata entry called 
-                               "Extends" that supplies the existing type to be extended. The Parameters section 
-                               of the module can be used to define additional properties for the extension.
+  !Rain::Module <url>          Supply a URL to a rain module. The module's Parameters define its properties,
+                               and its resources are inserted into the template.
                                This is an experimental directive that must be enabled by adding the 
                                --experimental arg on the command line.
 `,
