@@ -93,10 +93,19 @@ func PackageTemplate(fn string, yes bool) *cft.Template {
 	return t
 }
 
-func CheckStack(stackName string) (types.Stack, bool) {
+func CheckStack(stackName string, yes bool) (types.Stack, bool, error) {
+	return checkStack(stackName, yes, cfn.GetStack, cfn.DeleteStack, cfn.WaitForStackToSettle, console.Confirm)
+}
+
+func checkStack(stackName string, yes bool,
+	getStack func(string) (types.Stack, error),
+	deleteStack func(string, string) error,
+	waitForStack func(string) (string, []string),
+	confirm func(bool, string) bool,
+) (types.Stack, bool, error) {
 	// Find out if stack exists already
 	// If it does and it's not in a good state, offer to wait/delete
-	stack, err := cfn.GetStack(stackName)
+	stack, err := getStack(stackName)
 
 	stackExists := false
 	if err == nil {
@@ -105,6 +114,7 @@ func CheckStack(stackName string) (types.Stack, bool) {
 	}
 
 	spinner.Pause()
+	defer spinner.Resume()
 
 	if stackExists {
 		switch {
@@ -112,31 +122,33 @@ func CheckStack(stackName string) (types.Stack, bool) {
 			stack.StackStatus == types.StackStatusReviewInProgress,
 			stack.StackStatus == types.StackStatusCreateFailed:
 
-			message := "Existing stack is empty; deleting it."
-			fmt.Println(message)
-
-			err := cfn.DeleteStack(stackName, "")
-			if err != nil {
-				panic(ui.Errorf(err, "unable to delete stack '%s'", stackName))
+			if !yes && !confirm(false, fmt.Sprintf("Stack '%s' is in %s. Delete it and its change sets before deploying?", stackName, stack.StackStatus)) {
+				return stack, true, fmt.Errorf("user cancelled deployment; stack '%s' was not deleted", stackName)
 			}
 
-			status, _ := cfn.WaitForStackToSettle(stackName)
+			message := fmt.Sprintf("Deleting existing stack '%s' (%s).", stackName, stack.StackStatus)
+			fmt.Println(message)
+
+			err := deleteStack(stackName, "")
+			if err != nil {
+				return stack, true, ui.Errorf(err, "unable to delete stack '%s'", stackName)
+			}
+
+			status, _ := waitForStack(stackName)
 
 			if status != "DELETE_COMPLETE" {
-				panic(fmt.Errorf("failed to delete stack '%s'", stackName))
+				return stack, true, fmt.Errorf("failed to delete stack '%s'", stackName)
 			}
 
 			console.ClearLines(console.CountLines(message) + 1)
-			fmt.Println("Deleted existing, empty stack.")
+			fmt.Println("Deleted existing stack.")
 
 			stackExists = false
 		case !strings.HasSuffix(string(stack.StackStatus), "_COMPLETE"):
 			// Can't update
-			panic(fmt.Errorf("stack '%s' could not be updated: %s", stackName, ui.ColouriseStatus(string(stack.StackStatus))))
+			return stack, true, fmt.Errorf("stack '%s' could not be updated: %s", stackName, ui.ColouriseStatus(string(stack.StackStatus)))
 		}
 	}
 
-	spinner.Resume()
-
-	return stack, stackExists
+	return stack, stackExists, nil
 }

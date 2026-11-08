@@ -400,7 +400,11 @@ resource-specific checks. See the README for more details.
 
 		// Check current stack status
 		spinner.Push(fmt.Sprintf("Checking current status of stack '%s'", stackName))
-		stack, stackExists := deploy.CheckStack(stackName)
+		// Preserve forecast's existing automatic cleanup behavior.
+		stack, stackExists, err := deploy.CheckStack(stackName, true)
+		if err != nil {
+			panic(err)
+		}
 		spinner.Pop()
 
 		msg := ""
