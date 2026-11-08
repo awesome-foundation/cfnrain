@@ -97,11 +97,11 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 						n.Kind = yaml.ScalarNode
 						n.Value = strings.Join(parts, ".")
 					}
-
-					n.HeadComment = mergeComments(headComments)
-					n.LineComment = mergeComments(lineComments)
-					n.FootComment = mergeComments(footComments)
 				}
+
+				n.HeadComment = mergeComments(headComments)
+				n.LineComment = mergeComments(lineComments)
+				n.FootComment = mergeComments(footComments)
 			}
 		}
 	}
