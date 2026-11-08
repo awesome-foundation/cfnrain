@@ -44,7 +44,10 @@ func replaceConstants(n *yaml.Node, constants map[string]*yaml.Node) error {
 	retval := ""
 	words, err := parse.ParseSub(n.Value, true)
 	if err != nil {
-		return err
+		// Preserve legacy behavior for literal strings and substitutions that
+		// ParseSub cannot parse. Only constant resolution errors are fatal.
+		config.Debugf("replaceConstants skipped: %v", err)
+		return nil
 	}
 	for _, w := range words {
 		switch w.T {

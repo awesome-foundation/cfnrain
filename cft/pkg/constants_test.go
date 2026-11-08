@@ -106,3 +106,51 @@ Rain:
 		}
 	}
 }
+
+func TestConstantsPreserveUnclosedVariables(t *testing.T) {
+	for _, value := range []string{
+		`'^\${[A-Z]+'`,
+		`{Script: 'echo ${'}`,
+	} {
+		t.Run(value, func(t *testing.T) {
+			input := "Rain:\n  Constants:\n    Literal: " + value + "\nOutputs:\n  Literal:\n    Value: !Rain::Constant Literal\n"
+			expected := "Outputs:\n  Literal:\n    Value: " + value + "\n"
+			assertPackagedConstants(t, input, expected)
+		})
+	}
+	t.Run("Sub without constants", func(t *testing.T) {
+		input := "Outputs:\n  Literal:\n    Value: !Sub '${AWS::Region} costs ${'\n"
+		assertPackagedConstants(t, input, input)
+	})
+}
+
+func assertPackagedConstants(t *testing.T, input, expected string) {
+	t.Helper()
+	tmpl, err := parse.String(input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	packaged, err := Template(tmpl, ".", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := parse.String(expected)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := diff.New(packaged, want)
+	if d.Mode() != "=" {
+		t.Errorf("Output does not match expected: %v", d.Format(true))
+	}
+}
+
+func TestMissingConstantInterpolation(t *testing.T) {
+	tmpl, err := parse.String("Outputs:\n  Missing:\n    Value: !Sub '${Rain::Missing}'\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = Template(tmpl, ".", nil)
+	if err == nil || !strings.Contains(err.Error(), "did not find Constant Missing") {
+		t.Fatalf("expected missing constant error, got %v", err)
+	}
+}
