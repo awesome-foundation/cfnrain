@@ -1,6 +1,8 @@
 package merge
 
 import (
+	"bytes"
+	"github.com/awesome-foundation/cfnrain/internal/config"
 	"os"
 	"path/filepath"
 	"strings"
@@ -421,5 +423,42 @@ func TestMergeParseError(t *testing.T) {
 				t.Errorf("error %q does not contain %q", err, want)
 			}
 		}
+	}
+}
+
+func TestMergeCommandErrors(t *testing.T) {
+	oldDebug := config.Debug
+	config.Debug = true
+	defer func() { config.Debug = oldDebug; Cmd.SetArgs(nil); Cmd.SetOut(nil); Cmd.SetErr(nil) }()
+	for _, tc := range []struct{ name, content, want string }{
+		{"parse", "Resources: [\n", "invalid YAML:"},
+		{"conflict", "Resources:\n  Bucket:\n    Type: AWS::S3::Bucket\n", "templates have clashing Resources: Bucket"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "input.yaml")
+			if err := os.WriteFile(path, []byte(tc.content), 0600); err != nil {
+				t.Fatal(err)
+			}
+			var stdout, stderr bytes.Buffer
+			Cmd.SetOut(&stdout)
+			Cmd.SetErr(&stderr)
+			Cmd.SetArgs([]string{path, path})
+			err := Cmd.Execute()
+			if err == nil {
+				t.Fatal("expected command error")
+			}
+			if !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if tc.name == "parse" && !strings.Contains(err.Error(), path) {
+				t.Fatalf("missing filename: %v", err)
+			}
+			if got := stderr.String(); got != err.Error()+"\n" {
+				t.Errorf("stderr = %q; want one error line %q", got, err.Error()+"\n")
+			}
+			if strings.Contains(stderr.String(), "Usage:") || stdout.Len() != 0 {
+				t.Errorf("unexpected command output: stdout=%q stderr=%q", stdout.String(), stderr.String())
+			}
+		})
 	}
 }
