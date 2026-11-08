@@ -8,10 +8,6 @@ A `Rain:` constant that is itself a `!Sub` string, used with `${Rain::<Name>}` i
 
 Use `!Rain::Constant <Name>` for that constant instead. See [Constants](constants.md#known-issue-a-sub-constant-inside-another-sub). Issue: [#30](https://github.com/awesome-foundation/cfnrain/issues/30).
 
-## Fn::Select takes its arguments in the reverse order
-
-cfnrain simplifies `Fn::Select` only when the list comes first and the index second. CloudFormation uses the index first. Write `Fn::Select` in the CloudFormation order. cfnrain then leaves it for CloudFormation, which resolves it. See [Intrinsic functions](modules/intrinsics.md#fnjoin-and-fnselect). Issue: [#47](https://github.com/awesome-foundation/cfnrain/issues/47).
-
 ## build --only-cache does the same as --no-cache
 
 `cfnrain build --only-cache` should use only the cached schemas. In the code it sets the same switch as `--no-cache`, so it skips the cache. Do not rely on `--only-cache`. Issue: [#41](https://github.com/awesome-foundation/cfnrain/issues/41).

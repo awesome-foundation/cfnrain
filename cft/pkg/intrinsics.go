@@ -127,11 +127,14 @@ func FnSelect(n *yaml.Node) error {
 			v.Stop()
 			return
 		}
-		arr := sel.Content[0]
+		idx, arr := sel.Content[0], sel.Content[1]
+		// Preserve Rain's legacy list-first order for literal lists.
+		if idx.Kind == yaml.SequenceNode {
+			arr, idx = idx, arr
+		}
 		if arr.Kind != yaml.SequenceNode {
 			return
 		}
-		idx := sel.Content[1]
 		if idx.Kind != yaml.ScalarNode {
 			return
 		}
