@@ -8,6 +8,7 @@ import (
 
 	"github.com/awesome-foundation/cfnrain/internal/console"
 	"github.com/aws/aws-sdk-go-v2/service/cloudformation/types"
+	"github.com/aws/smithy-go/ptr"
 )
 
 func TestCheckStackDeletionConfirmation(t *testing.T) {
@@ -32,7 +33,7 @@ func TestCheckStackDeletionConfirmation(t *testing.T) {
 					if name != "test-stack" {
 						t.Fatalf("unexpected stack %q", name)
 					}
-					return types.Stack{StackStatus: status}, nil
+					return types.Stack{StackStatus: status, StackId: ptr.String("test-stack-id")}, nil
 				}
 				confirm := func(defaultYes bool, prompt string) bool {
 					calls = append(calls, "confirm")
@@ -50,7 +51,7 @@ func TestCheckStackDeletionConfirmation(t *testing.T) {
 				}
 				wait := func(name string) (string, []string) {
 					calls = append(calls, "wait")
-					if name != "test-stack" {
+					if name != "test-stack-id" {
 						t.Fatalf("unexpected wait: %q", name)
 					}
 					return "DELETE_COMPLETE", nil

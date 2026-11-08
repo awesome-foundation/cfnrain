@@ -29,6 +29,12 @@ With `-y` (`--yes`), deploy deletes the stack without asking, as before. This al
 
 The prompt uses the same confirmation helper as other commands: it requires stdout to be a terminal, and input errors stop the command before deletion. It does not automatically consent when stdin is redirected. Use `-y` for unattended deployment.
 
+After deletion, deploy waits using the original stack ID, so it can track completion even when the stack name no longer resolves.
+
+## Deployment result
+
+Unless `--detach` is set, deploy waits for completion and fetches the final stack summary. If that final lookup fails, deploy reports the error with the stack name and exits unsuccessfully, even if the wait observed a successful deployment.
+
 ## Flags
 
 | Flag | What it does |

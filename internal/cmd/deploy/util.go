@@ -129,12 +129,13 @@ func checkStack(stackName string, yes bool,
 			message := fmt.Sprintf("Deleting existing stack '%s' (%s).", stackName, stack.StackStatus)
 			fmt.Println(message)
 
+			stackID := ptr.ToString(stack.StackId)
 			err := deleteStack(stackName, "")
 			if err != nil {
 				return stack, true, ui.Errorf(err, "unable to delete stack '%s'", stackName)
 			}
 
-			status, _ := waitForStack(stackName)
+			status, _ := waitForStack(stackID)
 
 			if status != "DELETE_COMPLETE" {
 				return stack, true, fmt.Errorf("failed to delete stack '%s'", stackName)
