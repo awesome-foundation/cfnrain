@@ -79,7 +79,10 @@ func transform(ctx *transformContext) (bool, error) {
 			c, err := fn(&directiveContext{found, ctx.rootDir, ctx.t, nodeParent, ctx.fs, ctx.baseUri})
 			if err != nil {
 				config.Debugf("Error packaging template: %s\n", err)
-				return false, fmt.Errorf("%s: %w", packagingPath(ctx.nodeToTransform, found), err)
+				if path := packagingPath(ctx.nodeToTransform, found); path != "" {
+					return false, fmt.Errorf("%s: %w", path, err)
+				}
+				return false, err
 			}
 
 			changed = changed || c
@@ -106,8 +109,15 @@ func packagingPath(root, target *yaml.Node) string {
 			}
 		}
 	} else {
-		for _, child := range root.Content {
-			if path := packagingPath(child, target); path != "" {
+		for i, child := range root.Content {
+			path := packagingPath(child, target)
+			if child == target || path != "" {
+				if root.Kind == yaml.SequenceNode {
+					if path == "" {
+						return fmt.Sprint(i)
+					}
+					return fmt.Sprintf("%d/%s", i, path)
+				}
 				return path
 			}
 		}

@@ -115,7 +115,7 @@ func wrapTemplate(ctx *directiveContext) (bool, error) {
 
 	tmpl, err := File(path)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("nested template %q: %w", path, err)
 	}
 
 	f, err := os.CreateTemp(os.TempDir(), "*.template")

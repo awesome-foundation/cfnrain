@@ -17,5 +17,4 @@ cfnrain pkg app.yaml -o app.packaged.yaml
 | `--datamodel` | Print the internal YAML data model. This is for debugging cfnrain. |
 | `--no-analytics` | Has no effect. cfnrain keeps it so that old scripts still work. |
 
-If an implicit upload fails, `pkg` reports the path and error and exits non-zero.
-Remote `s3://`, `http://` and `https://` references are left unchanged.
+See [implicit upload rules](../../directives/implicit-uploads.md#rules) for path handling and packaging errors.
