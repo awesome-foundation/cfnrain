@@ -21,6 +21,14 @@ If you do not give a stack name, the stack name is the template file name withou
 !!! warning "On deploy, -x means --no-exec"
     On other commands, `-x` means `--experimental`. See [Experimental features](../../concepts/experimental.md#-x-means-no-exec-on-deploy).
 
+## Deleting an existing stack
+
+If an existing stack is in `ROLLBACK_COMPLETE`, `CREATE_FAILED` or `REVIEW_IN_PROGRESS`, deploy asks before deleting it to make way for the new deployment. The prompt names the stack and its status and defaults to **No**. Declining stops deployment without deleting the stack. Deleting a stack also deletes its change sets, including ones created by someone else with `--no-exec` or the console.
+
+With `-y` (`--yes`), deploy deletes the stack without asking, as before. This also applies when creating a change set with `--no-exec`.
+
+The prompt uses the same confirmation helper as other commands: it requires stdout to be a terminal, and input errors stop the command before deletion. It does not automatically consent when stdin is redirected. Use `-y` for unattended deployment.
+
 ## Flags
 
 | Flag | What it does |

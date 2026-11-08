@@ -31,8 +31,7 @@ On an update, cfnrain asks only for parameters that have no value from the other
 
 If the template has no changes, cfnrain prints `Change set was created, but there is no change. Deploy was skipped.` and exits with status 0.
 
-!!! warning "Failed stacks are deleted without a prompt"
-    If the existing stack is in `ROLLBACK_COMPLETE`, `CREATE_FAILED` or `REVIEW_IN_PROGRESS`, cfnrain deletes it before it deploys. It does not ask first, even without `-y`. Stacks in these states have no working resources. If the stack is in any other state that does not end in `_COMPLETE`, cfnrain stops with an error.
+For stacks that need deletion before deployment, see [Deleting an existing stack](../commands/stack/deploy.md#deleting-an-existing-stack). If the stack is in any other state that does not end in `_COMPLETE`, cfnrain stops with an error.
 
 ## Without questions
 

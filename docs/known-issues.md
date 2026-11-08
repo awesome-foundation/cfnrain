@@ -20,10 +20,6 @@ cfnrain simplifies `Fn::Select` only when the list comes first and the index sec
 
 When cfnrain creates the artifact bucket, it adds a lifecycle rule with the ID `delete after 14 days`. The rule deletes objects after 7 days. See [Objects expire after 7 days](concepts/artifact-bucket.md#objects-expire-after-7-days). Issue: [#42](https://github.com/awesome-foundation/cfnrain/issues/42).
 
-## Failed stacks are deleted without a prompt
-
-If a stack is in `ROLLBACK_COMPLETE`, `CREATE_FAILED` or `REVIEW_IN_PROGRESS`, `cfnrain deploy` deletes it before it deploys, also without `-y`. See [Updates](concepts/deploying.md#updates). Issue: [#43](https://github.com/awesome-foundation/cfnrain/issues/43).
-
 ## Implicit uploads fail without an error
 
 If an [implicit upload](directives/implicit-uploads.md) fails, for example because the local path does not exist, cfnrain leaves the path in the template and continues. CloudFormation then fails on the path. Run `cfnrain pkg --debug` to see the reason. Issue: [#44](https://github.com/awesome-foundation/cfnrain/issues/44).

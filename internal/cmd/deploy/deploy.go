@@ -154,7 +154,10 @@ To list and delete changesets, use the ls and rm commands.
 
 			// Check current stack status
 			spinner.Push(fmt.Sprintf("Checking current status of stack '%s'", stackName))
-			stack, stackExists := CheckStack(stackName)
+			stack, stackExists, err := CheckStack(stackName, yes)
+			if err != nil {
+				panic(err)
+			}
 			spinner.Pop()
 
 			dc, err := dc.GetDeployConfig(tags, params, configFilePath, base,
