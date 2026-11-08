@@ -177,8 +177,8 @@ var Cmd = &cobra.Command{
 		if detach {
 			fmt.Printf("Detaching. You can check your stack's status with: cfnrain watch %s\n", stackName)
 		} else {
-			status, messages := cfn.WaitForStackToSettle(stackName)
-			stack, _ = cfn.GetStack(stackName)
+			// Deleted stacks can only be looked up by ID, even on the first poll.
+			status, messages := cfn.WaitForStackToSettle(ptr.ToString(stack.StackId))
 
 			if status == "DELETE_COMPLETE" {
 				fmt.Println(console.Green(fmt.Sprintf("Successfully deleted stack '%s'", stackName)))

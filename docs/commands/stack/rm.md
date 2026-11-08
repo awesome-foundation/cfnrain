@@ -2,6 +2,8 @@
 
 `cfnrain rm <stack>` deletes a stack and waits until the delete completes. It asks you to confirm first. `remove`, `del` and `delete` are aliases.
 
+It tracks deletion using the stack ID, so a delete that finishes before the first status check still reports success.
+
 ```sh
 cfnrain rm app-dev
 cfnrain rm app-dev -y
