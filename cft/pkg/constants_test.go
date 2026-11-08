@@ -154,3 +154,22 @@ func TestMissingConstantInterpolation(t *testing.T) {
 		t.Fatalf("expected missing constant error, got %v", err)
 	}
 }
+
+func TestNestedSubConstantPreservesEscapes(t *testing.T) {
+	input := `Rain:
+  Constants:
+    Escaped: !Sub '${!Literal}'
+Outputs:
+  Escaped:
+    Value: !Sub '${Rain::Escaped}'
+  Suffixed:
+    Value: !Sub '${Const::Escaped}-uploads'
+`
+	expected := `Outputs:
+  Escaped:
+    Value: !Sub '${!Literal}'
+  Suffixed:
+    Value: !Sub '${!Literal}-uploads'
+`
+	assertPackagedConstants(t, input, expected)
+}

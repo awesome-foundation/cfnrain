@@ -119,8 +119,9 @@ func replaceTemplateConstants(t *cft.Template) error {
 				}
 
 				// Remove unnecessary Subs
-				// Parse the value again and see if it has any non-words
-				if !parse.IsSubNeeded(yamlNode.Content[1].Value) {
+				// Keep escaped variables for CloudFormation to resolve as literals.
+				if !parse.IsSubNeeded(yamlNode.Content[1].Value) &&
+					!strings.Contains(yamlNode.Content[1].Value, "${!") {
 					*yamlNode = *node.MakeScalar(yamlNode.Content[1].Value)
 				}
 			case "Ref":
