@@ -90,9 +90,10 @@ func TestDeployDeleteCompletesBeforeFirstPoll(t *testing.T) {
 }
 
 func TestDeployFinalStackLookup(t *testing.T) {
-	for _, result := range []string{"success", "empty", "error"} {
+	for _, result := range []string{"success", "empty", "error", "failed-wait"} {
 		t.Run(result, func(t *testing.T) {
 			lookups := 0
+			protected := false
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if err := r.ParseForm(); err != nil {
 					t.Error(err)
@@ -100,13 +101,23 @@ func TestDeployFinalStackLookup(t *testing.T) {
 				}
 				w.Header().Set("Content-Type", "text/xml")
 				switch action := r.Form.Get("Action"); action {
+				case "UpdateTerminationProtection":
+					protected = true
+					if lookups != 2 || r.Form.Get("EnableTerminationProtection") != "true" {
+						t.Errorf("unexpected protection request: %v, lookups=%d", r.Form, lookups)
+					}
+					fmt.Fprint(w, "<UpdateTerminationProtectionResponse><UpdateTerminationProtectionResult/></UpdateTerminationProtectionResponse>")
 				case "ExecuteChangeSet":
 					fmt.Fprint(w, "<ExecuteChangeSetResponse><ExecuteChangeSetResult/></ExecuteChangeSetResponse>")
 				case "DescribeStacks":
 					lookups++
 					if lookups == 1 || result == "success" {
-						stackResponse(w, "CREATE_COMPLETE")
-					} else if result == "empty" {
+						if result == "failed-wait" {
+							stackResponse(w, "ROLLBACK_COMPLETE")
+						} else {
+							stackResponse(w, "CREATE_COMPLETE")
+						}
+					} else if result == "empty" || result == "failed-wait" {
 						fmt.Fprint(w, "<DescribeStacksResponse><DescribeStacksResult><Stacks/></DescribeStacksResult></DescribeStacksResponse>")
 					} else {
 						lookupFailure(w)
@@ -122,7 +133,10 @@ func TestDeployFinalStackLookup(t *testing.T) {
 			}))
 			defer server.Close()
 			configureLookupAWS(t, server.URL)
-			t.Cleanup(func() { _ = deploy.Cmd.Flags().Set("changeset", "false") })
+			t.Cleanup(func() {
+				_ = deploy.Cmd.Flags().Set("changeset", "false")
+				_ = deploy.Cmd.Flags().Set("termination-protection", "false")
+			})
 
 			out, err := os.CreateTemp(t.TempDir(), "stdout")
 			if err != nil {
@@ -139,7 +153,7 @@ func TestDeployFinalStackLookup(t *testing.T) {
 			func() {
 				os.Stdout, os.Stderr = out, errOut
 				defer func() { os.Stdout, os.Stderr = previousOut, previousErr }()
-				deploy.Cmd.SetArgs([]string{"--changeset", "test-stack", "test-change-set"})
+				deploy.Cmd.SetArgs([]string{"--changeset", "--termination-protection", "test-stack", "test-change-set"})
 				defer deploy.Cmd.SetArgs(nil)
 				exitCode = cmd.Test(deploy.Cmd)
 			}()
@@ -159,6 +173,9 @@ func TestDeployFinalStackLookup(t *testing.T) {
 			output, err := io.ReadAll(out)
 			if err != nil {
 				t.Fatal(err)
+			}
+			if protected != (result != "failed-wait") {
+				t.Errorf("termination protection = %v after %s", protected, result)
 			}
 			if lookups != 2 {
 				t.Fatalf("got %d lookups, want wait then final lookup; failure=%s output=%s", lookups, failure, output)

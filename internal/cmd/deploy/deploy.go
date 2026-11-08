@@ -98,6 +98,7 @@ To list and delete changesets, use the ls and rm commands.
 
 		var stackName, changeSetName, fn string
 		var err error
+		var finalLookupErr error
 		var stack types.Stack
 		var templateNode *yaml.Node
 
@@ -255,27 +256,31 @@ To list and delete changesets, use the ls and rm commands.
 			status, messages := cfn.WaitForStackToSettle(stackName)
 			stack, err = cfn.GetStack(stackName)
 			if err != nil {
-				panic(ui.Errorf(err, "error getting final status of stack '%s'", stackName))
-			}
-			output := cfn.GetStackSummary(stack, false)
-
-			fmt.Println(output)
-
-			if len(messages) > 0 {
-				fmt.Println(console.Yellow("Messages:"))
-				for _, message := range messages {
-					fmt.Printf("  - %s\n", message)
+				finalLookupErr = ui.Errorf(err, "error getting final status of stack '%s'", stackName)
+				if status != "CREATE_COMPLETE" && status != "UPDATE_COMPLETE" && status != "IMPORT_COMPLETE" {
+					panic(finalLookupErr)
 				}
-			}
-
-			if status == "CREATE_COMPLETE" {
-				fmt.Println(console.Green("Successfully deployed " + stackName))
-			} else if status == "UPDATE_COMPLETE" {
-				fmt.Println(console.Green("Successfully updated " + stackName))
-			} else if status == "IMPORT_COMPLETE" {
-				fmt.Println(console.Green("Successfully imported " + stackName))
 			} else {
-				panic(fmt.Errorf("failed deploying stack '%s'", stackName))
+				output := cfn.GetStackSummary(stack, false)
+
+				fmt.Println(output)
+
+				if len(messages) > 0 {
+					fmt.Println(console.Yellow("Messages:"))
+					for _, message := range messages {
+						fmt.Printf("  - %s\n", message)
+					}
+				}
+
+				if status == "CREATE_COMPLETE" {
+					fmt.Println(console.Green("Successfully deployed " + stackName))
+				} else if status == "UPDATE_COMPLETE" {
+					fmt.Println(console.Green("Successfully updated " + stackName))
+				} else if status == "IMPORT_COMPLETE" {
+					fmt.Println(console.Green("Successfully imported " + stackName))
+				} else {
+					panic(fmt.Errorf("failed deploying stack '%s'", stackName))
+				}
 			}
 		}
 
@@ -283,7 +288,7 @@ To list and delete changesets, use the ls and rm commands.
 		if terminationProtection {
 			err = cfn.SetTerminationProtection(stackName, true)
 			if err != nil {
-				panic(ui.Errorf(err, "error while enabling termination protection on stack '%s'", stackName))
+				panic(errors.Join(finalLookupErr, ui.Errorf(err, "error while enabling termination protection on stack '%s'", stackName)))
 			}
 		}
 
@@ -292,8 +297,11 @@ To list and delete changesets, use the ls and rm commands.
 			err := processMetadataAfter(cft.Template{Node: templateNode},
 				stackName, filepath.Dir(fn))
 			if err != nil {
-				panic(err)
+				panic(errors.Join(finalLookupErr, err))
 			}
+		}
+		if finalLookupErr != nil {
+			panic(finalLookupErr)
 		}
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {

@@ -33,7 +33,9 @@ After deletion, deploy waits using the original stack ID, so it can track comple
 
 ## Deployment result
 
-Unless `--detach` is set, deploy waits for completion and fetches the final stack summary. If that final lookup fails, deploy reports the error with the stack name and exits unsuccessfully, even if the wait observed a successful deployment.
+After a change set executes, deploy waits for completion unless `--detach` is set. It then fetches the final stack summary. Deploy does not wait with `--no-exec` or when the change set has no changes.
+
+If the final lookup fails after a successful wait, deploy still enables requested termination protection and runs post-deploy metadata commands. It then reports the lookup error with the stack name and exits unsuccessfully. It prints no stack summary or deployment success message.
 
 ## Flags
 
