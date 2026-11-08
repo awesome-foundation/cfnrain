@@ -20,6 +20,6 @@ func Example_watch_help() {
 	//   watch <stack>
 	//
 	// Flags:
-	//   -h, --help   help for watch
-	//   -w, --wait   wait for changes to begin rather than refusing to watch an unchanging stack
+	//   -h, --help[=true|false]   help for watch
+	//   -w, --wait[=true|false]   wait for changes to begin rather than refusing to watch an unchanging stack
 }
