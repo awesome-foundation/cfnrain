@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/awesome-foundation/cfnrain/internal/aws"
+	"github.com/awesome-foundation/cfnrain/internal/cmd"
 	"github.com/awesome-foundation/cfnrain/internal/cmd/deploy"
 	"github.com/awesome-foundation/cfnrain/internal/console/spinner"
 )
@@ -121,9 +122,6 @@ func TestDeployFinalStackLookup(t *testing.T) {
 			}))
 			defer server.Close()
 			configureLookupAWS(t, server.URL)
-			if err := deploy.Cmd.Flags().Set("changeset", "true"); err != nil {
-				t.Fatal(err)
-			}
 			t.Cleanup(func() { _ = deploy.Cmd.Flags().Set("changeset", "false") })
 
 			out, err := os.CreateTemp(t.TempDir(), "stdout")
@@ -131,18 +129,30 @@ func TestDeployFinalStackLookup(t *testing.T) {
 				t.Fatal(err)
 			}
 			defer out.Close()
-			previous := os.Stdout
-			var failure error
+			errOut, err := os.CreateTemp(t.TempDir(), "stderr")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer errOut.Close()
+			previousOut, previousErr := os.Stdout, os.Stderr
+			var exitCode int
 			func() {
-				os.Stdout = out
-				defer func() {
-					os.Stdout = previous
-					if recovered := recover(); recovered != nil {
-						t.Fatalf("unexpected panic: %v", recovered)
-					}
-				}()
-				failure = deploy.Cmd.RunE(deploy.Cmd, []string{"test-stack", "test-change-set"})
+				os.Stdout, os.Stderr = out, errOut
+				defer func() { os.Stdout, os.Stderr = previousOut, previousErr }()
+				deploy.Cmd.SetArgs([]string{"--changeset", "test-stack", "test-change-set"})
+				defer deploy.Cmd.SetArgs(nil)
+				exitCode = cmd.Test(deploy.Cmd)
 			}()
+			if _, err := errOut.Seek(0, 0); err != nil {
+				t.Fatal(err)
+			}
+			failure, err := io.ReadAll(errOut)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if strings.Contains(string(failure), "Usage:") {
+				t.Errorf("lookup failure printed usage: %s", failure)
+			}
 			if _, err := out.Seek(0, 0); err != nil {
 				t.Fatal(err)
 			}
@@ -151,20 +161,23 @@ func TestDeployFinalStackLookup(t *testing.T) {
 				t.Fatal(err)
 			}
 			if lookups != 2 {
-				t.Fatalf("got %d lookups, want wait then final lookup; failure=%v output=%s", lookups, failure, output)
+				t.Fatalf("got %d lookups, want wait then final lookup; failure=%s output=%s", lookups, failure, output)
 			}
 			if result == "success" {
-				if failure != nil || !strings.Contains(string(output), "Successfully deployed test-stack") {
-					t.Fatalf("failure=%v, output=%s", failure, output)
+				if exitCode != 0 || !strings.Contains(string(output), "Successfully deployed test-stack") {
+					t.Fatalf("failure=%s, output=%s", failure, output)
 				}
 				return
+			}
+			if strings.Count(string(failure), "\n") != 1 {
+				t.Errorf("expected one error line, got %s", failure)
 			}
 			wantCause := "no stacks"
 			if result == "error" {
 				wantCause = "does not exist"
 			}
-			if failure == nil || !strings.Contains(fmt.Sprint(failure), "test-stack") || !strings.Contains(fmt.Sprint(failure), wantCause) {
-				t.Errorf("expected contextual lookup failure (%s), got %v", wantCause, failure)
+			if exitCode != 1 || !strings.Contains(string(failure), "test-stack") || !strings.Contains(string(failure), wantCause) {
+				t.Errorf("expected contextual lookup failure (%s), got %s (exit %d)", wantCause, failure, exitCode)
 			}
 			if strings.Contains(string(output), "Successfully") || strings.Contains(string(output), "Stack ") {
 				t.Errorf("printed summary or success after failed lookup: %s", output)

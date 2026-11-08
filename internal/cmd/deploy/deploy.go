@@ -94,7 +94,7 @@ To list and delete changesets, use the ls and rm commands.
 `,
 	Args:                  cobra.RangeArgs(1, 3),
 	DisableFlagsInUseLine: true,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	Run: func(cmd *cobra.Command, args []string) {
 
 		var stackName, changeSetName, fn string
 		var err error
@@ -188,7 +188,7 @@ To list and delete changesets, use the ls and rm commands.
 				if changeSetHasNoChanges(createErr.Error()) {
 					spinner.Pop()
 					fmt.Println(console.Green("Change set was created, but there is no change. Deploy was skipped."))
-					return nil
+					return
 				} else {
 					panic(ui.Errorf(createErr, "error creating changeset"))
 				}
@@ -205,7 +205,7 @@ To list and delete changesets, use the ls and rm commands.
 				fmt.Println(status)
 
 				fmt.Println("changeset created but not executed:", changeSetName)
-				return nil
+				return
 			}
 
 			// Confirm changes
@@ -255,7 +255,7 @@ To list and delete changesets, use the ls and rm commands.
 			status, messages := cfn.WaitForStackToSettle(stackName)
 			stack, err = cfn.GetStack(stackName)
 			if err != nil {
-				return ui.Errorf(err, "error getting final status of stack '%s'", stackName)
+				panic(ui.Errorf(err, "error getting final status of stack '%s'", stackName))
 			}
 			output := cfn.GetStackSummary(stack, false)
 
@@ -295,7 +295,6 @@ To list and delete changesets, use the ls and rm commands.
 				panic(err)
 			}
 		}
-		return nil
 	},
 	PostRun: func(cmd *cobra.Command, args []string) {
 		params = nil

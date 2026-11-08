@@ -89,3 +89,21 @@ func TestCheckStackWithoutTerminalDoesNotDelete(t *testing.T) {
 		func(string) (string, []string) { t.Fatal("waited without deletion"); return "", nil },
 		console.Confirm)
 }
+
+func TestCheckStackMissingID(t *testing.T) {
+	_, exists, err := checkStack("test-stack", true,
+		func(string) (types.Stack, error) {
+			return types.Stack{StackStatus: types.StackStatusCreateFailed}, nil
+		},
+		func(string, string) error { return nil },
+		func(name string) (string, []string) {
+			if name != "test-stack" {
+				t.Fatalf("wait stack = %q, want test-stack", name)
+			}
+			return "DELETE_COMPLETE", nil
+		},
+		func(bool, string) bool { t.Fatal("unexpected confirmation"); return false })
+	if err != nil || exists {
+		t.Fatalf("exists=%v, err=%v", exists, err)
+	}
+}

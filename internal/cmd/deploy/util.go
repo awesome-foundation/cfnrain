@@ -130,6 +130,9 @@ func checkStack(stackName string, yes bool,
 			fmt.Println(message)
 
 			stackID := ptr.ToString(stack.StackId)
+			if stackID == "" {
+				stackID = stackName
+			}
 			err := deleteStack(stackName, "")
 			if err != nil {
 				return stack, true, ui.Errorf(err, "unable to delete stack '%s'", stackName)
