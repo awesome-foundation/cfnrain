@@ -40,6 +40,7 @@ For stacks that need deletion before deployment, see [Deleting an existing stack
 - cfnrain does not ask for parameters. Every parameter needs a value from a flag, the config file, an environment variable, a default, or the existing stack.
 - cfnrain does not show the change set before it executes it.
 - cfnrain creates the artifact bucket if it does not exist.
+- cfnrain deletes an existing stack without asking when deletion is needed before deployment. See [Deleting an existing stack](../commands/stack/deploy.md#deleting-an-existing-stack).
 
 If a parameter has no value, cfnrain stops with this error:
 

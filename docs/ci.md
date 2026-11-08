@@ -124,7 +124,7 @@ Notes:
 - The `Replacement` column shows `True` when CloudFormation will replace a resource. Look for it in the review.
 - Use a role for the preview that can create change sets but cannot execute them.
 - The `if` condition skips pull requests from forks. Those runs get no AWS credentials, and they should not.
-- For a stack that does not exist yet, the change set leaves an empty stack in `REVIEW_IN_PROGRESS`. The next `cfnrain deploy` deletes it without a question. See [Updates](concepts/deploying.md#updates).
+- For a stack that does not exist yet, the change set leaves an empty stack in `REVIEW_IN_PROGRESS`. The next `cfnrain deploy` asks before deleting it unless `-y` is given. See [Deleting an existing stack](commands/stack/deploy.md#deleting-an-existing-stack).
 
 !!! warning "-x is --no-exec on deploy"
     Write the long flag names in CI scripts. See [Experimental features](concepts/experimental.md#-x-means-no-exec-on-deploy).
