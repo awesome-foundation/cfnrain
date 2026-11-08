@@ -24,7 +24,7 @@ var Cmd = &cobra.Command{
 	Long:                  "Merges all specified CloudFormation templates, print the resultant template to standard out",
 	Args:                  cobra.MinimumNArgs(2),
 	DisableFlagsInUseLine: true,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) error {
 		var err error
 
 		templates := make([]*cft.Template, len(args))
@@ -32,7 +32,7 @@ var Cmd = &cobra.Command{
 		for i, fn := range args {
 			templates[i], err = parse.File(fn)
 			if err != nil {
-				panic(ui.Errorf(err, "unable to open template '%s'", fn))
+				return ui.Errorf(err, "unable to open template '%s'", fn)
 			}
 		}
 
@@ -58,6 +58,7 @@ var Cmd = &cobra.Command{
 		} else {
 			fmt.Println(out)
 		}
+		return nil
 	},
 }
 

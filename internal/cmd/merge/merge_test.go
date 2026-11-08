@@ -1,6 +1,9 @@
 package merge
 
 import (
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/awesome-foundation/cfnrain/cft/diff"
@@ -394,5 +397,29 @@ Outputs:
 
 	if d := diff.New(expectedTemplate, merged); d.Mode() == "=" {
 		t.Errorf("%s", d.Format(true))
+	}
+}
+
+// TestMergeParseError calls the handler directly so a panic cannot be hidden by
+// the CLI's recovery wrapper.
+func TestMergeParseError(t *testing.T) {
+	dir := t.TempDir()
+	good := filepath.Join(dir, "good.yaml")
+	bad := filepath.Join(dir, "bad.yaml")
+	for path, content := range map[string]string{good: "Resources: {}\n", bad: "Resources: [\n"} {
+		if err := os.WriteFile(path, []byte(content), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, args := range [][]string{{bad, good}, {good, bad}} {
+		err := Cmd.RunE(Cmd, args)
+		if err == nil {
+			t.Fatal("expected parse error")
+		}
+		for _, want := range []string{bad, "invalid YAML:", "did not find expected node content"} {
+			if !strings.Contains(err.Error(), want) {
+				t.Errorf("error %q does not contain %q", err, want)
+			}
+		}
 	}
 }
