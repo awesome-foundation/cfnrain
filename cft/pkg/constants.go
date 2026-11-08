@@ -67,6 +67,9 @@ func replaceConstants(n *yaml.Node, constants map[string]*yaml.Node) error {
 				val.Content[0].Value == "Fn::Sub" && val.Content[1].Kind == yaml.ScalarNode {
 				val = val.Content[1]
 			}
+			if val.Kind != yaml.ScalarNode {
+				return fmt.Errorf("constant %s cannot be interpolated as a string; use !Rain::Constant or !Ref Const::%s to insert the whole value", w.W, w.W)
+			}
 			config.Debugf("Found a Rain constant: %s = %s", w.W, val.Value)
 			retval += val.Value
 		}
@@ -93,12 +96,19 @@ func replaceTemplateConstants(t *cft.Template) error {
 	var err error
 
 	vf := func(v *visitor.Visitor) {
+		if err != nil {
+			return
+		}
 		yamlNode := v.GetYamlNode()
 		if yamlNode.Kind == yaml.MappingNode && len(yamlNode.Content) == 2 {
 
 			key := yamlNode.Content[0].Value
 			switch key {
 			case "Fn::Sub":
+				// Leave sequence-form template substitutions unchanged.
+				if yamlNode.Content[1].Kind != yaml.ScalarNode {
+					return
+				}
 				err = replaceConstants(yamlNode.Content[1], constants)
 				if err != nil {
 					config.Debugf("%v", err)
@@ -129,7 +139,7 @@ func replaceTemplateConstants(t *cft.Template) error {
 	visitor := visitor.NewVisitor(t.Node)
 	visitor.Visit(vf)
 
-	return nil
+	return err
 }
 
 func processConstants(t *cft.Template, n *yaml.Node) error {
@@ -141,19 +151,21 @@ func processConstants(t *cft.Template, n *yaml.Node) error {
 			val := c.Content[i+1]
 			t.Constants[name] = val
 			// Visit each node in val looking for prior constant entries
+			var err error
 			vf := func(v *visitor.Visitor) {
+				if err != nil {
+					return
+				}
 				vnode := v.GetYamlNode()
 				if vnode.Kind == yaml.ScalarNode {
-					err := replaceConstants(vnode, t.Constants)
-					if err != nil {
-						// These constants must be scalars
-						// TODO: Constant values can be objects!
-						config.Debugf("replaceConstants failed: %v", err)
-					}
+					err = replaceConstants(vnode, t.Constants)
 				}
 			}
 			v := visitor.NewVisitor(val)
 			v.Visit(vf)
+			if err != nil {
+				return fmt.Errorf("constant %s: %w", name, err)
+			}
 		}
 	}
 
