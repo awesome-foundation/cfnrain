@@ -46,7 +46,6 @@ var DeployCmd = &cobra.Command{
 	Short: "Deploy a CloudFormation stack set from a local template",
 	Long: `Creates or updates a CloudFormation stack set <stackset> from the template file <template>.
 If you don't specify a stack set name, cfnrain will use the template filename minus its extension.
-If you do not specify a template file, cfnrain will asume that you want to add a new instance to an existing template,
 If a template needs to be packaged before it can be deployed, cfnrain will package the template first.
 Rain will attempt to create an S3 bucket to store artifacts that it packages and deploys.
 The bucket's name will be of the format rain-artifacts-<AWS account id>-<AWS region>.
