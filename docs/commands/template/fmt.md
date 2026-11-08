@@ -1,6 +1,6 @@
 # fmt
 
-`cfnrain fmt` formats templates. It sorts the sections and properties in a fixed order, uses the short form of most intrinsic functions (`!Sub`, `!Ref`), and keeps your YAML comments. `format` is an alias. Comments on a function key are kept when the function is written in short form, including comments before, beside and after the key.
+`cfnrain fmt` formats templates. It sorts the sections and properties in a fixed order, uses the short form of most intrinsic functions (`!Sub`, `!Ref`), and preserves comments when converting function keys to short form. `format` is an alias.
 
 Input, `bucket.json`:
 

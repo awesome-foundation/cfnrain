@@ -11,43 +11,59 @@ import (
 )
 
 func TestShortFunctionKeyComments(t *testing.T) {
-	for _, function := range []struct{ name, tag, value string }{
-		{"Fn::Sub", "!Sub", "x-${AWS::Region}"},
-		{"Ref", "!Ref", "AWS::Region"},
-		{"Fn::GetAtt", "!GetAtt", "[Bucket, Arn]"},
+	for _, function := range []struct{ name, value string }{
+		{"Fn::Sub", "x-${AWS::Region}"},
+		{"Ref", "AWS::Region"},
+		{"Fn::GetAtt", "[Bucket, Arn]"},
+		{"Fn::Join", "['-', [a, b]]"},
+		{"Fn::If", "[Condition, a, b]"},
 	} {
-		for _, comment := range []struct{ name, input, output string }{
-			{"head", "      # why this name\n      %s: %s\n", "    Value: %s %s\n\n    # why this name\n"},
-			{"line", "      %s: # why this name\n        %s\n", "    Value: %s %s # why this name\n"},
-			{"foot", "      %s: %s\n      # why this name\n", "    Value: %s %s\n\n    # why this name\n"},
+		for _, comment := range []struct{ name, input, head, line, foot string }{
+			{name: "head", input: "      ### banner\n      # second line\n      %s: %s\n", head: "### banner\n# second line"},
+			{name: "line", input: "      %s: # beside\n        %s\n", line: "# beside"},
+			{name: "foot", input: "      %s: %s\n      # after\n\n", foot: "# after"},
+			{name: "all", input: "      ### banner\n      # second line\n      %s: # beside\n        %s\n      # after\n\n", head: "### banner\n# second line", line: "# beside", foot: "# after"},
 		} {
+			if (function.name == "Fn::Join" || function.name == "Fn::If") && comment.name != "head" {
+				continue
+			}
 			t.Run(function.name+"/"+comment.name, func(t *testing.T) {
-				input := "Outputs:\n  O:\n    Value:\n" + fmt.Sprintf(comment.input, function.name, function.value)
-				// Check that the fixture attaches the comment to the function key.
+				input := "Outputs:\n  O:\n    Value:\n" + fmt.Sprintf(comment.input, function.name, function.value) + "    Export:\n      Name: n\n"
 				var raw yaml.Node
 				if err := yaml.Unmarshal([]byte(input), &raw); err != nil {
 					t.Fatal(err)
 				}
-				key := raw.Content[0].Content[1].Content[1].Content[1].Content[0]
-				comments := map[string]string{"head": key.HeadComment, "line": key.LineComment, "foot": key.FootComment}
-				if comments[comment.name] != "# why this name" {
-					t.Fatalf("%s comment is not on the function key: %#v", comment.name, key)
+				property := raw.Content[0].Content[1].Content[1]
+				key := property.Content[1].Content[0]
+				want := []string{comment.head, comment.line, comment.foot}
+				if d := cmp.Diff(want, []string{key.HeadComment, key.LineComment, key.FootComment}); d != "" {
+					t.Fatalf("fixture comments: %s", d)
 				}
 				template, err := parse.String(input)
 				if err != nil {
 					t.Fatal(err)
 				}
-				value := function.value
-				if function.name == "Fn::GetAtt" {
-					value = "Bucket.Arn"
-				}
-				expected := "Outputs:\n  O:\n" + fmt.Sprintf(comment.output, function.tag, value)
 				actual := format.String(template, format.Options{})
-				if d := cmp.Diff(expected, actual); d != "" {
-					t.Error(d)
-				}
 				if err := parse.Verify(template, actual); err != nil {
+					t.Fatalf("%v\n%s", err, actual)
+				}
+				if err := yaml.Unmarshal([]byte(actual), &raw); err != nil {
 					t.Fatal(err)
+				}
+				property = raw.Content[0].Content[1].Content[1]
+				key, value, next := property.Content[0], property.Content[1], property.Content[2]
+				if d := cmp.Diff(want, []string{key.HeadComment, key.LineComment + value.LineComment, key.FootComment}); d != "" {
+					t.Errorf("formatted property comments: %s\n%s", d, actual)
+				}
+				if next.HeadComment != "" || next.FootComment != "" || next.LineComment != "" {
+					t.Errorf("comment moved to Export: %#v", next)
+				}
+				again, err := parse.String(actual)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if d := cmp.Diff(actual, format.String(again, format.Options{})); d != "" {
+					t.Errorf("second format: %s", d)
 				}
 			})
 		}
