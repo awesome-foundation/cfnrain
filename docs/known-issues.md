@@ -20,10 +20,6 @@ cfnrain simplifies `Fn::Select` only when the list comes first and the index sec
 
 When cfnrain creates the artifact bucket, it adds a lifecycle rule with the ID `delete after 14 days`. The rule deletes objects after 7 days. See [Objects expire after 7 days](concepts/artifact-bucket.md#objects-expire-after-7-days). Issue: [#42](https://github.com/awesome-foundation/cfnrain/issues/42).
 
-## Implicit uploads fail without an error
-
-If an [implicit upload](directives/implicit-uploads.md) fails, for example because the local path does not exist, cfnrain leaves the path in the template and continues. CloudFormation then fails on the path. Run `cfnrain pkg --debug` to see the reason. Issue: [#44](https://github.com/awesome-foundation/cfnrain/issues/44).
-
 ## The pkg help text lists the wrong S3 Format values
 
 `cfnrain pkg --help` lists `Format: Uri|Http`. The code expects `URI`, `Http` or `Object`, and `Object` is the default when you set both `BucketProperty` and `KeyProperty`. With `Format: Uri`, packaging stops with an error. The help text also leaves out the `Run` and `Extension` options. See [S3 and S3Http](directives/s3.md#format) for the correct values. Issue: [#45](https://github.com/awesome-foundation/cfnrain/issues/45).

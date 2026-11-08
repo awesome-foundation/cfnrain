@@ -1,12 +1,12 @@
 package pkg
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/awesome-foundation/cfnrain/cft/format"
-	"github.com/awesome-foundation/cfnrain/internal/config"
 	"gopkg.in/yaml.v3"
 )
 
@@ -31,16 +31,18 @@ func init() {
 	registry["Resources/*|Type==AWS::StepFunctions::StateMachine/Properties/DefinitionS3Location"] = wrapObject("Bucket", "Key", false)
 }
 
-func wrapS3(n *yaml.Node, root string, options s3Options) bool {
+func wrapS3(n *yaml.Node, root string, options s3Options) (bool, error) {
+	if strings.HasPrefix(options.Path, "s3://") || strings.HasPrefix(options.Path, "http://") || strings.HasPrefix(options.Path, "https://") {
+		return false, nil
+	}
 	newNode, err := handleS3(root, options)
 	if err != nil {
-		config.Debugf("Error handling S3: %s\n", err)
-		return false
+		return false, fmt.Errorf("implicit upload %q at line %d, column %d: %w", options.Path, n.Line, n.Column, err)
 	}
 
 	*n = *newNode
 
-	return true
+	return true, nil
 }
 
 func wrapS3ZipURI(ctx *directiveContext) (bool, error) {
@@ -55,7 +57,7 @@ func wrapS3ZipURI(ctx *directiveContext) (bool, error) {
 		Path:   n.Value,
 		Format: s3URI,
 		Zip:    true,
-	}), nil
+	})
 }
 
 func wrapS3URI(ctx *directiveContext) (bool, error) {
@@ -72,7 +74,7 @@ func wrapS3URI(ctx *directiveContext) (bool, error) {
 	return wrapS3(n, ctx.rootDir, s3Options{
 		Path:   n.Value,
 		Format: s3URI,
-	}), nil
+	})
 }
 
 func wrapObject(bucket, key string, forceZip bool) directiveFunc {
@@ -90,7 +92,7 @@ func wrapObject(bucket, key string, forceZip bool) directiveFunc {
 			BucketProperty: bucket,
 			KeyProperty:    key,
 			Zip:            forceZip,
-		}), nil
+		})
 	}
 }
 
@@ -102,7 +104,7 @@ func wrapTemplate(ctx *directiveContext) (bool, error) {
 		return false, nil
 	}
 
-	if strings.HasPrefix(n.Value, "http://") || strings.HasPrefix(n.Value, "https://") {
+	if strings.HasPrefix(n.Value, "s3://") || strings.HasPrefix(n.Value, "http://") || strings.HasPrefix(n.Value, "https://") {
 		return false, nil // Already http
 	}
 
@@ -133,5 +135,5 @@ func wrapTemplate(ctx *directiveContext) (bool, error) {
 	return wrapS3(n, root, s3Options{
 		Path:   f.Name(),
 		Format: s3Http,
-	}), nil
+	})
 }

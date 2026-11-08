@@ -16,3 +16,6 @@ cfnrain pkg app.yaml -o app.packaged.yaml
 | `--node-style` | How to write YAML values, as for [`fmt`](fmt.md) |
 | `--datamodel` | Print the internal YAML data model. This is for debugging cfnrain. |
 | `--no-analytics` | Has no effect. cfnrain keeps it so that old scripts still work. |
+
+If an implicit upload fails, `pkg` reports the path and error and exits non-zero.
+Remote `s3://`, `http://` and `https://` references are left unchanged.
