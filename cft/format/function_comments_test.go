@@ -24,9 +24,6 @@ func TestShortFunctionKeyComments(t *testing.T) {
 			{name: "foot", input: "      %s: %s\n      # after\n\n", foot: "# after"},
 			{name: "all", input: "      ### banner\n      # second line\n      %s: # beside\n        %s\n      # after\n\n", head: "### banner\n# second line", line: "# beside", foot: "# after"},
 		} {
-			if (function.name == "Fn::Join" || function.name == "Fn::If") && comment.name != "head" {
-				continue
-			}
 			t.Run(function.name+"/"+comment.name, func(t *testing.T) {
 				input := "Outputs:\n  O:\n    Value:\n" + fmt.Sprintf(comment.input, function.name, function.value) + "    Export:\n      Name: n\n"
 				var raw yaml.Node
@@ -42,6 +39,14 @@ func TestShortFunctionKeyComments(t *testing.T) {
 				template, err := parse.String(input)
 				if err != nil {
 					t.Fatal(err)
+				}
+				// Sequence line comments move above the containing property.
+				if (function.name == "Fn::Join" || function.name == "Fn::If") && comment.line != "" {
+					if want[0] != "" {
+						want[0] += "\n"
+					}
+					want[0] += comment.line
+					want[1] = ""
 				}
 				actual := format.String(template, format.Options{})
 				if err := parse.Verify(template, actual); err != nil {

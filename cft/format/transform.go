@@ -143,6 +143,12 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 			// not the next key or the first item of a sequence argument.
 			key := n.Content[i-1]
 			key.HeadComment = joinComments([]string{key.HeadComment, formatted.HeadComment})
+			if formatted.Kind == yaml.SequenceNode {
+				// A line comment on a tagged sequence is emitted on the next key.
+				// Keep it with this property by placing it above the key instead.
+				key.HeadComment = joinComments([]string{key.HeadComment, formatted.LineComment})
+				formatted.LineComment = ""
+			}
 			key.FootComment = joinComments([]string{formatted.FootComment, key.FootComment})
 			formatted.HeadComment = ""
 			formatted.FootComment = ""
