@@ -2,7 +2,6 @@ package merge
 
 import (
 	"bytes"
-	"github.com/awesome-foundation/cfnrain/internal/config"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,7 +9,9 @@ import (
 
 	"github.com/awesome-foundation/cfnrain/cft/diff"
 	"github.com/awesome-foundation/cfnrain/cft/parse"
+	"github.com/awesome-foundation/cfnrain/internal/config"
 	"github.com/google/go-cmp/cmp"
+	"github.com/spf13/cobra"
 )
 
 func TestMergeTemplatesSuccess(t *testing.T) {
@@ -405,6 +406,8 @@ Outputs:
 // TestMergeParseError calls the handler directly so a panic cannot be hidden by
 // the CLI's recovery wrapper.
 func TestMergeParseError(t *testing.T) {
+	oldUsage, oldErrors := Cmd.SilenceUsage, Cmd.SilenceErrors
+	defer func() { Cmd.SilenceUsage, Cmd.SilenceErrors = oldUsage, oldErrors }()
 	dir := t.TempDir()
 	good := filepath.Join(dir, "good.yaml")
 	bad := filepath.Join(dir, "bad.yaml")
@@ -427,9 +430,16 @@ func TestMergeParseError(t *testing.T) {
 }
 
 func TestMergeCommandErrors(t *testing.T) {
+	oldSilenceUsage, oldSilenceErrors := Cmd.SilenceUsage, Cmd.SilenceErrors
 	oldDebug := config.Debug
 	config.Debug = true
-	defer func() { config.Debug = oldDebug; Cmd.SetArgs(nil); Cmd.SetOut(nil); Cmd.SetErr(nil) }()
+	defer func() {
+		config.Debug = oldDebug
+		Cmd.SilenceUsage, Cmd.SilenceErrors = oldSilenceUsage, oldSilenceErrors
+		Cmd.SetArgs(nil)
+		Cmd.SetOut(nil)
+		Cmd.SetErr(nil)
+	}()
 	for _, tc := range []struct{ name, content, want string }{
 		{"parse", "Resources: [\n", "invalid YAML:"},
 		{"conflict", "Resources:\n  Bucket:\n    Type: AWS::S3::Bucket\n", "templates have clashing Resources: Bucket"},
@@ -458,6 +468,36 @@ func TestMergeCommandErrors(t *testing.T) {
 			}
 			if strings.Contains(stderr.String(), "Usage:") || stdout.Len() != 0 {
 				t.Errorf("unexpected command output: stdout=%q stderr=%q", stdout.String(), stderr.String())
+			}
+		})
+	}
+}
+
+func TestMergeArgumentErrors(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		args []string
+		want string
+	}{
+		{"no arguments", []string{}, "requires at least 2 arg(s), only received 0"},
+		{"one argument", []string{"a.yaml"}, "requires at least 2 arg(s), only received 1"},
+		{"unknown flag", []string{"--bogus", "a", "b"}, "unknown flag: --bogus"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// Use a fresh command, as each CLI invocation starts with fresh Cobra state.
+			command := &cobra.Command{Use: Cmd.Use, Args: Cmd.Args, RunE: Cmd.RunE, SilenceUsage: Cmd.SilenceUsage, SilenceErrors: Cmd.SilenceErrors}
+			var output bytes.Buffer
+			command.SetOut(&output)
+			command.SetErr(&output)
+			command.SetArgs(tc.args)
+			err := command.Execute()
+			if err == nil || err.Error() != tc.want {
+				t.Fatalf("error = %v; want %q", err, tc.want)
+			}
+			for _, want := range []string{"Error: " + tc.want + "\n", "Usage:"} {
+				if !strings.Contains(output.String(), want) {
+					t.Errorf("output %q does not contain %q", output.String(), want)
+				}
 			}
 		})
 	}

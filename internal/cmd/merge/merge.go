@@ -25,9 +25,9 @@ var Cmd = &cobra.Command{
 	Long:                  "Merges all specified CloudFormation templates, print the resultant template to standard out",
 	Args:                  cobra.MinimumNArgs(2),
 	DisableFlagsInUseLine: true,
-	SilenceUsage:          true,
-	SilenceErrors:         true,
 	RunE: func(cmd *cobra.Command, args []string) (runErr error) {
+		cmd.SilenceUsage = true
+		cmd.SilenceErrors = true
 		defer func() {
 			if runErr != nil {
 				fmt.Fprintln(cmd.ErrOrStderr(), console.Red(runErr.Error()))
