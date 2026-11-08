@@ -23,7 +23,7 @@ func Example_ls_help() {
 	//   ls, list
 	//
 	// Flags:
-	//   -a, --all         list stacks in all regions; if you specify a stack, show more details
-	//   -c, --changeset   List changesets instead of stacks
-	//   -h, --help        help for ls
+	//   -a, --all[=true|false]         list stacks in all regions; if you specify a stack, show more details
+	//   -c, --changeset[=true|false]   List changesets instead of stacks
+	//   -h, --help[=true|false]        help for ls
 }

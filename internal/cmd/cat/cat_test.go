@@ -22,8 +22,8 @@ func Example_cat_help() {
 	//   cat <stack>
 	//
 	// Flags:
-	//   -c, --config        output the config file for the existing stack
-	//   -h, --help          help for cat
-	//   -t, --transformed   get the template with transformations applied by CloudFormation
-	//   -u, --unformatted   output the template in its raw form; do not attempt to format it
+	//   -c, --config[=true|false]        output the config file for the existing stack
+	//   -h, --help[=true|false]          help for cat
+	//   -t, --transformed[=true|false]   get the template with transformations applied by CloudFormation
+	//   -u, --unformatted[=true|false]   output the template in its raw form; do not attempt to format it
 }
