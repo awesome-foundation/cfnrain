@@ -160,7 +160,7 @@ func CreateBucket(bucketName string) error {
 					Filter: &types.LifecycleRuleFilter{
 						Prefix: awssdk.String(""),
 					},
-					ID: ptr.String("delete after 14 days"),
+					ID: ptr.String("delete after 7 days"),
 					NoncurrentVersionExpiration: &types.NoncurrentVersionExpiration{
 						NoncurrentDays: awssdk.Int32(7),
 					},
