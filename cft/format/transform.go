@@ -55,9 +55,8 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 			funcName := n.Content[0].Value
 			tag, parseOnly := shortTag(funcName)
 			short := n.Style&cft.ShortForm != 0 || !(parseOnly || keepForm)
-			// A short tag node has one anchor, so keep the long form if both have one
-			oneAnchor := n.Anchor == "" || n.Content[1].Anchor == ""
-			if tag != "" && short && oneAnchor {
+			// Keep an argument anchor on the argument, not on the whole function.
+			if tag != "" && short && n.Content[1].Anchor == "" {
 				anchor := n.Anchor
 				// Prepare comments
 				headComments := []string{n.HeadComment, n.Content[0].HeadComment, n.Content[1].HeadComment}

@@ -235,6 +235,18 @@ func TestFunctionForm(t *testing.T) {
 			want:  "Metadata:\n  First: &a !Sub x\n\n  Second: *a\n",
 		},
 		{
+			name:  "anchored scalar argument",
+			input: "Metadata:\n  A:\n    Fn::Sub: &arg x-${AWS::Region}\n\n  B: *arg\n",
+		},
+		{
+			name:  "anchored sequence argument",
+			input: "Metadata:\n  A:\n    Fn::GetAtt: &arg\n      - Bucket\n      - Arn\n\n  B: *arg\n",
+		},
+		{
+			name:  "anchored function and argument",
+			input: "Metadata:\n  A: &function\n    Fn::Sub: &arg x-${AWS::Region}\n\n  B: *arg\n\n  C: *function\n",
+		},
+		{
 			name:  "anchored mapping",
 			input: "Metadata:\n  First: &a\n    x: 1\n\n  Second: *a\n",
 		},
