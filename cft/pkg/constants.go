@@ -58,10 +58,16 @@ func replaceConstants(n *yaml.Node, constants map[string]*yaml.Node) error {
 			retval += fmt.Sprintf("${%s}", w.W)
 		case parse.RAIN:
 			val, ok := constants[w.W]
-			config.Debugf("Found a Rain constant: %s = %s", w.W, val.Value)
 			if !ok {
 				return fmt.Errorf("did not find Constant %s", w.W)
 			}
+			// A string-form Sub is stored as a mapping, so insert its string
+			// argument and leave any CloudFormation variables for the outer Sub.
+			if val.Kind == yaml.MappingNode && len(val.Content) == 2 &&
+				val.Content[0].Value == "Fn::Sub" && val.Content[1].Kind == yaml.ScalarNode {
+				val = val.Content[1]
+			}
+			config.Debugf("Found a Rain constant: %s = %s", w.W, val.Value)
 			retval += val.Value
 		}
 	}
