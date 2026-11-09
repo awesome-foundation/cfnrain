@@ -18,10 +18,6 @@ cfnrain simplifies `Fn::Select` only when the list comes first and the index sec
 
 When cfnrain creates the artifact bucket, it adds a lifecycle rule with the ID `delete after 14 days`. The rule deletes objects after 7 days. See [Objects expire after 7 days](concepts/artifact-bucket.md#objects-expire-after-7-days). Issue: [#42](https://github.com/awesome-foundation/cfnrain/issues/42).
 
-## The pkg help text lists the wrong S3 Format values
-
-`cfnrain pkg --help` lists `Format: Uri|Http`. The code expects `URI`, `Http` or `Object`, and `Object` is the default when you set both `BucketProperty` and `KeyProperty`. With `Format: Uri`, packaging stops with an error. The help text also leaves out the `Run` and `Extension` options. See [S3 and S3Http](directives/s3.md#format) for the correct values. Issue: [#45](https://github.com/awesome-foundation/cfnrain/issues/45).
-
 ## The stackset deploy help text says the template is optional
 
 `cfnrain stackset deploy --help` says that without a template file, cfnrain adds a new instance to an existing stack set. The code always reads the first argument as the template file, so you must give one. Issue: [#46](https://github.com/awesome-foundation/cfnrain/issues/46).
