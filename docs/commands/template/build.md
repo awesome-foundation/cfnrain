@@ -46,8 +46,8 @@ AWS::SQS::QueuePolicy
 | `--model` | The Bedrock model ID for `--prompt`. The short names `claude2`, `claude3haiku`, `claude3sonnet`, `claude3opus` and `claude3.5sonnet` also work. |
 | `--prompt-lang` | What `--prompt` writes: `cfn` (CloudFormation YAML, the default), `guard` (CloudFormation Guard) or `rego` (Open Policy Agent Rego) |
 | `--omit-patches` | Use the raw registry schema. By default, cfnrain applies its own fixes to the schemas. |
-| `--no-cache` | Do not use the schemas in the binary. Get them from the CloudFormation registry. |
-| `--only-cache` | Use only the cached schemas. Do not call the CloudFormation registry. |
+| `--no-cache` | Do not use the schemas built into cfnrain. Get them from the CloudFormation registry. |
+| `--only-cache` | Use only the schemas built into cfnrain. Do not call the CloudFormation registry. |
 
 With no arguments, `build` shows an interactive menu.
 

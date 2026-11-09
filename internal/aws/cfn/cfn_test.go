@@ -36,3 +36,14 @@ func TestGetStackEmptyResponse(t *testing.T) {
 		t.Fatalf("GetStack error = %v, want an empty-response error naming test-stack", err)
 	}
 }
+
+func TestGetTypeSchemaOnlyCacheMissingType(t *testing.T) {
+	schema, err := cfn.GetTypeSchema("AWS::Fake::Thing", cfn.OnlyUseCache)
+	if schema != "" {
+		t.Errorf("GetTypeSchema returned schema %q for a missing type", schema)
+	}
+	want := "resource type AWS::Fake::Thing is not in the schemas built into cfnrain"
+	if err == nil || err.Error() != want {
+		t.Fatalf("GetTypeSchema error = %v, want %q", err, want)
+	}
+}

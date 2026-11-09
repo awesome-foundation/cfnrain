@@ -506,7 +506,7 @@ func GetTypeSchema(name string, cacheUsage ResourceCacheUsage) (string, error) {
 	}
 
 	if cacheUsage == OnlyUseCache {
-		return "", errors.New("cacheUsage is OnlyUseCache")
+		return "", fmt.Errorf("resource type %s is not in the schemas built into cfnrain", name)
 	}
 
 	// Go ahead and download the schema from the registry
