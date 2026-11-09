@@ -129,3 +129,41 @@ func TestAllSchemas(t *testing.T) {
 		}
 	}
 }
+
+func TestCacheFlags(t *testing.T) {
+	for _, tt := range []struct {
+		name      string
+		args      []string
+		want      cfn.ResourceCacheUsage
+		wantError bool
+	}{
+		{name: "default", want: cfn.UseCacheNormally},
+		{name: "only-cache", args: []string{"--only-cache"}, want: cfn.OnlyUseCache},
+		{name: "no-cache", args: []string{"--no-cache"}, want: cfn.DoNotUseCache},
+		{name: "conflicting flags", args: []string{"--only-cache", "--no-cache"}, wantError: true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			oldNoCache, oldOnlyCache := noCache, onlyCache
+			noCacheFlag, onlyCacheFlag := Cmd.Flags().Lookup("no-cache"), Cmd.Flags().Lookup("only-cache")
+			oldNoCacheChanged, oldOnlyCacheChanged := noCacheFlag.Changed, onlyCacheFlag.Changed
+			t.Cleanup(func() {
+				noCache, onlyCache = oldNoCache, oldOnlyCache
+				noCacheFlag.Changed, onlyCacheFlag.Changed = oldNoCacheChanged, oldOnlyCacheChanged
+			})
+			noCache, onlyCache = false, false
+			noCacheFlag.Changed, onlyCacheFlag.Changed = false, false
+			if err := Cmd.ParseFlags(tt.args); err != nil {
+				t.Fatal(err)
+			}
+			err := Cmd.ValidateFlagGroups()
+			if (err != nil) != tt.wantError {
+				t.Fatalf("ValidateFlagGroups() = %v, want error: %v", err, tt.wantError)
+			}
+			if !tt.wantError {
+				if got := getCacheUsage(); got != tt.want {
+					t.Errorf("getCacheUsage() = %v, want %v", got, tt.want)
+				}
+			}
+		})
+	}
+}

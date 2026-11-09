@@ -502,8 +502,9 @@ func init() {
 	Cmd.Flags().BoolVar(&recommendFlag, "recommend", false, "Output a recommended architecture for the chosen use case")
 	Cmd.Flags().StringVarP(&outFn, "output", "o", "", "Output to a file")
 	Cmd.Flags().BoolVar(&pklClass, "pkl-class", false, "Output a pkl class based on a resource type schema")
-	Cmd.Flags().BoolVar(&noCache, "no-cache", false, "Do not used cached schema files")
-	Cmd.Flags().BoolVar(&noCache, "only-cache", false, "Only use cached schema files")
+	Cmd.Flags().BoolVar(&noCache, "no-cache", false, "Do not use cached schema files")
+	Cmd.Flags().BoolVar(&onlyCache, "only-cache", false, "Only use cached schema files")
+	Cmd.MarkFlagsMutuallyExclusive("no-cache", "only-cache")
 	Cmd.Flags().StringVar(&promptLanguage, "prompt-lang", "cfn", "The language to target for --prompt, CloudFormation YAML (cfn), CloudFormation Guard (guard), Open Policy Agent Rego (rego)")
 	Cmd.Flags().StringVar(&model, "model", "claude2", "The ID of the Bedrock model to use for --prompt. Shorthand: claude2, claude3haiku, claude3sonnet, claude3opus, claude3.5sonnet")
 }
