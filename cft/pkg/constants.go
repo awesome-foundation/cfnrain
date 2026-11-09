@@ -58,6 +58,7 @@ func replaceConstants(n *yaml.Node, constants map[string]*yaml.Node, constantErr
 		config.Debugf("replaceConstants skipped: %v", err)
 		return nil
 	}
+	var deferredErr error
 	for _, w := range words {
 		switch w.T {
 		case parse.STR:
@@ -70,7 +71,14 @@ func replaceConstants(n *yaml.Node, constants map[string]*yaml.Node, constantErr
 			retval += fmt.Sprintf("${%s}", w.W)
 		case parse.RAIN:
 			if err := constantErrors[w.W]; err != nil {
-				return err
+				var plainSubErr *plainSubConstantError
+				if !errors.As(err, &plainSubErr) {
+					return err
+				}
+				if deferredErr == nil {
+					deferredErr = err
+				}
+				continue
 			}
 			val, ok := constants[w.W]
 			if !ok {
@@ -82,7 +90,10 @@ func replaceConstants(n *yaml.Node, constants map[string]*yaml.Node, constantErr
 				val.Content[0].Value == "Fn::Sub" && val.Content[1].Kind == yaml.ScalarNode {
 				if !inSub && (parse.IsSubNeeded(val.Content[1].Value) ||
 					strings.Contains(val.Content[1].Value, "${!")) {
-					return &plainSubConstantError{fmt.Errorf("constant %s uses Fn::Sub and cannot be interpolated into a plain string. Use !Sub for the outer value or !Rain::Constant %s for the whole value", w.W, w.W)}
+					if deferredErr == nil {
+						deferredErr = &plainSubConstantError{fmt.Errorf("constant %s uses Fn::Sub and cannot be interpolated into a plain string. Use !Sub for the outer value or !Rain::Constant %s for the whole value", w.W, w.W)}
+					}
+					continue
 				}
 				val = val.Content[1]
 			}
@@ -94,6 +105,10 @@ func replaceConstants(n *yaml.Node, constants map[string]*yaml.Node, constantErr
 		}
 	}
 
+	// Keep the original value when any substitution is invalid.
+	if deferredErr != nil {
+		return deferredErr
+	}
 	if n.Value != retval {
 		n.Value = retval
 	}
