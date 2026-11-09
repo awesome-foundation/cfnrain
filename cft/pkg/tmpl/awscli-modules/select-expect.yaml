@@ -5,4 +5,6 @@ Resources:
       Names:
       - foo
       - bar
-      OneName: foo
+      OneName: bar
+      ShortForm: bar
+      LegacyName: foo
