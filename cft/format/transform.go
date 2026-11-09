@@ -198,6 +198,16 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 		panic("invalid --node-style: " + NodeStyle)
 	}
 
+	// yaml.v3 emits an explicit !!merge tag even for a plain merge key.
+	// Let the plain << spelling carry the tag implicitly instead.
+	if n.Kind == yaml.ScalarNode && n.Tag == "!!merge" && n.Value == "<<" && (n.Style == 0 || n.Style == yaml.FlowStyle) {
+		n.Tag = ""
+	}
+	// A literal << string must stay quoted so it cannot become a merge key.
+	if n.Kind == yaml.ScalarNode && n.Tag == "!!str" && n.Value == "<<" && (n.Style == 0 || n.Style == yaml.FlowStyle) {
+		n.Style = yaml.DoubleQuotedStyle
+	}
+
 	return n
 }
 

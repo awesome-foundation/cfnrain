@@ -41,6 +41,8 @@ Ten functions keep the form that your template uses, short or long: `Fn::Contain
 | `--pkl-package` | With `--pkl`, the alias or full URI of the Pkl package. The default is `@cfn`. |
 | `--datamodel` | Print the internal YAML data model. This is for debugging cfnrain. |
 
+YAML output preserves merge keys (`<<: *anchor`). JSON output rejects merge keys with an error naming `<<`; expand the merged mapping before using `--json`. A quoted `"<<"` key is an ordinary key and can be written as JSON.
+
 With no file names, `fmt` reads standard input.
 
 Format every template in place:
