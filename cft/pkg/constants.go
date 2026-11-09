@@ -34,7 +34,7 @@ func rainConstant(ctx *directiveContext) (bool, error) {
 // replaceConstants replaces ${Rain::Name} and ${Const::Name} in a single
 // scalar node. If the constant name is not found in the map created from the
 // Rain section In the template, an error is returned
-func replaceConstants(n *yaml.Node, constants map[string]*yaml.Node) error {
+func replaceConstants(n *yaml.Node, constants map[string]*yaml.Node, inSub bool) error {
 	if n.Kind != yaml.ScalarNode {
 		return fmt.Errorf("expected n to be a ScalarNode")
 	}
@@ -68,6 +68,9 @@ func replaceConstants(n *yaml.Node, constants map[string]*yaml.Node) error {
 			// argument and leave any CloudFormation variables for the outer Sub.
 			if val.Kind == yaml.MappingNode && len(val.Content) == 2 &&
 				val.Content[0].Value == "Fn::Sub" && val.Content[1].Kind == yaml.ScalarNode {
+				if !inSub {
+					return fmt.Errorf("constant %s uses Fn::Sub and cannot be interpolated into a plain string", w.W)
+				}
 				val = val.Content[1]
 			}
 			if val.Kind != yaml.ScalarNode {
@@ -112,7 +115,7 @@ func replaceTemplateConstants(t *cft.Template) error {
 				if yamlNode.Content[1].Kind != yaml.ScalarNode {
 					return
 				}
-				err = replaceConstants(yamlNode.Content[1], constants)
+				err = replaceConstants(yamlNode.Content[1], constants, true)
 				if err != nil {
 					config.Debugf("%v", err)
 					return
@@ -162,7 +165,11 @@ func processConstants(t *cft.Template, n *yaml.Node) error {
 				}
 				vnode := v.GetYamlNode()
 				if vnode.Kind == yaml.ScalarNode {
-					err = replaceConstants(vnode, t.Constants)
+					parent := v.GetParentNode()
+					inSub := parent != nil && parent.Kind == yaml.MappingNode &&
+						len(parent.Content) == 2 && parent.Content[0].Value == "Fn::Sub" &&
+						parent.Content[1] == vnode
+					err = replaceConstants(vnode, t.Constants, inSub)
 				}
 			}
 			v := visitor.NewVisitor(val)

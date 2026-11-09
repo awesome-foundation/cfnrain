@@ -38,7 +38,7 @@ func TestReplaceConstants(t *testing.T) {
 	n := &yaml.Node{Kind: yaml.ScalarNode, Value: "${Rain::Test}"}
 	constants := make(map[string]*yaml.Node)
 	constants["Test"] = &yaml.Node{Kind: yaml.ScalarNode, Value: "Foo"}
-	err := replaceConstants(n, constants)
+	err := replaceConstants(n, constants, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,6 +170,72 @@ Outputs:
     Value: !Sub '${!Literal}'
   Suffixed:
     Value: !Sub '${!Literal}-uploads'
+`
+	assertPackagedConstants(t, input, expected)
+}
+
+func TestPlainConstantRejectsSubInterpolation(t *testing.T) {
+	for _, alias := range []string{"Rain", "Const"} {
+		for _, value := range []string{`"${%s::B}"`, `{Name: "${%s::B}"}`, `["${%s::B}"]`} {
+			t.Run(alias+"/"+value, func(t *testing.T) {
+				input := fmt.Sprintf(`Parameters:
+  Env:
+    Type: String
+Rain:
+  Constants:
+    B: !Sub ${Env}-b
+    C: %s
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Rain::Constant C
+`, fmt.Sprintf(value, alias))
+				tmpl, err := parse.String(input)
+				if err != nil {
+					t.Fatal(err)
+				}
+				_, err = Template(tmpl, ".", nil)
+				want := "constant C: constant B uses Fn::Sub and cannot be interpolated into a plain string"
+				if err == nil || !strings.Contains(err.Error(), want) {
+					t.Fatalf("expected %q, got %v", want, err)
+				}
+			})
+		}
+	}
+}
+
+func TestConstantInterpolationPreservesValidValues(t *testing.T) {
+	input := `Parameters:
+  Env:
+    Type: String
+Rain:
+  Constants:
+    Plain: billing
+    Derived: "${Rain::Plain}-uploads"
+    B: !Sub ${Env}-b
+    C: !Sub ${Const::B}-c
+    Object:
+      Name: !Sub ${Rain::B}-object
+Outputs:
+  Plain:
+    Value: !Rain::Constant Derived
+  Sub:
+    Value: !Rain::Constant C
+  Object:
+    Value: !Rain::Constant Object
+`
+	expected := `Parameters:
+  Env:
+    Type: String
+Outputs:
+  Plain:
+    Value: billing-uploads
+  Sub:
+    Value: !Sub ${Env}-b-c
+  Object:
+    Value:
+      Name: !Sub ${Env}-b-object
 `
 	assertPackagedConstants(t, input, expected)
 }
