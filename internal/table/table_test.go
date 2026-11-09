@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/awesome-foundation/cfnrain/internal/config"
 	"github.com/google/go-cmp/cmp"
 	"github.com/mattn/go-runewidth"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFormatter(t *testing.T) {
@@ -78,9 +78,6 @@ func TestTable_WithFirstColumnFormatter(t *testing.T) {
 	tbl.Print()
 	out := buf.String()
 
-	config.Debug = true
-	config.Debugf("%s", out)
-
 	assert.Contains(t, out, "foo")
 	assert.Contains(t, out, "bar")
 	assert.Contains(t, out, "FIZZ")
@@ -118,7 +115,7 @@ func TestTable_WithPadding(t *testing.T) {
 }
 
 func TestTable_WithWriter(t *testing.T) {
-	t.Parallel()
+	// This test replaces os.Stdout, so it must not run alongside parallel tests.
 
 	// not that we haven't been using it in all these tests but:
 	buf := bytes.Buffer{}
@@ -126,18 +123,21 @@ func TestTable_WithWriter(t *testing.T) {
 	assert.NotEmpty(t, buf.String())
 
 	stdout := os.Stdout
-	temp, _ := os.CreateTemp("", "")
+	temp, err := os.CreateTemp(t.TempDir(), "stdout")
+	require.NoError(t, err)
 	os.Stdout = temp
 	defer func() {
 		os.Stdout = stdout
-		temp.Close()
+		assert.NoError(t, temp.Close())
 	}()
 
 	New("foo", "bar").WithWriter(nil).Print()
-	temp.Seek(0, 0)
+	_, err = temp.Seek(0, io.SeekStart)
+	require.NoError(t, err)
 
-	out, _ := io.ReadAll(temp)
-	assert.NotEmpty(t, out)
+	out, err := io.ReadAll(temp)
+	require.NoError(t, err)
+	assert.Equal(t, buf.String(), string(out))
 }
 
 func TestTable_AddRow(t *testing.T) {
