@@ -79,6 +79,9 @@ func transform(ctx *transformContext) (bool, error) {
 			c, err := fn(&directiveContext{found, ctx.rootDir, ctx.t, nodeParent, ctx.fs, ctx.baseUri})
 			if err != nil {
 				config.Debugf("Error packaging template: %s\n", err)
+				if path := packagingPath(ctx.nodeToTransform, found); path != "" {
+					return false, fmt.Errorf("%s: %w", path, err)
+				}
 				return false, err
 			}
 
@@ -87,6 +90,39 @@ func transform(ctx *transformContext) (bool, error) {
 	}
 
 	return changed, nil
+}
+
+// packagingPath identifies the property that failed to package.
+func packagingPath(root, target *yaml.Node) string {
+	if root == target {
+		return ""
+	}
+	if root.Kind == yaml.MappingNode {
+		for i := 0; i < len(root.Content); i += 2 {
+			child := root.Content[i+1]
+			path := packagingPath(child, target)
+			if child == target || path != "" {
+				if path == "" {
+					return root.Content[i].Value
+				}
+				return root.Content[i].Value + "/" + path
+			}
+		}
+	} else {
+		for i, child := range root.Content {
+			path := packagingPath(child, target)
+			if child == target || path != "" {
+				if root.Kind == yaml.SequenceNode {
+					if path == "" {
+						return fmt.Sprint(i)
+					}
+					return fmt.Sprintf("%d/%s", i, path)
+				}
+				return path
+			}
+		}
+	}
+	return ""
 }
 
 // processRainSection returns true if the Rain section of the template existed

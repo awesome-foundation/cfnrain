@@ -2,6 +2,10 @@
 
 These are places where cfnrain does something unexpected. They come from Rain, and cfnrain has not fixed them yet. Each one says what to do instead, and links to its issue. When a fix ships, its entry goes away.
 
+## fmt drops a line comment on a function inside a list
+
+When a list item is a function with sequence arguments, `fmt` drops a line comment on the function key. Examples include `Fn::Join` in a list and `Fn::Split` inside `Fn::Select`. Put the comment above the property that contains the list instead. See [#85](https://github.com/awesome-foundation/cfnrain/issues/85).
+
 ## A !Sub constant inside another !Sub packages to an empty value
 
 A `Rain:` constant that is itself a `!Sub` string, used with `${Rain::<Name>}` inside another `!Sub`, packages to an empty string. There is no error.
@@ -19,10 +23,6 @@ cfnrain simplifies `Fn::Select` only when the list comes first and the index sec
 ## The artifact bucket rule says 14 days
 
 When cfnrain creates the artifact bucket, it adds a lifecycle rule with the ID `delete after 14 days`. The rule deletes objects after 7 days. See [Objects expire after 7 days](concepts/artifact-bucket.md#objects-expire-after-7-days). Issue: [#42](https://github.com/awesome-foundation/cfnrain/issues/42).
-
-## Implicit uploads fail without an error
-
-If an [implicit upload](directives/implicit-uploads.md) fails, for example because the local path does not exist, cfnrain leaves the path in the template and continues. CloudFormation then fails on the path. Run `cfnrain pkg --debug` to see the reason. Issue: [#44](https://github.com/awesome-foundation/cfnrain/issues/44).
 
 ## The stackset deploy help text says the template is optional
 

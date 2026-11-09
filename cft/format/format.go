@@ -57,7 +57,7 @@ func String(t *cft.Template, opt Options) string {
 	lastLineWasEmpty := false
 	startMultilineIndent := -1
 
-	for _, part := range parts {
+	for i, part := range parts {
 
 		trimmedPart := strings.TrimLeft(part, " ")
 		indent = len(part) - len(trimmedPart)
@@ -101,7 +101,16 @@ func String(t *cft.Template, opt Options) string {
 
 		// Put a line break above first/only comment lines
 		if !lastPartWasComment && isComment && !lastLineWasEmpty && !isMultiline {
-			result.WriteString("\n")
+			// The encoder separates foot comments from the next key with a
+			// blank line. Adding one before them would turn them into head
+			// comments on that next key when the YAML is parsed again.
+			end := i + 1
+			for end < len(parts) && strings.HasPrefix(strings.TrimSpace(parts[end]), "#") {
+				end++
+			}
+			if end < len(parts) && strings.TrimSpace(parts[end]) != "" {
+				result.WriteString("\n")
+			}
 		}
 
 		result.WriteString(part)

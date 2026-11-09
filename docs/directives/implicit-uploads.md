@@ -66,8 +66,8 @@ Resources:
 ## Rules
 
 - cfnrain only changes a value that is a plain string. A map, such as an existing `S3Bucket` and `S3Key`, stays as it is.
-- An S3 URI (`s3://...`) stays as it is. For the nested stack properties, an `http://` or `https://` URL stays as it is.
-- If the upload fails, for example because the path does not exist, cfnrain leaves the value as it is and shows no error. Run with `--debug` to see why. The nested stack properties are different: a missing nested template stops packaging.
+- An `s3://`, `http://` or `https://` value stays as it is for every property listed above.
+- If a local path fails to package, for example because it does not exist, `pkg` reports the property path and cause and exits non-zero. The `deploy`, `cc deploy` and `forecast` commands, which package implicitly, also stop on these errors.
 - Nested templates are packaged with all their directives and modules, then uploaded.
 
 The AWS CLI also packages `AWS::Include` `Location`, `AWS::Serverless::StateMachine` `DefinitionUri` and `AWS::CodeCommit::Repository` `Code.S3`. cfnrain does not. Use [`!Rain::S3`](s3.md) for those.
