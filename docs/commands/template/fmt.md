@@ -28,6 +28,8 @@ Outputs:
 
 Ten functions keep the form that your template uses, short or long: `Fn::Contains`, `Fn::EachMemberEquals`, `Fn::EachMemberIn`, `Fn::RefAll`, `Fn::ValueOf`, `Fn::ValueOfAll`, `Fn::Length`, `Fn::ToJsonString`, `Fn::GetStackOutput` and `Fn::Transform`. The AWS template reference does not document a short form for most of them. Inside a short `!GetStackOutput`, every function keeps its form, because AWS does not allow a short `!Sub` or `!Ref` there. JSON output always uses the long form.
 
+A function whose argument has a YAML anchor keeps its long form, so aliases still refer to the argument rather than the whole function.
+
 | Flag | What it does |
 |------|--------------|
 | `-w`, `--write` | Write the result back to the file |
