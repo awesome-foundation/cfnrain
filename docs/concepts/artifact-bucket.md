@@ -33,5 +33,3 @@ cfnrain creates the bucket with these settings:
 CloudFormation does not need the uploaded files after a deploy. But if you deploy an old change set or roll back to a template after more than 7 days, the files can be gone. The `cc` state files are in the same bucket and expire too.
 
 If you need to keep objects longer, use `--s3-bucket` with your own bucket.
-
-The ID of the lifecycle rule says `delete after 14 days`, which is wrong. See [Known issues](../known-issues.md#the-artifact-bucket-rule-says-14-days).
