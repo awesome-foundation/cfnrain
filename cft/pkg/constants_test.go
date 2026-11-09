@@ -307,3 +307,76 @@ func TestDirectLiteralSubConstant(t *testing.T) {
 		"Rain:\n  Constants:\n    B: !Sub literal\nOutputs:\n  Value:\n    Value: !Rain::Constant B\n",
 		"Outputs:\n  Value:\n    Value: literal\n")
 }
+
+func TestDeferredConstantErrorDoesNotHideMissingConstant(t *testing.T) {
+	for _, use := range []string{"ok", "!Rain::Constant C"} {
+		for _, first := range []string{`"${Rain::B}"`, "!Rain::Constant Deferred", "!Ref Const::Deferred"} {
+			t.Run(use+"/"+first, func(t *testing.T) {
+				input := `Rain:
+  Constants:
+    B: !Sub ${Env}-b
+    Deferred: "${Rain::B}"
+    C: [` + first + `, !Sub "${Rain::Missing}"]
+Outputs:
+  Value:
+    Value: ` + use + "\n"
+				tmpl, err := parse.String(input)
+				if err != nil {
+					t.Fatal(err)
+				}
+				_, err = Template(tmpl, ".", nil)
+				want := "constant C: did not find Constant Missing"
+				if err == nil || !strings.Contains(err.Error(), want) {
+					t.Fatalf("expected %q, got %v", want, err)
+				}
+			})
+		}
+	}
+}
+
+func TestDeferredConstantErrorDoesNotHideMissingWord(t *testing.T) {
+	for _, value := range []string{
+		`"${Rain::B}-${Rain::Missing}"`,
+		`!Sub "${Rain::Deferred}-${Rain::Missing}"`,
+	} {
+		for _, use := range []string{"ok", "!Rain::Constant C"} {
+			t.Run(value+"/"+use, func(t *testing.T) {
+				input := `Rain:
+  Constants:
+    B: !Sub ${Env}-b
+    Deferred: "${Rain::B}"
+    C: ` + value + `
+Outputs:
+  Value:
+    Value: ` + use + "\n"
+				tmpl, err := parse.String(input)
+				if err != nil {
+					t.Fatal(err)
+				}
+				_, err = Template(tmpl, ".", nil)
+				want := "constant C: did not find Constant Missing"
+				if err == nil || !strings.Contains(err.Error(), want) {
+					t.Fatalf("expected %q, got %v", want, err)
+				}
+			})
+		}
+	}
+	t.Run("template Sub", func(t *testing.T) {
+		tmpl, err := parse.String(`Rain:
+  Constants:
+    B: !Sub ${Env}-b
+    Deferred: "${Rain::B}"
+Outputs:
+  Value:
+    Value: !Sub "${Rain::Deferred}-${Rain::Missing}"
+`)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = Template(tmpl, ".", nil)
+		want := "did not find Constant Missing"
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Fatalf("expected %q, got %v", want, err)
+		}
+	})
+}
