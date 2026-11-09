@@ -8,6 +8,7 @@ import (
 	"github.com/awesome-foundation/cfnrain/cft/format"
 	"github.com/awesome-foundation/cfnrain/cft/parse"
 	"github.com/awesome-foundation/cfnrain/internal/config"
+	"github.com/awesome-foundation/cfnrain/internal/console"
 	"github.com/awesome-foundation/cfnrain/internal/node"
 	"github.com/awesome-foundation/cfnrain/internal/ui"
 	"github.com/spf13/cobra"
@@ -24,7 +25,14 @@ var Cmd = &cobra.Command{
 	Long:                  "Merges all specified CloudFormation templates, print the resultant template to standard out",
 	Args:                  cobra.MinimumNArgs(2),
 	DisableFlagsInUseLine: true,
-	Run: func(cmd *cobra.Command, args []string) {
+	RunE: func(cmd *cobra.Command, args []string) (runErr error) {
+		cmd.SilenceUsage = true
+		cmd.SilenceErrors = true
+		defer func() {
+			if runErr != nil {
+				fmt.Fprintln(cmd.ErrOrStderr(), console.Red(runErr.Error()))
+			}
+		}()
 		var err error
 
 		templates := make([]*cft.Template, len(args))
@@ -32,7 +40,7 @@ var Cmd = &cobra.Command{
 		for i, fn := range args {
 			templates[i], err = parse.File(fn)
 			if err != nil {
-				panic(ui.Errorf(err, "unable to open template '%s'", fn))
+				return ui.Errorf(err, "unable to open template '%s'", fn)
 			}
 		}
 
@@ -46,7 +54,7 @@ var Cmd = &cobra.Command{
 
 			merged, err = mergeTemplates(merged, template)
 			if err != nil {
-				panic(err)
+				return err
 			}
 		}
 
@@ -58,6 +66,7 @@ var Cmd = &cobra.Command{
 		} else {
 			fmt.Println(out)
 		}
+		return nil
 	},
 }
 
