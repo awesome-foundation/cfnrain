@@ -9,10 +9,12 @@ import (
 	rainpkl "github.com/awesome-foundation/cfnrain/pkl"
 
 	"github.com/awesome-foundation/cfnrain/cft/format"
+	"github.com/awesome-foundation/cfnrain/cft/visitor"
 	"github.com/awesome-foundation/cfnrain/internal/config"
 	"github.com/awesome-foundation/cfnrain/internal/console"
 	"github.com/awesome-foundation/cfnrain/internal/node"
 	"github.com/awesome-foundation/cfnrain/internal/ui"
+	"gopkg.in/yaml.v3"
 
 	"github.com/awesome-foundation/cfnrain/cft/parse"
 	"github.com/spf13/cobra"
@@ -69,6 +71,24 @@ func formatString(input string, res *result) {
 			return
 		}
 	} else {
+		if jsonFlag {
+			visitor.NewVisitor(source.Node).Visit(func(v *visitor.Visitor) {
+				n := v.GetYamlNode()
+				if n.Kind == yaml.MappingNode {
+					for i := 0; i < len(n.Content); i += 2 {
+						if n.Content[i].Tag == "!!merge" {
+							res.err = fmt.Errorf("cannot format YAML merge key << as JSON; expand the merged mapping first")
+							v.Stop()
+							return
+						}
+					}
+				}
+			})
+			if res.err != nil {
+				return
+			}
+		}
+
 		// Format the output
 		res.output = format.String(source, format.Options{
 			JSON:     jsonFlag,

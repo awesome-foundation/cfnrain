@@ -1,6 +1,6 @@
 # fmt
 
-`cfnrain fmt` formats templates. It sorts the sections and properties in a fixed order, uses the short form of most intrinsic functions (`!Sub`, `!Ref`), and keeps your YAML comments. `format` is an alias.
+`cfnrain fmt` formats templates. It sorts the sections and properties in a fixed order, uses the short form of most intrinsic functions (`!Sub`, `!Ref`), and keeps your YAML comments, including comments on function keys it shortens. `format` is an alias. For comments on functions inside lists, see [Known issues](../../known-issues.md#fmt-drops-a-line-comment-on-a-function-inside-a-list).
 
 Input, `bucket.json`:
 
@@ -40,6 +40,8 @@ Ten functions keep the form that your template uses, short or long: `Fn::Contain
 | `--pkl-basic` | With `--pkl`, do not use the Pkl modules of the `cfn` package |
 | `--pkl-package` | With `--pkl`, the alias or full URI of the Pkl package. The default is `@cfn`. |
 | `--datamodel` | Print the internal YAML data model. This is for debugging cfnrain. |
+
+YAML output preserves merge keys (`<<: *anchor`). JSON output rejects merge keys with an error naming `<<`; expand the merged mapping before using `--json`. A quoted `"<<"` key is an ordinary key and can be written as JSON.
 
 With no file names, `fmt` reads standard input.
 
