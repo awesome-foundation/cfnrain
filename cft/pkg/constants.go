@@ -1,6 +1,7 @@
 package pkg
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -13,6 +14,11 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// plainSubConstantError is deferred until the containing constant is used.
+type plainSubConstantError struct {
+	error
+}
+
 // rainConstant parses a !Rain::Constant node
 // Constants can be any type of YAML node, but if the constant is a string, it
 // can be used in a Sub with ${Rain::ConstantName}. Otherwise use a directive.
@@ -21,6 +27,9 @@ import (
 func rainConstant(ctx *directiveContext) (bool, error) {
 
 	name := ctx.n.Content[1].Value
+	if err := ctx.t.ConstantErrors[name]; err != nil {
+		return false, err
+	}
 	val, ok := ctx.t.Constants[name]
 	if !ok {
 		return false, fmt.Errorf("rain constant %s not found", name)
@@ -34,7 +43,7 @@ func rainConstant(ctx *directiveContext) (bool, error) {
 // replaceConstants replaces ${Rain::Name} and ${Const::Name} in a single
 // scalar node. If the constant name is not found in the map created from the
 // Rain section In the template, an error is returned
-func replaceConstants(n *yaml.Node, constants map[string]*yaml.Node, inSub bool) error {
+func replaceConstants(n *yaml.Node, constants map[string]*yaml.Node, constantErrors map[string]error, inSub bool) error {
 	if n.Kind != yaml.ScalarNode {
 		return fmt.Errorf("expected n to be a ScalarNode")
 	}
@@ -60,6 +69,9 @@ func replaceConstants(n *yaml.Node, constants map[string]*yaml.Node, inSub bool)
 		case parse.GETATT:
 			retval += fmt.Sprintf("${%s}", w.W)
 		case parse.RAIN:
+			if err := constantErrors[w.W]; err != nil {
+				return err
+			}
 			val, ok := constants[w.W]
 			if !ok {
 				return fmt.Errorf("did not find Constant %s", w.W)
@@ -68,8 +80,9 @@ func replaceConstants(n *yaml.Node, constants map[string]*yaml.Node, inSub bool)
 			// argument and leave any CloudFormation variables for the outer Sub.
 			if val.Kind == yaml.MappingNode && len(val.Content) == 2 &&
 				val.Content[0].Value == "Fn::Sub" && val.Content[1].Kind == yaml.ScalarNode {
-				if !inSub {
-					return fmt.Errorf("constant %s uses Fn::Sub and cannot be interpolated into a plain string", w.W)
+				if !inSub && (parse.IsSubNeeded(val.Content[1].Value) ||
+					strings.Contains(val.Content[1].Value, "${!")) {
+					return &plainSubConstantError{fmt.Errorf("constant %s uses Fn::Sub and cannot be interpolated into a plain string. Use !Sub for the outer value or !Rain::Constant %s for the whole value", w.W, w.W)}
 				}
 				val = val.Content[1]
 			}
@@ -91,7 +104,7 @@ func replaceConstants(n *yaml.Node, constants map[string]*yaml.Node, inSub bool)
 // replaceTemplateConstants scans the entire template looking for Sub strings
 // and replaces all instances of ${Rain::Name} and ${Const::Name} if that name
 // exists in the Rain/Constants section of the template
-func replaceTemplateConstants(t *cft.Template) error {
+func replaceTemplateConstants(t *cft.Template, definitions *yaml.Node) error {
 
 	constants := t.Constants
 
@@ -99,6 +112,10 @@ func replaceTemplateConstants(t *cft.Template) error {
 		config.Debugf("replaceTemplateConstants %s: %v", k, node.YamlStr(v))
 	}
 
+	invalidDefinitions := make(map[*yaml.Node]bool)
+	for name := range t.ConstantErrors {
+		invalidDefinitions[constants[name]] = true
+	}
 	var err error
 
 	vf := func(v *visitor.Visitor) {
@@ -106,6 +123,10 @@ func replaceTemplateConstants(t *cft.Template) error {
 			return
 		}
 		yamlNode := v.GetYamlNode()
+		if v.GetParentNode() == definitions && invalidDefinitions[yamlNode] {
+			v.SkipChildren()
+			return
+		}
 		if yamlNode.Kind == yaml.MappingNode && len(yamlNode.Content) == 2 {
 
 			key := yamlNode.Content[0].Value
@@ -115,7 +136,7 @@ func replaceTemplateConstants(t *cft.Template) error {
 				if yamlNode.Content[1].Kind != yaml.ScalarNode {
 					return
 				}
-				err = replaceConstants(yamlNode.Content[1], constants, true)
+				err = replaceConstants(yamlNode.Content[1], constants, t.ConstantErrors, true)
 				if err != nil {
 					config.Debugf("%v", err)
 					return
@@ -132,6 +153,9 @@ func replaceTemplateConstants(t *cft.Template) error {
 				val := yamlNode.Content[1]
 				if strings.HasPrefix(val.Value, parse.CONSTcc) {
 					constName := strings.Replace(val.Value, parse.CONSTcc, "", 1)
+					if err = t.ConstantErrors[constName]; err != nil {
+						return
+					}
 					constVal, ok := constants[constName]
 					if !ok {
 						err = fmt.Errorf("constant %s not found", constName)
@@ -150,6 +174,9 @@ func replaceTemplateConstants(t *cft.Template) error {
 }
 
 func processConstants(t *cft.Template, n *yaml.Node) error {
+	if t.ConstantErrors == nil {
+		t.ConstantErrors = make(map[string]error)
+	}
 	// Process constants in order, since they can refer to previous ones
 	_, c, _ := s11n.GetMapValue(n, string(cft.Constants))
 	if c != nil {
@@ -157,31 +184,51 @@ func processConstants(t *cft.Template, n *yaml.Node) error {
 			name := c.Content[i].Value
 			val := c.Content[i+1]
 			t.Constants[name] = val
+			delete(t.ConstantErrors, name)
 			// Visit each node in val looking for prior constant entries
 			var err error
+			subStrings := make(map[*yaml.Node]bool)
 			vf := func(v *visitor.Visitor) {
 				if err != nil {
 					return
 				}
 				vnode := v.GetYamlNode()
+				if vnode.Kind == yaml.MappingNode && len(vnode.Content) == 2 {
+					key, value := vnode.Content[0].Value, vnode.Content[1].Value
+					if key == "Rain::Constant" {
+						err = t.ConstantErrors[value]
+					} else if key == "Ref" && strings.HasPrefix(value, parse.CONSTcc) {
+						err = t.ConstantErrors[strings.TrimPrefix(value, parse.CONSTcc)]
+					}
+					if err != nil {
+						return
+					}
+				}
+				if vnode.Kind == yaml.MappingNode && len(vnode.Content) == 2 && vnode.Content[0].Value == "Fn::Sub" {
+					arg := vnode.Content[1]
+					if arg.Kind == yaml.SequenceNode && len(arg.Content) == 2 {
+						arg = arg.Content[0]
+					}
+					subStrings[arg] = true
+				}
 				if vnode.Kind == yaml.ScalarNode {
-					parent := v.GetParentNode()
-					inSub := parent != nil && parent.Kind == yaml.MappingNode &&
-						len(parent.Content) == 2 && parent.Content[0].Value == "Fn::Sub" &&
-						parent.Content[1] == vnode
-					err = replaceConstants(vnode, t.Constants, inSub)
+					err = replaceConstants(vnode, t.Constants, t.ConstantErrors, subStrings[vnode])
 				}
 			}
 			v := visitor.NewVisitor(val)
 			v.Visit(vf)
 			if err != nil {
-				return fmt.Errorf("constant %s: %w", name, err)
+				var plainSubErr *plainSubConstantError
+				if !errors.As(err, &plainSubErr) {
+					return fmt.Errorf("constant %s: %w", name, err)
+				}
+				t.ConstantErrors[name] = fmt.Errorf("constant %s: %w", name, err)
 			}
 		}
 	}
 
 	// Now scan the template to replace constants
-	err := replaceTemplateConstants(t)
+	err := replaceTemplateConstants(t, c)
 	if err != nil {
 		return err
 	}

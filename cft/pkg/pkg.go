@@ -129,6 +129,7 @@ func packagingPath(root, target *yaml.Node) string {
 // The section is removed by this function
 func processRainSection(t *cft.Template) error {
 	t.Constants = make(map[string]*yaml.Node)
+	t.ConstantErrors = make(map[string]error)
 	rainNode, err := t.GetSection(cft.Rain)
 	if err != nil {
 		// This is okay, not all templates have a Rain section

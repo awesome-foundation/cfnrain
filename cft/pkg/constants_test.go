@@ -38,7 +38,7 @@ func TestReplaceConstants(t *testing.T) {
 	n := &yaml.Node{Kind: yaml.ScalarNode, Value: "${Rain::Test}"}
 	constants := make(map[string]*yaml.Node)
 	constants["Test"] = &yaml.Node{Kind: yaml.ScalarNode, Value: "Foo"}
-	err := replaceConstants(n, constants, false)
+	err := replaceConstants(n, constants, nil, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -238,4 +238,72 @@ Outputs:
       Name: !Sub ${Env}-b-object
 `
 	assertPackagedConstants(t, input, expected)
+}
+
+func TestSubConstantReviewRegressions(t *testing.T) {
+	for _, value := range []string{`"${Rain::B}"`, `{"${Rain::B}": unused}`, `"${Rain::B}"` + "\n    D: '${Const::C}'"} {
+		t.Run("unused/"+value, func(t *testing.T) {
+			input := "Rain:\n  Constants:\n    B: !Sub '${Env}-b'\n    C: " + value + "\nOutputs:\n  Value:\n    Value: !Rain::Constant B\n"
+			assertPackagedConstants(t, input, "Outputs:\n  Value:\n    Value: !Sub '${Env}-b'\n")
+		})
+	}
+	t.Run("sequence Sub", func(t *testing.T) {
+		input := "Rain:\n  Constants:\n    B: !Sub '${Env}-b'\n    C: !Sub ['${Rain::B}-${X}', {X: !Ref Env}]\nOutputs:\n  Value:\n    Value: !Rain::Constant C\n"
+		assertPackagedConstants(t, input, "Outputs:\n  Value:\n    Value: !Sub ['${Env}-b-${X}', {X: !Ref Env}]\n")
+	})
+	for _, value := range []string{`!Sub literal`, `!Sub '${Const::A}-x'`} {
+		t.Run("resolved/"+value, func(t *testing.T) {
+			input := "Rain:\n  Constants:\n    A: a\n    B: " + value + "\n    C: '${Const::B}-y'\nOutputs:\n  Value:\n    Value: !Rain::Constant C\n"
+			want := "literal-y"
+			if strings.Contains(value, "Const::A") {
+				want = "a-x-y"
+			}
+			assertPackagedConstants(t, input, "Outputs:\n  Value:\n    Value: "+want+"\n")
+		})
+	}
+}
+
+func TestInvalidPlainConstantUse(t *testing.T) {
+	for _, use := range []string{`!Rain::Constant C`, `!Ref Const::C`, `!Sub '${Rain::C}'`, `!Sub '${Const::C}'`, `!Rain::Constant D`} {
+		for _, derived := range []string{`'${Const::C}'`, `!Rain::Constant C`, `!Ref Const::C`} {
+			t.Run(use+"/"+derived, func(t *testing.T) {
+				input := "Rain:\n  Constants:\n    B: !Sub '${Env}-b'\n    C: '${Rain::B}'\n    D: " + derived + "\nOutputs:\n  Value:\n    Value: " + use + "\n"
+				tmpl, err := parse.String(input)
+				if err != nil {
+					t.Fatal(err)
+				}
+				_, err = Template(tmpl, ".", nil)
+				if err == nil || !strings.Contains(err.Error(), "constant C: constant B uses Fn::Sub") || !strings.Contains(err.Error(), "Use !Sub") {
+					t.Fatalf("expected constant error with remedy, got %v", err)
+				}
+			})
+		}
+	}
+}
+
+func TestSubConstantStillNeedsSub(t *testing.T) {
+	for _, value := range []string{`!Sub '${!Literal}'`, `!Sub ['${X}', {X: '${Rain::B}'}]`} {
+		t.Run(value, func(t *testing.T) {
+			input := "Rain:\n  Constants:\n    B: !Sub '${Env}-b'\n    C: " + value + "\n    D: '${Rain::C}'\nOutputs:\n  Value:\n    Value: !Rain::Constant "
+			if strings.Contains(value, "${!Literal}") {
+				input += "D\n"
+			} else {
+				input += "C\n"
+			}
+			tmpl, err := parse.String(input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, err = Template(tmpl, ".", nil)
+			if err == nil || !strings.Contains(err.Error(), "cannot be interpolated into a plain string") {
+				t.Fatalf("expected plain string error, got %v", err)
+			}
+		})
+	}
+}
+
+func TestDirectLiteralSubConstant(t *testing.T) {
+	assertPackagedConstants(t,
+		"Rain:\n  Constants:\n    B: !Sub literal\nOutputs:\n  Value:\n    Value: !Rain::Constant B\n",
+		"Outputs:\n  Value:\n    Value: literal\n")
 }
