@@ -279,3 +279,15 @@ func TestCsvToSequence(t *testing.T) {
 func init() {
 	pkg.NoAnalytics = true
 }
+
+func TestSelectArgumentOrder(t *testing.T) {
+	runTest("select-order", t)
+}
+
+func TestSelectComputedLists(t *testing.T) {
+	runTest("select-computed", t)
+}
+
+func TestSelectComputedModuleLists(t *testing.T) {
+	runTest("select-computed-module", t)
+}

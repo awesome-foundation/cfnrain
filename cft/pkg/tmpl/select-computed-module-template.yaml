@@ -1,0 +1,12 @@
+Parameters:
+  ListParam:
+    Type: CommaDelimitedList
+Modules:
+  Zones:
+    Source: select-computed-module.yaml
+    Properties:
+      Things: !GetAZs ''
+  References:
+    Source: select-computed-module.yaml
+    Properties:
+      Things: !Ref ListParam

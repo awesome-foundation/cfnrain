@@ -100,10 +100,9 @@ cfnrain also simplifies two CloudFormation functions when it can resolve them wh
 - `Fn::Join` becomes a plain string when every item in the list is a string. This works in the parent template and in modules.
 - `Fn::Select` becomes the selected item when the list and the index are known.
 
-!!! bug "Fn::Select takes its arguments in the reverse order"
-    cfnrain simplifies `Fn::Select` only when the list comes first and the index second: `Fn::Select: [!Ref Things, 0]`. CloudFormation uses the opposite order: `Fn::Select: [0, !Ref Things]`. If you use the CloudFormation order, cfnrain leaves the function as it is and CloudFormation resolves it. That works. If you use the cfnrain order and cfnrain cannot resolve the list, CloudFormation gets the arguments in the wrong order and the deploy fails. Use the CloudFormation order. See [Known issues](../known-issues.md).
+Use the CloudFormation argument order: `Fn::Select: [0, !Ref Things]`. cfnrain also supports the legacy list-first order when the list can be resolved while packaging. Unresolved functions in the CloudFormation order are left for CloudFormation.
 
-The test for `Fn::Select` uses the cfnrain order:
+The following example uses the legacy order:
 
 ```yaml
 --8<-- "cft/pkg/tmpl/awscli-modules/select-module.yaml"

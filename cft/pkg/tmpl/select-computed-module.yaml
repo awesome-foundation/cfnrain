@@ -1,0 +1,15 @@
+Parameters:
+  Things:
+    Type: List<String>
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - Key: Selected
+          Value: !Select [0, !Ref Things]
+        - Key: SelectedLong
+          Value:
+            Fn::Select:
+              - 0
+              - Ref: Things
