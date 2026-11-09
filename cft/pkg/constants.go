@@ -44,7 +44,10 @@ func replaceConstants(n *yaml.Node, constants map[string]*yaml.Node) error {
 	retval := ""
 	words, err := parse.ParseSub(n.Value, true)
 	if err != nil {
-		return err
+		// Preserve legacy behavior for literal strings and substitutions that
+		// ParseSub cannot parse. Only constant resolution errors are fatal.
+		config.Debugf("replaceConstants skipped: %v", err)
+		return nil
 	}
 	for _, w := range words {
 		switch w.T {
@@ -58,10 +61,19 @@ func replaceConstants(n *yaml.Node, constants map[string]*yaml.Node) error {
 			retval += fmt.Sprintf("${%s}", w.W)
 		case parse.RAIN:
 			val, ok := constants[w.W]
-			config.Debugf("Found a Rain constant: %s = %s", w.W, val.Value)
 			if !ok {
 				return fmt.Errorf("did not find Constant %s", w.W)
 			}
+			// A string-form Sub is stored as a mapping, so insert its string
+			// argument and leave any CloudFormation variables for the outer Sub.
+			if val.Kind == yaml.MappingNode && len(val.Content) == 2 &&
+				val.Content[0].Value == "Fn::Sub" && val.Content[1].Kind == yaml.ScalarNode {
+				val = val.Content[1]
+			}
+			if val.Kind != yaml.ScalarNode {
+				return fmt.Errorf("constant %s cannot be interpolated as a string; use !Rain::Constant or !Ref Const::%s to insert the whole value", w.W, w.W)
+			}
+			config.Debugf("Found a Rain constant: %s = %s", w.W, val.Value)
 			retval += val.Value
 		}
 	}
@@ -87,12 +99,19 @@ func replaceTemplateConstants(t *cft.Template) error {
 	var err error
 
 	vf := func(v *visitor.Visitor) {
+		if err != nil {
+			return
+		}
 		yamlNode := v.GetYamlNode()
 		if yamlNode.Kind == yaml.MappingNode && len(yamlNode.Content) == 2 {
 
 			key := yamlNode.Content[0].Value
 			switch key {
 			case "Fn::Sub":
+				// Leave sequence-form template substitutions unchanged.
+				if yamlNode.Content[1].Kind != yaml.ScalarNode {
+					return
+				}
 				err = replaceConstants(yamlNode.Content[1], constants)
 				if err != nil {
 					config.Debugf("%v", err)
@@ -100,8 +119,9 @@ func replaceTemplateConstants(t *cft.Template) error {
 				}
 
 				// Remove unnecessary Subs
-				// Parse the value again and see if it has any non-words
-				if !parse.IsSubNeeded(yamlNode.Content[1].Value) {
+				// Keep escaped variables for CloudFormation to resolve as literals.
+				if !parse.IsSubNeeded(yamlNode.Content[1].Value) &&
+					!strings.Contains(yamlNode.Content[1].Value, "${!") {
 					*yamlNode = *node.MakeScalar(yamlNode.Content[1].Value)
 				}
 			case "Ref":
@@ -123,7 +143,7 @@ func replaceTemplateConstants(t *cft.Template) error {
 	visitor := visitor.NewVisitor(t.Node)
 	visitor.Visit(vf)
 
-	return nil
+	return err
 }
 
 func processConstants(t *cft.Template, n *yaml.Node) error {
@@ -135,19 +155,21 @@ func processConstants(t *cft.Template, n *yaml.Node) error {
 			val := c.Content[i+1]
 			t.Constants[name] = val
 			// Visit each node in val looking for prior constant entries
+			var err error
 			vf := func(v *visitor.Visitor) {
+				if err != nil {
+					return
+				}
 				vnode := v.GetYamlNode()
 				if vnode.Kind == yaml.ScalarNode {
-					err := replaceConstants(vnode, t.Constants)
-					if err != nil {
-						// These constants must be scalars
-						// TODO: Constant values can be objects!
-						config.Debugf("replaceConstants failed: %v", err)
-					}
+					err = replaceConstants(vnode, t.Constants)
 				}
 			}
 			v := visitor.NewVisitor(val)
 			v.Visit(vf)
+			if err != nil {
+				return fmt.Errorf("constant %s: %w", name, err)
+			}
 		}
 	}
 

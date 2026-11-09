@@ -6,12 +6,6 @@ These are places where cfnrain does something unexpected. They come from Rain, a
 
 When a list item is a function with sequence arguments, `fmt` drops a line comment on the function key. Examples include `Fn::Join` in a list and `Fn::Split` inside `Fn::Select`. Put the comment above the property that contains the list instead. See [#85](https://github.com/awesome-foundation/cfnrain/issues/85).
 
-## A !Sub constant inside another !Sub packages to an empty value
-
-A `Rain:` constant that is itself a `!Sub` string, used with `${Rain::<Name>}` inside another `!Sub`, packages to an empty string. There is no error.
-
-Use `!Rain::Constant <Name>` for that constant instead. See [Constants](constants.md#known-issue-a-sub-constant-inside-another-sub). Issue: [#30](https://github.com/awesome-foundation/cfnrain/issues/30).
-
 ## Fn::Select takes its arguments in the reverse order
 
 cfnrain simplifies `Fn::Select` only when the list comes first and the index second. CloudFormation uses the index first. Write `Fn::Select` in the CloudFormation order. cfnrain then leaves it for CloudFormation, which resolves it. See [Intrinsic functions](modules/intrinsics.md#fnjoin-and-fnselect). Issue: [#47](https://github.com/awesome-foundation/cfnrain/issues/47).

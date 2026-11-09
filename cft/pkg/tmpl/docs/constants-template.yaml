@@ -6,13 +6,28 @@ Rain:
   Constants:
     App: billing
     Prefix: !Sub ${Env}-${Rain::App}
+    Uploads:
+      Fn::Sub: ${Rain::Prefix}-uploads
+    Static: !Sub ${Rain::App}-static
 
 Resources:
   Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub ${Env}-${Rain::App}-uploads
+      BucketName: !Sub ${Rain::Prefix}-uploads
   Table:
     Type: AWS::DynamoDB::Table
     Properties:
       TableName: !Rain::Constant Prefix
+  PlainBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${Env}-${Rain::App}-uploads
+
+Outputs:
+  Chained:
+    Value: !Sub ${Rain::Uploads}-${AWS::Region}
+  Alias:
+    Value: !Sub ${Const::Prefix}-alias
+  Static:
+    Value: !Sub ${Rain::Static}-files

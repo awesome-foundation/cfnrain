@@ -16,5 +16,5 @@ Resources:
     Properties:
       BucketName: !Sub pre-${Prefix}-ezbeard-rain-test-constants-suffix
       Foo: ezbeard-rain-test-constants
-      Bar: ${!leavemealone}
+      Bar: !Sub ${!leavemealone}
 

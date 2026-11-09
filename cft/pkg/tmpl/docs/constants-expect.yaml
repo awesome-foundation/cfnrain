@@ -11,3 +11,15 @@ Resources:
     Type: AWS::DynamoDB::Table
     Properties:
       TableName: !Sub ${Env}-billing
+  PlainBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${Env}-billing-uploads
+
+Outputs:
+  Chained:
+    Value: !Sub ${Env}-billing-uploads-${AWS::Region}
+  Alias:
+    Value: !Sub ${Env}-billing-alias
+  Static:
+    Value: billing-static-files

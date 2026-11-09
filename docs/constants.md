@@ -69,7 +69,11 @@ Use a constant in two ways:
 - `!Rain::Constant <Name>` inserts the value. The value can be a string or an object.
 - `${Rain::<Name>}` inside a `!Sub` string inserts a string value.
 
-A constant can use the constants above it, with `${Rain::<Name>}` in a `!Sub`.
+A constant can use the constants above it, with `${Rain::<Name>}` in a `!Sub`. A constant defined as a string-form `!Sub` can also be inserted into another `!Sub`; CloudFormation variables such as `${Env}` remain in the resulting string.
+
+### Interpolation limits
+
+`${Rain::<Name>}` and `${Const::<Name>}` cannot insert object or list constants, including `!Ref` values and the two-argument form `!Sub [string, variables]`. Packaging returns an error for these values. Use `!Rain::Constant <Name>` or `!Ref Const::<Name>` to insert the whole value instead.
 
 ### Example
 
@@ -86,21 +90,3 @@ The packaged template:
 ```
 
 `${Env}` stays in the output, because it is a template parameter that CloudFormation resolves.
-
-### Known issue: a !Sub constant inside another !Sub
-
-!!! bug "This packages to an empty value"
-    If a constant is itself a `!Sub` string, do not use it with `${Rain::<Name>}` inside another `!Sub`. cfnrain packages it to an empty string and shows no error.
-
-    ```yaml
-    Rain:
-      Constants:
-        Prefix: !Sub ${Env}-billing
-    Resources:
-      Table:
-        Type: AWS::DynamoDB::Table
-        Properties:
-          TableName: !Sub ${Rain::Prefix}-orders   # packages to "-orders"
-    ```
-
-    Use `!Rain::Constant Prefix` instead, as in the example above. That works.
