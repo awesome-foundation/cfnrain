@@ -186,12 +186,22 @@ func processConstants(t *cft.Template, n *yaml.Node) error {
 			t.Constants[name] = val
 			delete(t.ConstantErrors, name)
 			// Visit each node in val looking for prior constant entries
-			var err error
+			var err, deferredErr error
 			subStrings := make(map[*yaml.Node]bool)
 			vf := func(v *visitor.Visitor) {
 				if err != nil {
 					return
 				}
+				// Keep the first deferred error, but check later nodes for hard errors.
+				defer func() {
+					var plainSubErr *plainSubConstantError
+					if errors.As(err, &plainSubErr) {
+						if deferredErr == nil {
+							deferredErr = err
+						}
+						err = nil
+					}
+				}()
 				vnode := v.GetYamlNode()
 				if vnode.Kind == yaml.MappingNode && len(vnode.Content) == 2 {
 					key, value := vnode.Content[0].Value, vnode.Content[1].Value
@@ -218,11 +228,10 @@ func processConstants(t *cft.Template, n *yaml.Node) error {
 			v := visitor.NewVisitor(val)
 			v.Visit(vf)
 			if err != nil {
-				var plainSubErr *plainSubConstantError
-				if !errors.As(err, &plainSubErr) {
-					return fmt.Errorf("constant %s: %w", name, err)
-				}
-				t.ConstantErrors[name] = fmt.Errorf("constant %s: %w", name, err)
+				return fmt.Errorf("constant %s: %w", name, err)
+			}
+			if deferredErr != nil {
+				t.ConstantErrors[name] = fmt.Errorf("constant %s: %w", name, deferredErr)
 			}
 		}
 	}

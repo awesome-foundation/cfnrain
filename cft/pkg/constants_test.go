@@ -307,3 +307,29 @@ func TestDirectLiteralSubConstant(t *testing.T) {
 		"Rain:\n  Constants:\n    B: !Sub literal\nOutputs:\n  Value:\n    Value: !Rain::Constant B\n",
 		"Outputs:\n  Value:\n    Value: literal\n")
 }
+
+func TestDeferredConstantErrorDoesNotHideMissingConstant(t *testing.T) {
+	for _, use := range []string{"ok", "!Rain::Constant C"} {
+		for _, first := range []string{`"${Rain::B}"`, "!Rain::Constant Deferred", "!Ref Const::Deferred"} {
+			t.Run(use+"/"+first, func(t *testing.T) {
+				input := `Rain:
+  Constants:
+    B: !Sub ${Env}-b
+    Deferred: "${Rain::B}"
+    C: [` + first + `, !Sub "${Rain::Missing}"]
+Outputs:
+  Value:
+    Value: ` + use + "\n"
+				tmpl, err := parse.String(input)
+				if err != nil {
+					t.Fatal(err)
+				}
+				_, err = Template(tmpl, ".", nil)
+				want := "constant C: did not find Constant Missing"
+				if err == nil || !strings.Contains(err.Error(), want) {
+					t.Fatalf("expected %q, got %v", want, err)
+				}
+			})
+		}
+	}
+}
