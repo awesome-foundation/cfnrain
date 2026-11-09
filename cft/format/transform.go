@@ -13,6 +13,16 @@ var NodeStyle string
 
 var NodeStyleDocs = "Set the node output style to tagged, doublequoted, singlequoted, literal, folded, strict-boolean, quotescalars, original, or flow"
 
+func joinComments(comments []string) string {
+	var out []string
+	for _, c := range comments {
+		if c != "" {
+			out = append(out, c)
+		}
+	}
+	return strings.Join(out, "\n")
+}
+
 func mergeComments(comments []string) string {
 	out := strings.Builder{}
 	for _, c := range comments {
@@ -75,7 +85,8 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 				}
 
 				// Is it a GetAtt and is currently a sequence?
-				if funcName == "Fn::GetAtt" && n.Kind == yaml.SequenceNode {
+				getAttSequence := funcName == "Fn::GetAtt" && n.Kind == yaml.SequenceNode
+				if getAttSequence {
 					// Are both parts scalars?
 					allScalar := true
 					parts := make([]string, len(n.Content))
@@ -97,10 +108,14 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 						n.Kind = yaml.ScalarNode
 						n.Value = strings.Join(parts, ".")
 					}
+				}
 
-					n.HeadComment = mergeComments(headComments)
+				n.HeadComment = joinComments(headComments)
+				n.LineComment = joinComments(lineComments)
+				n.FootComment = joinComments(footComments)
+				if getAttSequence {
+					// Keep the existing treatment of comments on collapsed GetAtt parts.
 					n.LineComment = mergeComments(lineComments)
-					n.FootComment = mergeComments(footComments)
 				}
 			}
 		}
@@ -122,7 +137,31 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 	}
 
 	for i, child := range n.Content {
-		n.Content[i] = formatNode(child, keepForm)
+		formatted := formatNode(child, keepForm)
+		if n.Kind == yaml.MappingNode && i%2 == 1 && child.Kind == yaml.MappingNode && formatted.Kind != yaml.MappingNode {
+			// Comments on a shortened function describe the containing property,
+			// not the next key or the first item of a sequence argument.
+			key := n.Content[i-1]
+			moveLineComments := formatted.Kind == yaml.SequenceNode || strings.Contains(formatted.LineComment, "\n") ||
+				(key.LineComment != "" && formatted.LineComment != "")
+			if moveLineComments {
+				// Sequences and multiple line comments cannot share the property line.
+				// Keep their text above this key instead of on the next node.
+				key.HeadComment = joinComments([]string{key.HeadComment, key.LineComment, formatted.HeadComment, formatted.LineComment})
+				key.LineComment = ""
+				formatted.LineComment = ""
+			} else {
+				key.HeadComment = joinComments([]string{key.HeadComment, formatted.HeadComment})
+			}
+			key.FootComment = joinComments([]string{formatted.FootComment, key.FootComment})
+			formatted.HeadComment = ""
+			formatted.FootComment = ""
+		} else if n.Kind == yaml.SequenceNode && child.Kind == yaml.MappingNode && formatted.Kind == yaml.SequenceNode {
+			// A sequence item has no property key to hold this comment.
+			// Retain the previous loss rather than attach it to an unrelated node.
+			formatted.LineComment = ""
+		}
+		n.Content[i] = formatted
 	}
 
 	// Allow global user overrides
