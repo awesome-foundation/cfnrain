@@ -48,9 +48,9 @@ You may use the following, rain-specific directives in templates packaged with "
     Format: URI|Http|Object    Specify which format cfnrain pkg should return the S3 location as.
                                The default is "Object" when both BucketProperty and KeyProperty are set,
                                and "URI" otherwise. "Object" requires both property names.
-    Run: <script>             Run an executable script before uploading, from the template's directory.
+    Run: <script>              Run an executable script in the template's directory before the upload.
                                The script path is relative to the template file or absolute.
-    Extension: <extension>    Append a file extension to the S3 object key.
+    Extension: <extension>     Append a file extension to the S3 object key.
 
   !Rain::Module <url>          Supply a URL to a rain module. The module's Parameters define its properties,
                                and its resources are inserted into the template.
