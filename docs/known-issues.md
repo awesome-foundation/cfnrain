@@ -4,4 +4,6 @@ This page lists only issues the project has decided not to fix. Each entry expla
 
 There are no such issues at the moment.
 
-Track bugs in [GitHub issues](https://github.com/awesome-foundation/cfnrain/issues).
+To find or report a bug, see [GitHub issues](https://github.com/awesome-foundation/cfnrain/issues).
+
+If you find another difference between this site and the code, please [open an issue](https://github.com/awesome-foundation/cfnrain/issues).
