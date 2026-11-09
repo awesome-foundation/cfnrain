@@ -2,39 +2,73 @@
 
 ## [1.25.5](https://github.com/awesome-foundation/cfnrain/compare/v1.25.4...v1.25.5) (2026-11-09)
 
+This release fixes bugs in `deploy`, `rm`, `pkg`, `fmt`, `merge` and `build`. Most of them came from Rain v1.24.4. Some commands now stop with an error where they used to fail silently or produce bad output. Read **Behavior changes** before you upgrade CI pipelines.
 
-### Bug Fixes
+### Behavior changes
 
-* **build:** honor only-cache and reject conflicting cache flags ([#136](https://github.com/awesome-foundation/cfnrain/issues/136)) ([c0fc080](https://github.com/awesome-foundation/cfnrain/commit/c0fc080172278a46a9210d8c2d5abd3886982b85))
-* **build:** remove the AuthorizerId string AWS::NoValue from the webapp ([fac1b9b](https://github.com/awesome-foundation/cfnrain/commit/fac1b9ba1a51a1085899ac2d2a808df3e54179a3))
-* **build:** use the s3:ReplicateTags action in replication policies ([fac1b9b](https://github.com/awesome-foundation/cfnrain/commit/fac1b9ba1a51a1085899ac2d2a808df3e54179a3))
-* **build:** use the s3:ReplicateTags action in replication policies ([#100](https://github.com/awesome-foundation/cfnrain/issues/100)) ([4c2875a](https://github.com/awesome-foundation/cfnrain/commit/4c2875a9fc456ae38bbea3c373230039b0d442c1))
-* **cfn:** handle empty stack responses and fast deletions ([#105](https://github.com/awesome-foundation/cfnrain/issues/105)) ([e7c5185](https://github.com/awesome-foundation/cfnrain/commit/e7c51857e7fe86401935d8f93ea06f622462c8bb))
-* **deploy:** confirm before deleting an existing stack ([#106](https://github.com/awesome-foundation/cfnrain/issues/106)) ([46d63c7](https://github.com/awesome-foundation/cfnrain/commit/46d63c714087c03f26607c65fb26311d4a9f11dc))
-* **deploy:** handle stack lookup gaps ([#116](https://github.com/awesome-foundation/cfnrain/issues/116)) ([0da3440](https://github.com/awesome-foundation/cfnrain/commit/0da3440f5c602a916f02061d042b42daa9a34333))
-* **deploy:** preserve failure when final lookup fails ([#130](https://github.com/awesome-foundation/cfnrain/issues/130)) ([cff264c](https://github.com/awesome-foundation/cfnrain/commit/cff264c99346fb500524f3b38ddb865f5aacc48f))
-* **deploy:** report all unknown parameters and silence ignored ones ([#74](https://github.com/awesome-foundation/cfnrain/issues/74)) ([94d2ad3](https://github.com/awesome-foundation/cfnrain/commit/94d2ad339ff23849c3b9e0a0c2d39d225d45de2e)), closes [#68](https://github.com/awesome-foundation/cfnrain/issues/68)
-* **deps:** update pflag to v1.1.0 and accept new help text ([#109](https://github.com/awesome-foundation/cfnrain/issues/109)) ([6a791c5](https://github.com/awesome-foundation/cfnrain/commit/6a791c59491e10a3304641110d773a998e5ba166))
-* expand all short-form intrinsic tags and keep their source form ([#80](https://github.com/awesome-foundation/cfnrain/issues/80)) ([a91be98](https://github.com/awesome-foundation/cfnrain/commit/a91be9843795e5c81cfbbdbf5748faf615521086))
-* **fmt:** keep comments in templates with CRLF line endings ([#75](https://github.com/awesome-foundation/cfnrain/issues/75)) ([c2023bc](https://github.com/awesome-foundation/cfnrain/commit/c2023bc3d1ec48c09254416f65e018838abfa2ed)), closes [#64](https://github.com/awesome-foundation/cfnrain/issues/64)
-* **fmt:** preserve anchors on function arguments ([#113](https://github.com/awesome-foundation/cfnrain/issues/113)) ([d9cf4fb](https://github.com/awesome-foundation/cfnrain/commit/d9cf4fbaf6c194fa1893c9cc6072e46fcf3b5ba5))
-* **fmt:** preserve comments on short-form function keys ([#112](https://github.com/awesome-foundation/cfnrain/issues/112)) ([8dfc62b](https://github.com/awesome-foundation/cfnrain/commit/8dfc62b055e3421e88ef58795334f3f99a4ce870))
-* **fmt:** preserve YAML merge keys and reject JSON conversion ([#115](https://github.com/awesome-foundation/cfnrain/issues/115)) ([19287ca](https://github.com/awesome-foundation/cfnrain/commit/19287ca3214b1b041af97fc14d15f22231ea02b6))
-* **merge:** return input parse errors without panicking ([#111](https://github.com/awesome-foundation/cfnrain/issues/111)) ([ca5439c](https://github.com/awesome-foundation/cfnrain/commit/ca5439cfb8577ba609b948d06fe673e600592567))
-* **pkg:** align S3 option help descriptions ([#131](https://github.com/awesome-foundation/cfnrain/issues/131)) ([e47d24c](https://github.com/awesome-foundation/cfnrain/commit/e47d24c3e339cbc035924a620a1bd1c7700afa58))
-* **pkg:** correct S3 options and module help ([#119](https://github.com/awesome-foundation/cfnrain/issues/119)) ([5d4b771](https://github.com/awesome-foundation/cfnrain/commit/5d4b77187f29e0c08bb30b31adb5e7e0a68d80de))
-* **pkg:** find the !Rain::S3 Run script with an absolute template path ([#61](https://github.com/awesome-foundation/cfnrain/issues/61)) ([8390718](https://github.com/awesome-foundation/cfnrain/commit/8390718770793fb632dc44a98aef0bd4c7f4abe2)), closes [#60](https://github.com/awesome-foundation/cfnrain/issues/60)
-* **pkg:** honor an absolute Run path and upload again after Run ([#88](https://github.com/awesome-foundation/cfnrain/issues/88)) ([637ab3f](https://github.com/awesome-foundation/cfnrain/commit/637ab3f30db2c0531f48f4c4eb39298b9eb1dbbd)), closes [#60](https://github.com/awesome-foundation/cfnrain/issues/60)
-* **pkg:** preserve nested Sub constant strings ([#125](https://github.com/awesome-foundation/cfnrain/issues/125)) ([372e039](https://github.com/awesome-foundation/cfnrain/commit/372e03962d581c92abb6398a69c65ba26d490aa1))
-* **pkg:** reject Sub constants in plain strings ([#132](https://github.com/awesome-foundation/cfnrain/issues/132)) ([9fc6ecf](https://github.com/awesome-foundation/cfnrain/commit/9fc6ecfef4acc3eeebbb5e30f05386f97034d6c8))
-* **pkg:** report failed implicit uploads ([#114](https://github.com/awesome-foundation/cfnrain/issues/114)) ([4bf2570](https://github.com/awesome-foundation/cfnrain/commit/4bf25708446dea16379ef1924a4940eace91797c))
-* **pkg:** report hard constant errors after deferred errors ([#133](https://github.com/awesome-foundation/cfnrain/issues/133)) ([652d7c1](https://github.com/awesome-foundation/cfnrain/commit/652d7c1c226295e139b045460794c0251679424c))
-* **pkg:** resolve Fn::Select in CloudFormation argument order ([#123](https://github.com/awesome-foundation/cfnrain/issues/123)) ([41f117c](https://github.com/awesome-foundation/cfnrain/commit/41f117cd3649fc9b682921fb84dbb49d405a633c))
-* **rm:** handle missing termination protection ([#98](https://github.com/awesome-foundation/cfnrain/issues/98)) ([cde0f2f](https://github.com/awesome-foundation/cfnrain/commit/cde0f2f78e901b588b2ebdb8a53927a82b51473e))
-* **rm:** stop the panic on a stack in REVIEW_IN_PROGRESS ([#73](https://github.com/awesome-foundation/cfnrain/issues/73)) ([2df7070](https://github.com/awesome-foundation/cfnrain/commit/2df7070ed8ce6ad4b2b2a70f95a48c2d0b8d6023))
-* **s3:** correct artifact bucket lifecycle rule ID ([#117](https://github.com/awesome-foundation/cfnrain/issues/117)) ([d8cdf7f](https://github.com/awesome-foundation/cfnrain/commit/d8cdf7fc424ef2b83edbe1c39aff69248d239df7))
-* **stackset:** remove misleading optional template help ([#118](https://github.com/awesome-foundation/cfnrain/issues/118)) ([4b76c50](https://github.com/awesome-foundation/cfnrain/commit/4b76c506746a5c5774a3b34436b9042cedc4c328))
-* **table:** isolate stdout capture in writer test ([#124](https://github.com/awesome-foundation/cfnrain/issues/124)) ([105a3a0](https://github.com/awesome-foundation/cfnrain/commit/105a3a083833f05b43bc50a4268aaed07df655dd))
+- **`deploy` asks before it deletes a failed stack.** When a stack is in `ROLLBACK_COMPLETE`, `CREATE_FAILED` or `REVIEW_IN_PROGRESS`, `deploy` now asks for confirmation before deleting it. The answer defaults to No. Use `-y` to keep the old automatic delete. Without a terminal and without `-y`, `deploy` stops. ([#106](https://github.com/awesome-foundation/cfnrain/pull/106), fixes #43)
+- **`deploy` reports a failed final stack lookup.** If the stack deploys but the final lookup fails, `deploy` still enables termination protection and runs the post-deploy steps. It then exits with an error instead of printing an empty summary. ([#116](https://github.com/awesome-foundation/cfnrain/pull/116), fixes #110; follow-up [#130](https://github.com/awesome-foundation/cfnrain/pull/130))
+- **`deploy` lists all unknown parameters at once:** `unknown parameter: Alpha, Mike, Zulu`. `--ignore-unknown-params` no longer prints warnings; use `--debug` to see the names. ([#74](https://github.com/awesome-foundation/cfnrain/pull/74), fixes #68)
+- **`pkg` fails when an implicit upload fails.** It used to leave the local path in the template and exit 0. It now names the property and the missing file, and exits 1. ([#114](https://github.com/awesome-foundation/cfnrain/pull/114), fixes #44)
+- **`pkg` rejects a Rain constant that it cannot insert correctly.** These used to package to an empty string. `pkg` now stops with an error that names the constant ([#125](https://github.com/awesome-foundation/cfnrain/pull/125); follow-ups [#132](https://github.com/awesome-foundation/cfnrain/pull/132), [#133](https://github.com/awesome-foundation/cfnrain/pull/133)):
+  - a constant that is a long-form `!Sub`, a `!Ref`, an object or a list, used inside a `!Sub`;
+  - a plain constant that refers to a `!Sub` constant, such as `C: "${Rain::B}"` with `B: !Sub ${Env}-b`, when the template uses it. The error tells you to use `!Sub` for the outer value, or `!Rain::Constant B` for the whole value.
+- **`pkg` rejects an out-of-range literal `Fn::Select` index** in CloudFormation argument order, such as `!Select [5, [a, b]]`. CloudFormation rejects this index too. ([#123](https://github.com/awesome-foundation/cfnrain/pull/123))
+- **`build` rejects `--no-cache` together with `--only-cache`.** ([#136](https://github.com/awesome-foundation/cfnrain/pull/136))
+- **Help and flag errors changed:** pflag 1.1 changed how help and flag errors look. Boolean flags now show `[=true|false]` in help, and error text for invalid flag values is different. ([#109](https://github.com/awesome-foundation/cfnrain/pull/109))
+
+### deploy and rm
+
+- `rm` no longer reports a failure when the stack is deleted before its first status check. ([#105](https://github.com/awesome-foundation/cfnrain/pull/105), fixes #95)
+- Stack lookups no longer panic when CloudFormation returns an empty stack list. ([#105](https://github.com/awesome-foundation/cfnrain/pull/105), fixes #93)
+- After `deploy` deletes a failed stack, it waits on the stack ID, so a fast delete no longer makes it fail. ([#116](https://github.com/awesome-foundation/cfnrain/pull/116))
+- `rm` no longer panics on a stack in `REVIEW_IN_PROGRESS`, such as one that `deploy --no-exec` created, or when the response has no termination protection value. ([#73](https://github.com/awesome-foundation/cfnrain/pull/73), fixes #67; [#98](https://github.com/awesome-foundation/cfnrain/pull/98), fixes #94)
+
+### pkg
+
+- A Rain constant that is itself a `!Sub` now works inside another `!Sub`, instead of packaging to an empty string. Escaped `${!Name}` values keep their `Fn::Sub`, so CloudFormation removes the `!` as it should. ([#125](https://github.com/awesome-foundation/cfnrain/pull/125), fixes #30)
+- `Fn::Select` now resolves in CloudFormation's argument order, `[index, list]`, in templates and in modules. The old reverse order still works. Lists computed by CloudFormation, such as `!GetAZs ''`, are left untouched. ([#123](https://github.com/awesome-foundation/cfnrain/pull/123), fixes #47; follow-up [#129](https://github.com/awesome-foundation/cfnrain/pull/129))
+- `!Rain::S3` `Run` fixes ([#61](https://github.com/awesome-foundation/cfnrain/pull/61), [#88](https://github.com/awesome-foundation/cfnrain/pull/88), fixes #60):
+  - `Run` finds the script when you give the template as an absolute path.
+  - An absolute `Run` path is used as given.
+  - Two directives with the same `Path` and different `Run` scripts now each upload their own build, instead of both getting the first one.
+  - A failed script shows why it failed.
+
+### fmt
+
+- `fmt` keeps comments on function keys when it writes the short form, such as `!Sub`. ([#112](https://github.com/awesome-foundation/cfnrain/pull/112), fixes #85)
+- `fmt` keeps an anchor on a function argument instead of failing. ([#113](https://github.com/awesome-foundation/cfnrain/pull/113), fixes #83)
+- `fmt` keeps YAML merge keys (`<<: *base`), including in flow style. `--json` rejects them with a clear error, because JSON has no merge keys. ([#115](https://github.com/awesome-foundation/cfnrain/pull/115), fixes #84)
+- `fmt` keeps comments in templates with CRLF line endings. ([#75](https://github.com/awesome-foundation/cfnrain/pull/75), fixes #64)
+- cfnrain now understands ten more short-form tags: `!Contains`, `!EachMemberEquals`, `!EachMemberIn`, `!RefAll`, `!ValueOf`, `!ValueOfAll`, `!Length`, `!ToJsonString`, `!GetStackOutput` and `!Transform`. JSON output and `diff` see these functions, and `fmt` keeps the form the template uses. ([#80](https://github.com/awesome-foundation/cfnrain/pull/80), fixes #63, #81)
+
+### merge
+
+- `merge` no longer panics on a file it cannot parse. It names the file and shows the parse error. ([#111](https://github.com/awesome-foundation/cfnrain/pull/111), fixes #66)
+
+### build
+
+- `build --only-cache` now uses only the schemas built into cfnrain and makes no AWS calls. It used to do the same as `--no-cache`. For a resource type that is not built in, it names the type in the error. ([#136](https://github.com/awesome-foundation/cfnrain/pull/136), fixes #41)
+- The templates that `build` generates, and the shipped `compliant-bucket` module, use the correct IAM action `s3:ReplicateTags` in replication policies. The old name, `s3:ReplicationTags`, is not an IAM action. ([#100](https://github.com/awesome-foundation/cfnrain/pull/100))
+- The `webapp` template that `build` generates no longer sets `AuthorizerId` to the literal string `AWS::NoValue` on its JWT method. ([#96](https://github.com/awesome-foundation/cfnrain/pull/96))
+
+### Help text and generated resources
+
+- The `pkg` help now lists the correct S3 `Format` values (`URI`, `Http` and `Object`), the real defaults, and the `Run` and `Extension` options. ([#119](https://github.com/awesome-foundation/cfnrain/pull/119), fixes #45; follow-up [#131](https://github.com/awesome-foundation/cfnrain/pull/131))
+- The `stackset deploy` help no longer says the template file is optional. ([#118](https://github.com/awesome-foundation/cfnrain/pull/118), fixes #46)
+- New artifact buckets get the lifecycle rule ID "delete after 7 days", which matches the expiry. Existing buckets don't change. ([#117](https://github.com/awesome-foundation/cfnrain/pull/117), fixes #42)
+
+### Documentation
+
+- New page: [Why CloudFormation and Rain](https://awesome-foundation.github.io/cfnrain/why.html). ([#58](https://github.com/awesome-foundation/cfnrain/pull/58), [#59](https://github.com/awesome-foundation/cfnrain/pull/59))
+- The known issues page now lists only issues that the project will not fix. Open bugs are tracked in GitHub issues, and their workarounds are on the command pages. ([#134](https://github.com/awesome-foundation/cfnrain/pull/134), [#135](https://github.com/awesome-foundation/cfnrain/pull/135))
+
+### Maintenance
+
+- Updated the Go dependencies, including the AWS SDK and pflag 1.1.0. ([#62](https://github.com/awesome-foundation/cfnrain/pull/62), [#108](https://github.com/awesome-foundation/cfnrain/pull/108), [#109](https://github.com/awesome-foundation/cfnrain/pull/109))
+- The release job builds the binaries without a restored Go cache. ([#101](https://github.com/awesome-foundation/cfnrain/pull/101))
+- CI now runs the integration tests against AWS, including stack lifecycle and artifact checks. ([#96](https://github.com/awesome-foundation/cfnrain/pull/96), [#102](https://github.com/awesome-foundation/cfnrain/pull/102))
+- Fixed a flaky table test. ([#124](https://github.com/awesome-foundation/cfnrain/pull/124), fixes #86)
 
 ## [1.25.4](https://github.com/awesome-foundation/cfnrain/compare/v1.25.3...v1.25.4) (2026-10-27)
 
