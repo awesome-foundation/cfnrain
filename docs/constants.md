@@ -75,6 +75,8 @@ A constant can use the constants above it, with `${Rain::<Name>}` in a `!Sub`. A
 
 `${Rain::<Name>}` and `${Const::<Name>}` cannot insert object or list constants, including `!Ref` values and the two-argument form `!Sub [string, variables]`. Packaging returns an error for these values. Use `!Rain::Constant <Name>` or `!Ref Const::<Name>` to insert the whole value instead.
 
+A plain string constant cannot insert a `!Sub` constant that still needs CloudFormation substitution. Packaging returns an error when the template uses the plain constant. Use `!Sub` for the outer value, or `!Rain::Constant <Name>` to insert the whole value. Unused constants do not cause this error. A `!Sub` constant that resolves to plain text can be inserted into a plain string.
+
 ### Example
 
 The template:

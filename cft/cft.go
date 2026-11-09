@@ -38,6 +38,7 @@ type Template struct {
 	Name           string
 	Node           *yaml.Node
 	Constants      map[string]*yaml.Node
+	ConstantErrors map[string]error
 	Packages       map[string]*PackageAlias
 	ModuleMapNames map[string][]string
 	ModuleMaps     map[string]*ModuleConfig
