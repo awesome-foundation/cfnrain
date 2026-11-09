@@ -128,7 +128,8 @@ func FnSelect(n *yaml.Node) error {
 			return
 		}
 		idx, arr := sel.Content[0], sel.Content[1]
-		// Preserve Rain's legacy list-first order for literal lists.
+		// Accept Rain's legacy list-first order when the first argument is a list
+		// (literal or a substituted module parameter).
 		if idx.Kind == yaml.SequenceNode {
 			arr, idx = idx, arr
 		}

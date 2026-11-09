@@ -102,7 +102,7 @@ cfnrain also simplifies two CloudFormation functions when it can resolve them wh
 
 Use the CloudFormation argument order: `Fn::Select: [0, !Ref Things]`. cfnrain also supports the legacy list-first order when the list can be resolved while packaging. Unresolved functions in the CloudFormation order are left for CloudFormation.
 
-The following example uses the legacy order:
+The following example uses the CloudFormation order in `OneName` and `ShortForm`, and the legacy order in `LegacyName`:
 
 ```yaml
 --8<-- "cft/pkg/tmpl/awscli-modules/select-module.yaml"

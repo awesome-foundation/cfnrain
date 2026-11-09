@@ -6,7 +6,10 @@ Resources:
     Type: A::B::C
     Properties:
       Names: !Ref Things
-      OneName: 
+      OneName:
         Fn::Select:
+        - 1
         - !Ref Things
-        - 0
+      ShortForm: !Select [1, !Ref Things]
+      # Legacy list-first order remains supported.
+      LegacyName: !Select [!Ref Things, 0]
