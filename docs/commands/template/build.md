@@ -46,10 +46,9 @@ AWS::SQS::QueuePolicy
 | `--model` | The Bedrock model ID for `--prompt`. The short names `claude2`, `claude3haiku`, `claude3sonnet`, `claude3opus` and `claude3.5sonnet` also work. |
 | `--prompt-lang` | What `--prompt` writes: `cfn` (CloudFormation YAML, the default), `guard` (CloudFormation Guard) or `rego` (Open Policy Agent Rego) |
 | `--omit-patches` | Use the raw registry schema. By default, cfnrain applies its own fixes to the schemas. |
-| `--no-cache` | Do not use the schemas in the binary. Get them from the CloudFormation registry. |
-| `--only-cache` | Meant to use only the schemas in the binary. See the warning below. |
+| `--no-cache` | Do not use the schemas built into cfnrain. Get them from the CloudFormation registry. |
+| `--only-cache` | Use only the schemas built into cfnrain. Do not call the CloudFormation registry. |
 
 With no arguments, `build` shows an interactive menu.
 
-!!! warning "--only-cache does the same as --no-cache"
-    In the code, `--only-cache` sets the same switch as `--no-cache`. Both make cfnrain skip the cached schemas. Do not rely on `--only-cache`. See [#41](https://github.com/awesome-foundation/cfnrain/issues/41).
+Use either `--no-cache` or `--only-cache`. The command rejects both flags together.
