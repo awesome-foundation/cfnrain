@@ -1,0 +1,59 @@
+Parameters:
+  SubnetIds:
+    Type: String
+  ListParam:
+    Type: List<AWS::EC2::Subnet::Id>
+  CommaParam:
+    Type: CommaDelimitedList
+  Block:
+    Type: String
+  Choice:
+    Type: String
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+Outputs:
+  GetAZsEmptyShort:
+    Value: !Select [0, !GetAZs '']
+  GetAZsEmptyLong:
+    Value: {"Fn::Select": [0, {"Fn::GetAZs": ""}]}
+  GetAZsRegionShort:
+    Value: !Select [1, {Fn::GetAZs: !Ref AWS::Region}]
+  GetAZsRegionLong:
+    Value: {"Fn::Select": [1, {"Fn::GetAZs": {"Ref": "AWS::Region"}}]}
+  SplitRefShort:
+    Value: !Select [0, !Split [",", !Ref SubnetIds]]
+  SplitRefLong:
+    Value: {"Fn::Select": [0, {"Fn::Split": [",", {"Ref": "SubnetIds"}]}]}
+  SplitGetAttShort:
+    Value: !Select [2, !Split ["/", !GetAtt Vpc.Arn]]
+  SplitGetAttLong:
+    Value: {"Fn::Select": [2, {"Fn::Split": ["/", {"Fn::GetAtt": ["Vpc", "Arn"]}]}]}
+  NotificationARNsShort:
+    Value: !Select [0, !Ref AWS::NotificationARNs]
+  NotificationARNsLong:
+    Value: {"Fn::Select": [0, {"Ref": "AWS::NotificationARNs"}]}
+  ListParamShort:
+    Value: !Select [0, !Ref ListParam]
+  ListParamLong:
+    Value: {"Fn::Select": [0, {"Ref": "ListParam"}]}
+  CommaParamShort:
+    Value: !Select [0, !Ref CommaParam]
+  CommaParamLong:
+    Value: {"Fn::Select": [0, {"Ref": "CommaParam"}]}
+  GetAttShort:
+    Value: !Select [0, !GetAtt LoadBalancer.SecurityGroups]
+  GetAttLong:
+    Value: {"Fn::Select": [0, {"Fn::GetAtt": ["LoadBalancer", "SecurityGroups"]}]}
+  ImportValueShort:
+    Value: !Select [0, !ImportValue Exported]
+  ImportValueLong:
+    Value: {"Fn::Select": [0, {"Fn::ImportValue": "Exported"}]}
+  CidrShort:
+    Value: !Select [0, !Cidr [!Ref Block, 4, 8]]
+  CidrLong:
+    Value: {"Fn::Select": [0, {"Fn::Cidr": [{"Ref": "Block"}, 4, 8]}]}
+  FunctionIndexShort:
+    Value: !Select [!FindInMap [Indexes, !Ref Choice, Index], !GetAZs '']
+  FunctionIndexLong:
+    Value: {"Fn::Select": [{"Fn::FindInMap": ["Indexes", {"Ref": "Choice"}, "Index"]}, {"Fn::GetAZs": ""}]}
