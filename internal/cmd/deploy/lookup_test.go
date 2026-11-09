@@ -186,8 +186,17 @@ func TestDeployFinalStackLookup(t *testing.T) {
 				}
 				return
 			}
-			if strings.Count(string(failure), "\n") != 1 {
-				t.Errorf("expected one error line, got %s", failure)
+			wantLines := 1
+			if result == "failed-wait" {
+				wantLines = 2
+				deployFailure := strings.Index(string(failure), "failed deploying stack 'test-stack'")
+				lookupFailure := strings.Index(string(failure), "error getting final status of stack 'test-stack'")
+				if deployFailure < 0 || lookupFailure < 0 || deployFailure >= lookupFailure {
+					t.Errorf("expected deploy failure before lookup failure: %s", failure)
+				}
+			}
+			if strings.Count(string(failure), "\n") != wantLines {
+				t.Errorf("unexpected error lines: %s", failure)
 			}
 			wantCause := "no stacks"
 			if result == "error" {

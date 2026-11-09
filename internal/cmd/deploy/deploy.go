@@ -258,7 +258,7 @@ To list and delete changesets, use the ls and rm commands.
 			if err != nil {
 				finalLookupErr = ui.Errorf(err, "error getting final status of stack '%s'", stackName)
 				if status != "CREATE_COMPLETE" && status != "UPDATE_COMPLETE" && status != "IMPORT_COMPLETE" {
-					panic(finalLookupErr)
+					panic(errors.Join(fmt.Errorf("failed deploying stack '%s'", stackName), finalLookupErr))
 				}
 			} else {
 				output := cfn.GetStackSummary(stack, false)
