@@ -52,4 +52,4 @@ AWS::SQS::QueuePolicy
 With no arguments, `build` shows an interactive menu.
 
 !!! warning "--only-cache does the same as --no-cache"
-    In the code, `--only-cache` sets the same switch as `--no-cache`. Both make cfnrain skip the cached schemas. See [Known issues](../../known-issues.md).
+    In the code, `--only-cache` sets the same switch as `--no-cache`. Both make cfnrain skip the cached schemas. See [#41](https://github.com/awesome-foundation/cfnrain/issues/41).
