@@ -87,4 +87,4 @@ The Rain documentation at `aws-cloudformation.github.io/rain` is frozen. This si
 - `!Rain::S3` has no `VersionProperty` option.
 - `diff`, `merge` and `tree` do not read Pkl files.
 
-For behavior that is still wrong in the code, see [Known issues](known-issues.md).
+For bugs the project plans to fix, see [GitHub issues](https://github.com/awesome-foundation/cfnrain/issues).
