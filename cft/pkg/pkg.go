@@ -182,9 +182,8 @@ func Template(t *cft.Template, rootDir string, fs *embed.FS) (*cft.Template, err
 	maxPasses := 100
 	for {
 		passes += 1
-		// Modules can add new nodes to the template, which
-		// breaks s11n.MatchAll, since it expects the length to stay the same.
-		// Just start over and transform the whole template again.
+		// Modules can add nodes after MatchAll collects its matches.
+		// Transform the whole template again to process those nodes.
 		changedThisPass, err := transform(ctx)
 		if err != nil {
 			return nil, err
