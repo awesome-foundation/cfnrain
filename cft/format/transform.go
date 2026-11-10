@@ -222,10 +222,14 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 				n.Style = yaml.SingleQuotedStyle
 			}
 		}
-	case "literal":
-		n.Style = yaml.LiteralStyle
-	case "folded":
-		n.Style = yaml.FoldedStyle
+	case "literal", "folded":
+		n.Style = 0
+		if n.Kind == yaml.ScalarNode && scalarTag == "!!str" {
+			n.Style = yaml.LiteralStyle
+			if NodeStyle == "folded" {
+				n.Style = yaml.FoldedStyle
+			}
+		}
 	case "flow":
 		n.Style = yaml.FlowStyle
 	case "original":
