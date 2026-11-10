@@ -16,12 +16,15 @@ func TestCreateChangeSetValidationDetails(t *testing.T) {
 	const event = `<member><EventType>VALIDATION_ERROR</EventType><LogicalResourceId>TestBucket</LogicalResourceId><ResourceType>AWS::S3::Bucket</ResourceType><ValidationName>NAME_CONFLICT_VALIDATION</ValidationName><ValidationStatus>FAILED</ValidationStatus><ValidationFailureMode>FAIL</ValidationFailureMode><ValidationStatusReason>Resource already exists.</ValidationStatusReason></member>`
 	const detail = "changeset creation failed with validation errors:\n  - Resource: TestBucket (AWS::S3::Bucket), Validation: NAME_CONFLICT_VALIDATION, Reason: Resource already exists."
 	for _, tc := range []struct {
-		name, reason, first, second, want string
-		denied, missingID                 bool
-		calls                             int
+		name, reason, first, second, want    string
+		denied, missingID, repeated, success bool
+		calls                                int
 	}{
-		{name: "validation", reason: original, first: event, want: detail, calls: 1},
-		{name: "pagination", reason: original, second: event, want: detail, calls: 2},
+		{name: "validation", reason: original, first: event, want: original + "\n" + detail, calls: 1},
+		{name: "pagination", reason: original, second: event, want: original + "\n" + detail, calls: 2},
+		{name: "mixed hook failure", reason: "Hook CustomHook failed.", first: event, want: "Hook CustomHook failed.\n" + detail, calls: 1},
+		{name: "repeated token", reason: original, second: event, repeated: true, want: original, calls: 2},
+		{name: "success", success: true},
 		{name: "permission denied", reason: original, denied: true, want: original, calls: 1},
 		{name: "second page denied", reason: original, first: event, second: "denied", denied: true, want: original, calls: 2},
 		{name: "no changes", reason: noChanges, want: noChanges, calls: 1},
@@ -46,7 +49,11 @@ func TestCreateChangeSetValidationDetails(t *testing.T) {
 					if tc.missingID {
 						id = ""
 					}
-					fmt.Fprintf(w, `<DescribeChangeSetResponse><DescribeChangeSetResult>%s<Status>FAILED</Status><StatusReason>%s</StatusReason></DescribeChangeSetResult></DescribeChangeSetResponse>`, id, tc.reason)
+					status := "FAILED"
+					if tc.success {
+						status = "CREATE_COMPLETE"
+					}
+					fmt.Fprintf(w, `<DescribeChangeSetResponse><DescribeChangeSetResult>%s<Status>%s</Status><StatusReason>%s</StatusReason></DescribeChangeSetResult></DescribeChangeSetResponse>`, id, status, tc.reason)
 				case "DescribeEvents":
 					calls++
 					if got := r.Form.Get("ChangeSetName"); got != "test-change-set-id" {
@@ -62,6 +69,9 @@ func TestCreateChangeSetValidationDetails(t *testing.T) {
 							t.Errorf("NextToken = %q", got)
 						}
 						events = tc.second
+						if tc.repeated {
+							token = "<NextToken>page-two</NextToken>"
+						}
 					}
 					if calls > 2 {
 						t.Error("unexpected extra page")
@@ -94,7 +104,11 @@ func TestCreateChangeSetValidationDetails(t *testing.T) {
 			}
 			name, err := cfn.CreateChangeSet(&cfn.ChangeSetContext{Template: template, StackName: "test-stack", ChangeSetName: "test-change-set"})
 			t.Logf("CreateChangeSet error:\n%v", err)
-			if name != "test-change-set" || err == nil || err.Error() != tc.want {
+			got := ""
+			if err != nil {
+				got = err.Error()
+			}
+			if name != "test-change-set" || got != tc.want || (tc.success && err != nil) {
 				t.Errorf("CreateChangeSet = (%q, %v), want (%q, %q)", name, err, "test-change-set", tc.want)
 			}
 			if calls != tc.calls {

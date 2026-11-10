@@ -291,6 +291,7 @@ func GetChangeSetEvents(changeSetId string) ([]types.OperationEvent, error) {
 	events := make([]types.OperationEvent, 0)
 
 	var token *string
+	seenTokens := make(map[string]bool)
 
 	for {
 		res, err := getClient().DescribeEvents(context.Background(), &cloudformation.DescribeEventsInput{
@@ -304,10 +305,14 @@ func GetChangeSetEvents(changeSetId string) ([]types.OperationEvent, error) {
 
 		events = append(events, res.OperationEvents...)
 
-		if res.NextToken == nil {
+		if ptr.ToString(res.NextToken) == "" {
 			break
 		}
 
+		if seenTokens[*res.NextToken] {
+			return events, fmt.Errorf("DescribeEvents returned a repeated pagination token")
+		}
+		seenTokens[*res.NextToken] = true
 		token = res.NextToken
 	}
 
@@ -424,7 +429,7 @@ func CreateChangeSet(ctx *ChangeSetContext) (string, error) {
 				if eventsErr != nil {
 					config.Debugf("could not get changeset events: %v", eventsErr)
 				} else if vErr := validationErrorFromEvents(events); vErr != nil {
-					return changeSetName, vErr
+					return changeSetName, fmt.Errorf("%s\n%w", ptr.ToString(res.StatusReason), vErr)
 				}
 			}
 			return changeSetName, errors.New(ptr.ToString(res.StatusReason))

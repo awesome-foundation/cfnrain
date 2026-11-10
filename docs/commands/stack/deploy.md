@@ -76,6 +76,6 @@ cfnrain deploy app.yaml app-dev --express
 
 ## When the change set fails
 
-If CloudFormation [Early Validation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/validate-stack-deployments.html) stops the change set, cfnrain gets the validation events with the `DescribeEvents` API. The error then shows each failed resource, the validation name and the reason.
+If CloudFormation [Early Validation](https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/validate-stack-deployments.html) stops the change set, cfnrain gets the validation events with the `DescribeEvents` API. The error keeps the original CloudFormation reason on its first line. It then shows each failed resource, the validation name and the reason.
 
 The identity that runs cfnrain needs the `cloudformation:DescribeEvents` permission for this. Without it, cfnrain shows the original CloudFormation message.
