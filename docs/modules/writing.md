@@ -8,6 +8,69 @@ A module looks like a template. It can have `Parameters`, `Resources`, `Conditio
 
 The parent sets the module's parameters with `Properties`. A property can be a string, a list or an object. Inside the module, `!Ref <Parameter>` and `${Parameter}` in a `!Sub` get the property value. If the parent does not set a property, cfnrain uses the parameter's `Default`.
 
+## Parameter text in `!Sub`
+
+When a module uses a parameter inside a one-argument `!Sub`, `pkg` inserts the parameter text into the substitution string. It does not escape `${...}` in that text.
+
+For example, save this module as `module.yaml`:
+
+```yaml
+Parameters:
+  Name:
+    Type: String
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+Outputs:
+  Name:
+    Value: !Sub '${Name}-x'
+```
+
+Save this parent template as `parent.yaml` in the same directory:
+
+```yaml
+Modules:
+  M:
+    Source: ./module.yaml
+    Properties:
+      Name: '${HOME}'
+Outputs:
+  Name:
+    Value: !GetAtt M.Name
+```
+
+`cfnrain pkg parent.yaml` produces:
+
+```yaml
+Resources:
+  MBucket:
+    Type: AWS::S3::Bucket
+
+Outputs:
+  Name:
+    Value: !Sub ${HOME}-x
+```
+
+CloudFormation treats `HOME` as a reference. Deployment fails if the template has no matching parameter or resource. If the template has a parameter or resource named `HOME`, CloudFormation silently uses its value.
+
+To pass the literal text `${HOME}` inside a `!Sub`, set the parent property to `Name: '${!HOME}'`. The packaged output becomes:
+
+```yaml
+Resources:
+  MBucket:
+    Type: AWS::S3::Bucket
+
+Outputs:
+  Name:
+    Value: !Sub ${!HOME}-x
+```
+
+Inside `!Sub`, CloudFormation resolves `${!HOME}` to the literal text `${HOME}`, so the output value is `${HOME}-x`. A module expression `!Ref Name` gets `${!HOME}` unchanged.
+
+For an EC2 launch template, use `Name: '\${!HOME}'` as the [AWS `Fn::Sub` reference](https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/intrinsic-function-reference-sub.html#intrinsic-function-reference-sub-parameters) requires.
+
+You can also pass a reference on purpose. With `Name: '${AWS::Region}'`, `pkg` produces `Value: !Sub ${AWS::Region}-x`. CloudFormation substitutes the deployment Region.
+
 ## Logical IDs
 
 cfnrain adds the module name in front of each logical ID. The resource `Bucket` in the module `Logs` becomes `LogsBucket`. cfnrain also updates the `Ref`, `GetAtt`, `Sub` and `DependsOn` references inside the module.
