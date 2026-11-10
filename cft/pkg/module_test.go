@@ -311,3 +311,13 @@ func TestSelectComputedModuleLists(t *testing.T) {
 func TestModuleInstanceAnchors(t *testing.T) {
 	runTest("module-instance-anchors", t)
 }
+
+func TestModuleMovedAnchors(t *testing.T) {
+	for _, name := range []string{
+		"directive", "outputs", "resources", "outputs-foreach", "resources-foreach",
+	} {
+		t.Run(name, func(t *testing.T) {
+			runTest("moved-anchor-"+name, t)
+		})
+	}
+}

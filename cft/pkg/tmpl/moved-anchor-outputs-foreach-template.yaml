@@ -1,0 +1,9 @@
+Modules:
+  M:
+    Source: moved-anchor-module.yaml
+    ForEach: [first, second]
+    Properties:
+      Name: &fs plain
+Outputs:
+  X:
+    Value: *fs

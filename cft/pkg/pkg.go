@@ -206,8 +206,18 @@ func Template(t *cft.Template, rootDir string, fs *embed.FS) (*cft.Template, err
 		}
 	}
 
-	// Resolve each alias against the last preceding anchor with that name.
-	// Modules can introduce the same anchor names more than once.
+	// Module expansion can move an anchor after its aliases. Keep the last
+	// definition as a fallback when no definition precedes an alias.
+	allAnchors := make(map[string]*yaml.Node)
+	visitor.NewVisitor(t.Node).Visit(func(v *visitor.Visitor) {
+		n := v.GetYamlNode()
+		if n.Anchor != "" {
+			allAnchors[n.Anchor] = n
+		}
+	})
+
+	// Prefer the last preceding definition so repeated module instances
+	// retain their own values when they use the same anchor names.
 	anchors := make(map[string]*yaml.Node)
 	visitor.NewVisitor(t.Node).Visit(func(v *visitor.Visitor) {
 		n := v.GetYamlNode()
@@ -218,11 +228,15 @@ func Template(t *cft.Template, rootDir string, fs *embed.FS) (*cft.Template, err
 		if n.Kind == yaml.AliasNode {
 			anchor, ok := anchors[n.Value]
 			if !ok {
+				anchor, ok = allAnchors[n.Value]
+			}
+			if !ok {
 				err = fmt.Errorf("cannot resolve YAML alias %q after packaging: its anchor is missing", n.Value)
 				v.Stop()
 				return
 			}
 			*n = *node.Clone(anchor)
+			n.Anchor = ""
 			v.SkipChildren()
 		}
 	})

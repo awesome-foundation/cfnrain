@@ -1,0 +1,9 @@
+Resources:
+  MTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: plain
+  Later:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: plain

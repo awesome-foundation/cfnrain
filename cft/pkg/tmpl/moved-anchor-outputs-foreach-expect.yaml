@@ -1,0 +1,12 @@
+Resources:
+  M0Topic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: plain
+  M1Topic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: plain
+Outputs:
+  X:
+    Value: plain

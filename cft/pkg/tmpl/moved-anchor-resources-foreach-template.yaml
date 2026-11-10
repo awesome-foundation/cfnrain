@@ -1,0 +1,11 @@
+Modules:
+  M:
+    Source: moved-anchor-module.yaml
+    ForEach: [first, second]
+    Properties:
+      Name: &fs plain
+Resources:
+  Later:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: *fs
