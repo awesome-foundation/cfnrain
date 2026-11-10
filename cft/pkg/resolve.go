@@ -51,6 +51,9 @@ func (module *Module) Resolve(n *yaml.Node) error {
 		switch vn.Content[0].Value {
 		case string(cft.Ref):
 			err = module.ResolveRef(vn)
+			// The replacement belongs to the parent scope.
+			// Do not resolve its references as module parameters.
+			v.SkipChildren()
 		case string(cft.Sub):
 			err = module.ResolveSub(vn)
 		case string(cft.GetAtt):

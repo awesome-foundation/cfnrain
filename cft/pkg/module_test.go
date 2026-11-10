@@ -343,3 +343,7 @@ func TestNestedMovedAnchors(t *testing.T) {
 		})
 	}
 }
+
+func TestParentParameterScope(t *testing.T) {
+	runTest("parent-param", t)
+}
