@@ -64,11 +64,11 @@ Outputs:
 	}
 }
 
-func TestQuotedStylesPreserveFunctionScalarTypes(t *testing.T) {
+func TestStylesPreserveFunctionScalarTypes(t *testing.T) {
 	oldStyle := format.NodeStyle
 	t.Cleanup(func() { format.NodeStyle = oldStyle })
-	for _, style := range []string{"singlequoted", "doublequoted", "quotescalars"} {
-		for _, argument := range []string{"!GetAZs ~", "!GetAZs null", "!Base64 true", "!Ref 1", "!Ref 1.5", "!Ref '1'", "!Base64 'true'", "!GetAZs 'null'", "!GetAZs ''", "!GetAtt Bucket.Arn"} {
+	for _, style := range []string{"", "tagged", "flow", "strict-booleans", "original", "singlequoted", "doublequoted", "quotescalars"} {
+		for _, argument := range []string{"!GetAZs ~", "!GetAZs null", "!Base64 true", "!Ref 1", "!Ref 1.5", "!Ref '1'", "!Ref '1.5'", "!Ref '~'", "!Ref 'false'", "!Ref '.inf'", "!Ref '2026-01-01'", "!Base64 'true'", "!GetAZs 'null'", "!GetAZs ''", "!GetAtt Bucket.Arn"} {
 			t.Run(style+"/"+argument, func(t *testing.T) {
 				format.NodeStyle = style
 				var first, second result

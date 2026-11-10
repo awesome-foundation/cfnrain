@@ -244,6 +244,16 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 		panic("invalid --node-style: " + NodeStyle)
 	}
 
+	// A function tag hides the argument's string type from the YAML encoder.
+	// Keep quotes when a plain argument would resolve to another scalar type.
+	if n.Kind == yaml.ScalarNode && scalarTag == "!!str" && n.Tag != "!!str" && n.Value != "" &&
+		n.Style&(yaml.DoubleQuotedStyle|yaml.SingleQuotedStyle|yaml.LiteralStyle|yaml.FoldedStyle) == 0 {
+		plain := yaml.Node{Kind: yaml.ScalarNode, Value: n.Value}
+		if plain.ShortTag() != "!!str" {
+			n.Style |= yaml.DoubleQuotedStyle
+		}
+	}
+
 	// yaml.v3 emits an explicit !!merge tag even for a plain merge key.
 	// Let the plain << spelling carry the tag implicitly instead.
 	if n.Kind == yaml.ScalarNode && n.Tag == "!!merge" && n.Value == "<<" && (n.Style == 0 || n.Style == yaml.FlowStyle) {
