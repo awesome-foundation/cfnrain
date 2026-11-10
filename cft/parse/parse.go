@@ -70,8 +70,8 @@ func String(input string) (*cft.Template, error) {
 	if err != nil {
 		return &cft.Template{}, fmt.Errorf("invalid YAML: %s", err)
 	}
-	// yaml.v3 can attach a comment after an empty null to the next node.
-	// Parse explicit nulls to attach their comments, then restore their empty values.
+	// yaml.v3 can attach a comment after an empty scalar to the next node.
+	// Parse explicit values to attach comments, then restore the empty values.
 	lines := strings.Split(input, "\n")
 	rewritten := make(map[int]bool)
 	index := 0
@@ -79,15 +79,28 @@ func String(input string) (*cft.Template, error) {
 	explicitNulls = func(n *yaml.Node) {
 		current := index
 		index++
-		if n.Kind == yaml.ScalarNode && n.Tag == "!!null" && n.Value == "" && n.Line > 0 && n.Line <= len(lines) {
+		if n.Kind == yaml.ScalarNode && (n.Tag == "!!null" || strings.HasPrefix(n.Tag, "!") && !strings.HasPrefix(n.Tag, "!!")) && n.Value == "" && n.Line > 0 && n.Line <= len(lines) {
 			line := []rune(lines[n.Line-1])
 			if n.Column > 0 && n.Column <= len(line) {
 				tail := string(line[n.Column-1:])
-				rest := strings.TrimSpace(strings.TrimPrefix(tail, "!!null"))
-				if strings.HasPrefix(rest, "#") {
-					// Use the node's suffix so a # in an earlier key stays intact.
-					pos := len(string(line[:n.Column-1])) + strings.Index(tail, "#")
-					lines[n.Line-1] = lines[n.Line-1][:pos] + "null " + lines[n.Line-1][pos:]
+				rest := strings.TrimLeft(tail, " \t")
+				// A node can start with a tag, an anchor, or both.
+				for strings.HasPrefix(rest, "!") || strings.HasPrefix(rest, "&") {
+					end := strings.IndexAny(rest, " \t")
+					if end < 0 {
+						break
+					}
+					rest = strings.TrimLeft(rest[end:], " \t")
+				}
+				comment := strings.TrimSpace(strings.TrimPrefix(rest, ","))
+				if strings.HasPrefix(comment, "#") {
+					// Insert before a flow separator, but after any tag and anchor.
+					pos := len(string(line[:n.Column-1])) + len(tail) - len(rest)
+					value := "null "
+					if n.Tag != "!!null" {
+						value = "\"\" "
+					}
+					lines[n.Line-1] = lines[n.Line-1][:pos] + value + lines[n.Line-1][pos:]
 					rewritten[current] = true
 				}
 			}
