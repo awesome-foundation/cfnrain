@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/awesome-foundation/cfnrain/cft"
-	"github.com/awesome-foundation/cfnrain/internal/node"
 	"gopkg.in/yaml.v3"
 )
 
@@ -54,6 +53,11 @@ var allTags = func() map[string]string {
 // NormalizeNode takes a *yaml.Node and convert tag-style names into map-style,
 // and converts other scalars into a canonical format
 func NormalizeNode(n *yaml.Node) error {
+	// The anchor target is normalized where it occurs in the document.
+	if n.Kind == yaml.AliasNode {
+		return nil
+	}
+
 	// Fix badly-parsed numbers
 	if n.ShortTag() == "!!float" && n.Value[0] == '0' {
 		n.Tag = "!!str"
@@ -67,7 +71,9 @@ func NormalizeNode(n *yaml.Node) error {
 	// Convert tag-style intrinsics into map-style
 	for tag, funcName := range allTags {
 		if n.ShortTag() == tag {
-			body := node.Clone(n)
+			// Keep child pointers so aliases still refer to the normalized anchors.
+			body := new(yaml.Node)
+			*body = *n
 
 			// Fix empty Fn values (should never be null)
 			if body.Kind == yaml.ScalarNode && body.Value == "" {
