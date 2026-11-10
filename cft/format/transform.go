@@ -165,6 +165,19 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 				formatted.LineComment = ""
 			}
 		}
+		if formatted.Style&yaml.FlowStyle == 0 && formatted.LineComment != "" && len(formatted.Content) > 0 &&
+			(formatted.Kind == yaml.SequenceNode || formatted.Kind == yaml.MappingNode) {
+			// Block collections cannot carry a line comment after their closing delimiter.
+			// Keep it above the property or inside the nested collection instead.
+			if n.Kind == yaml.MappingNode && i%2 == 1 {
+				key := n.Content[i-1]
+				key.HeadComment = joinComments([]string{key.HeadComment, formatted.LineComment})
+			} else {
+				first := formatted.Content[0]
+				first.HeadComment = joinComments([]string{formatted.LineComment, first.HeadComment})
+			}
+			formatted.LineComment = ""
+		}
 		if n.Kind == yaml.SequenceNode && formatted.Kind == yaml.SequenceNode && formatted.FootComment != "" && len(formatted.Content) > 0 {
 			// yaml.v3 delays a nested sequence's foot comment until the next item.
 			// Put it after the final argument so it stays inside this sequence.
