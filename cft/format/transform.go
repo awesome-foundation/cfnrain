@@ -218,7 +218,8 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 		// Use the argument's type before a short function tag replaces it.
 		if n.Kind == yaml.ScalarNode && scalarTag == "!!str" {
 			n.Style = yaml.DoubleQuotedStyle
-			if NodeStyle == "singlequoted" {
+			// Escape line breaks so the layout pass cannot change string content.
+			if NodeStyle == "singlequoted" && !strings.ContainsAny(n.Value, "\n\r\u0085\u2028\u2029") {
 				n.Style = yaml.SingleQuotedStyle
 			}
 		}
