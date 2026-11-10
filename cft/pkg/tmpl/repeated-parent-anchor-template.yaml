@@ -1,0 +1,19 @@
+Resources:
+  X:
+    Type: !Rain::Module repeated-parent-anchor-module.yaml
+    Properties:
+      Name: &name xx
+  XT:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: *name
+  Y:
+    Type: !Rain::Module repeated-parent-anchor-module.yaml
+    Properties:
+      Name: &name yy
+  YT:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: *name

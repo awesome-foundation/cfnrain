@@ -380,3 +380,7 @@ func TestRecursiveModuleDefaults(t *testing.T) {
 		}
 	}
 }
+
+func TestRepeatedParentAnchors(t *testing.T) {
+	runTest("repeated-parent-anchor", t)
+}

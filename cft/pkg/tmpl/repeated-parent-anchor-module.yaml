@@ -1,0 +1,9 @@
+Parameters:
+  Name:
+    Type: String
+Resources:
+  Parameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !Ref Name

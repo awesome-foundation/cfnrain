@@ -26,6 +26,49 @@ func scopeModuleAnchors(root *yaml.Node) {
 	})
 }
 
+// bindRepeatedAnchors preserves source bindings before module expansion moves nodes.
+// Recursive names retain the alias resolver's existing fallback behavior.
+func bindRepeatedAnchors(root *yaml.Node) {
+	counts := make(map[string]int)
+	recursive := make(map[string]bool)
+	active := make(map[string]int)
+	var collect func(*yaml.Node)
+	collect = func(n *yaml.Node) {
+		if n.Anchor != "" {
+			counts[n.Anchor]++
+			active[n.Anchor]++
+		}
+		if n.Kind == yaml.AliasNode && active[n.Value] > 0 {
+			recursive[n.Value] = true
+		}
+		for _, child := range n.Content {
+			collect(child)
+		}
+		if n.Anchor != "" {
+			active[n.Anchor]--
+		}
+	}
+	collect(root)
+
+	preceding := make(map[string]string)
+	visitor.NewVisitor(root).Visit(func(v *visitor.Visitor) {
+		n := v.GetYamlNode()
+		if name := n.Anchor; counts[name] > 1 && !recursive[name] {
+			unique := fmt.Sprintf("rain_binding_%d_%s", moduleAnchorScope.Add(1), name)
+			for counts[unique] != 0 {
+				unique = fmt.Sprintf("rain_binding_%d_%s", moduleAnchorScope.Add(1), name)
+			}
+			n.Anchor = unique
+			preceding[name] = unique
+		}
+		if n.Kind == yaml.AliasNode {
+			if name := preceding[n.Value]; name != "" {
+				n.Value = name
+			}
+		}
+	})
+}
+
 type aliasCycleError struct{ name string }
 
 func (e *aliasCycleError) Error() string {
