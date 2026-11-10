@@ -70,6 +70,10 @@ func (module *Module) ProcessOutputs() error {
 		// this output. Refs can't point to module outputs since you need
 		// ModuleName.OutputName
 		vf := func(v *visitor.Visitor) {
+			if err != nil {
+				v.Stop()
+				return
+			}
 			n := v.GetYamlNode()
 			if n.Kind != yaml.MappingNode || len(n.Content) != 2 {
 				return

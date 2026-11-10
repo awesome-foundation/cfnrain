@@ -24,6 +24,10 @@ func (module *Module) Resolve(n *yaml.Node) error {
 
 	var err error
 	vf := func(v *visitor.Visitor) {
+		if err != nil {
+			v.Stop()
+			return
+		}
 		vn := v.GetYamlNode()
 
 		if vn == module.Config.Node {

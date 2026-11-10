@@ -36,6 +36,7 @@ func TestModuleOutputResolutionErrors(t *testing.T) {
 		{"missing parameter", "!Ref Unset", "", "did not find Unset"},
 		{"join parameter", "!Sub '${P}'", "      P: !Join ['-', [a, b]]\n", "expected Sub reference"},
 		{"sequence Sub parameter", "!Sub '${P}-suffix'", "      P: !Sub ['${X}', {X: value}]\n", "module M parameter P uses sequence-form Sub"},
+		{"nested sequence Sub parameter", "!Join ['', [!Select [0, [!Sub '${P}-suffix']], !Ref Bucket]]", "      P: !Sub ['${X}', {X: value}]\n", "module M parameter P uses sequence-form Sub"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			dir := t.TempDir()
@@ -47,7 +48,7 @@ func TestModuleOutputResolutionErrors(t *testing.T) {
 			if tc.properties != "" {
 				base += "    Properties:\n" + tc.properties
 			}
-			for _, use := range []string{"!GetAtt M.Good", "!GetAtt M.Bad", "!Sub '${M.Bad}'"} {
+			for _, use := range []string{"!GetAtt M.Good", "!GetAtt M.Bad", "!Sub '${M.Bad}'", "!Join ['', [!Select [0, [!GetAtt M.Bad]], !Sub '${AWS::Region}']]"} {
 				t.Run(use, func(t *testing.T) {
 					parent, err := parse.String(base + "Outputs:\n  Result:\n    Value: " + use + "\n")
 					if err != nil {
