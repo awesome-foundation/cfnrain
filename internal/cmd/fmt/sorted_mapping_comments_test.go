@@ -34,7 +34,7 @@ func TestSortedMappingComments(t *testing.T) {
 					mapping := root.Content[i+1]
 					for j := 1; j < len(mapping.Content); j += 2 {
 						value := mapping.Content[j]
-						if value.Style&yaml.FlowStyle == 0 {
+						if style == "original" && value.Style&yaml.FlowStyle == 0 {
 							t.Errorf("mapping lost flow style:\n%s", output)
 						}
 					}
@@ -61,6 +61,34 @@ func TestSortedMappingDefaultStyle(t *testing.T) {
 	want := "Metadata:\n\n  # c\n  M:\n    a: 1\n\n  E: {} # d\n\nResources: {}\n"
 	if output != want {
 		t.Fatalf("output:\n%swant:\n%s", output, want)
+	}
+}
+
+func TestSortedMappingStyleCompatibility(t *testing.T) {
+	oldStyle := format.NodeStyle
+	t.Cleanup(func() { format.NodeStyle = oldStyle })
+	for _, style := range []string{"flow", "tagged"} {
+		for _, comments := range []bool{false, true} {
+			name := style + "/without comments"
+			line, rline := "", ""
+			if comments {
+				name = style + "/key comments"
+				line, rline = " # line", " # rline"
+			}
+			t.Run(name, func(t *testing.T) {
+				input := "Metadata:" + line + "\n  M:\n    a: 1\nResources:\n  R:" + rline + "\n    Type: AWS::SNS::Topic\n"
+				want := "Metadata:" + line + "\n  M:\n    a: 1\n\nResources:\n  R:" + rline + "\n    Type: AWS::SNS::Topic\n"
+				if style == "tagged" {
+					want = "!!str Metadata:" + line + "\n  !!str M:\n    !!str a: !!int 1\n\n!!str Resources:\n  !!str R:" + rline + "\n    !!str Type: !!str AWS::SNS::Topic\n"
+				}
+				output := checkSortedMappingFormat(t, input, style)
+				if output != want {
+					t.Fatalf("output differs from main:\n%swant:\n%s", output, want)
+				}
+				// Files formatted by main must also pass --verify unchanged.
+				checkSortedMappingFormat(t, want, style)
+			})
+		}
 	}
 }
 

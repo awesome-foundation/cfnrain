@@ -126,9 +126,13 @@ func orderNode(node *yaml.Node, order ordering) *yaml.Node {
 	}
 
 	// Build the output node
-	// Keep the style, comments, tag, and anchor when reordering content.
+	// Keep the comments when reordering content.
+	// Keep the tag and the anchor, or a short tag or an alias to it breaks.
 	out := *node
 	out.Content = nil
+	if NodeStyle != "original" {
+		out.Style = 0
+	}
 
 	done := make(map[string]bool)
 
@@ -147,6 +151,13 @@ func orderNode(node *yaml.Node, order ordering) *yaml.Node {
 			out.Content = append(out.Content, key)
 			out.Content = append(out.Content, nm.values[key.Value])
 		}
+	}
+
+	if out.Style&yaml.FlowStyle == 0 && out.LineComment != "" && len(out.Content) > 0 {
+		// Block mappings have no closing delimiter for a line comment.
+		first := out.Content[0]
+		first.HeadComment = joinComments([]string{out.LineComment, first.HeadComment})
+		out.LineComment = ""
 	}
 
 	return &out
