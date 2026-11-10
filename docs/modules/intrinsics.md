@@ -37,7 +37,7 @@ The packaged template:
 
 ## Fn::InsertFile
 
-`Fn::InsertFile <path>` inserts the contents of a file as a string. The path is relative to the template. Unlike [`!Rain::Embed`](../directives/embed.md), it keeps the whitespace at the end of the file.
+`Fn::InsertFile <path>` inserts the contents of a file as a string. The path is relative to the template. For module resources, see [File paths in module resources](index.md#file-paths-in-module-resources). Unlike [`!Rain::Embed`](../directives/embed.md), it keeps the whitespace at the end of the file.
 
 The template:
 

@@ -80,7 +80,7 @@ func (module *Module) ProcessOverrides(
 	for _, pl := range propLike {
 		_, plProps, _ := s11n.GetMapValue(resource, pl)
 		_, plOverrides, _ := s11n.GetMapValue(overrides, pl)
-		clonedProps := cloneAndReplaceProps(plProps, plOverrides, moduleParams)
+		clonedProps := cloneAndReplaceProps(plProps, plOverrides, moduleParams, module.ParentTemplate.Origins)
 		if clonedProps == nil {
 			// Was not present in the module or in the template, so skip it
 			continue
@@ -153,7 +153,7 @@ func (module *Module) ProcessOverrides(
 func cloneAndReplaceProps(
 	moduleProps *yaml.Node,
 	overrides *yaml.Node,
-	moduleParams *yaml.Node) *yaml.Node {
+	moduleParams *yaml.Node, origins ...node.Origins) *yaml.Node {
 
 	// Not all property-like attributes are required
 	if moduleProps == nil && overrides == nil {
@@ -164,7 +164,7 @@ func cloneAndReplaceProps(
 
 	if moduleProps != nil {
 		// Start by cloning the properties in the module
-		props = node.Clone(moduleProps)
+		props = node.Clone(moduleProps, origins...)
 	} else {
 		props = &yaml.Node{Kind: yaml.MappingNode, Content: make([]*yaml.Node, 0)}
 	}
@@ -194,8 +194,8 @@ func cloneAndReplaceProps(
 			// present in the parent template
 			for j, mprop := range props.Content {
 				if tprop.Value == mprop.Value && i%2 == 0 && j%2 == 0 {
-					clonedNode := node.Clone(overrides.Content[i+1])
-					merged := node.MergeNodes(props.Content[j+1], clonedNode)
+					clonedNode := node.Clone(overrides.Content[i+1], origins...)
+					merged := node.MergeNodes(props.Content[j+1], clonedNode, origins...)
 					props.Content[j+1] = merged
 
 					found = true
@@ -204,7 +204,7 @@ func cloneAndReplaceProps(
 
 			if !found && i%2 == 0 {
 				props.Content = append(props.Content, &yaml.Node{Kind: yaml.ScalarNode, Value: tprop.Value})
-				props.Content = append(props.Content, node.Clone(overrides.Content[i+1]))
+				props.Content = append(props.Content, node.Clone(overrides.Content[i+1], origins...))
 			}
 
 		}

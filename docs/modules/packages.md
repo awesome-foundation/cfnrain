@@ -83,6 +83,8 @@ Resources:
       Foo: foo
 ```
 
+The [module path rules](index.md#file-paths-in-module-resources) also apply to `!Rain::Module` and its source path.
+
 Without `--experimental`, packaging stops with `You must add the --experimental arg to use the !Rain::Module directive`. Use the `Modules` section for new templates.
 
 The `pkg` help text in Rain said that a `!Rain::Module` file must have a resource called `ModuleExtension` with `Metadata.Extends`. The code does not check for either of these.

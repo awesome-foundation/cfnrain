@@ -134,6 +134,13 @@ func (module *Module) CheckOutputGetAtt(s string, outputName string, outputVal a
 	if err != nil {
 		return nil, err
 	}
+	if module.OutputsNode != nil {
+		_, output, _ := s11n.GetMapValue(module.OutputsNode, outputName)
+		_, value, _ := s11n.GetMapValue(output, "Value")
+		if value != nil {
+			outputValue = node.Clone(value, module.ParentTemplate.Origins)
+		}
+	}
 	if len(tokens) != 2 {
 		return nil, nil
 	}
@@ -215,6 +222,7 @@ func (module *Module) OutputGetAtt(outputName string, outputVal any, n *yaml.Nod
 		return err
 	}
 	if o != nil {
+		module.ParentTemplate.Origins.Copy(n, o)
 		*n = *o
 	}
 	return nil

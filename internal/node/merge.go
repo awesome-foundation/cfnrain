@@ -9,7 +9,7 @@ import (
 // are replaced by what is in original. Lists, which are yaml Sequences, are merged
 // such that if the list contains a Mapping, and that Mapping has any identical keys,
 // they are replaced instead of appended.
-func MergeNodes(original *yaml.Node, override *yaml.Node) *yaml.Node {
+func MergeNodes(original *yaml.Node, override *yaml.Node, origins ...Origins) *yaml.Node {
 
 	retval := &yaml.Node{Kind: override.Kind, Content: make([]*yaml.Node, 0)}
 
@@ -24,7 +24,7 @@ func MergeNodes(original *yaml.Node, override *yaml.Node) *yaml.Node {
 
 	if override.Kind == yaml.SequenceNode {
 		// Use the recursive sequence merging function
-		retval = mergeSeq(original, override)
+		retval = mergeSeq(original, override, origins...)
 		return retval
 	}
 
@@ -40,7 +40,7 @@ func MergeNodes(original *yaml.Node, override *yaml.Node) *yaml.Node {
 				retval.Content = append(retval.Content,
 					MakeScalar(override.Content[i].Value))
 				retval.Content = append(retval.Content,
-					MergeNodes(original.Content[j+1], override.Content[i+1]))
+					MergeNodes(original.Content[j+1], override.Content[i+1], origins...))
 				found = true
 				break
 			}
@@ -50,7 +50,7 @@ func MergeNodes(original *yaml.Node, override *yaml.Node) *yaml.Node {
 			retval.Content = append(retval.Content,
 				MakeScalar(override.Content[i].Value))
 			retval.Content = append(retval.Content,
-				Clone(override.Content[i+1]))
+				Clone(override.Content[i+1], origins...))
 		}
 	}
 
@@ -67,7 +67,7 @@ func MergeNodes(original *yaml.Node, override *yaml.Node) *yaml.Node {
 			retval.Content = append(retval.Content,
 				MakeScalar(original.Content[j].Value))
 			retval.Content = append(retval.Content,
-				Clone(original.Content[j+1]))
+				Clone(original.Content[j+1], origins...))
 		}
 	}
 
@@ -75,18 +75,18 @@ func MergeNodes(original *yaml.Node, override *yaml.Node) *yaml.Node {
 }
 
 // mergeSeq handles merging of sequences that might be nested within mapping nodes
-func mergeSeq(original *yaml.Node, override *yaml.Node) *yaml.Node {
+func mergeSeq(original *yaml.Node, override *yaml.Node, origins ...Origins) *yaml.Node {
 	// If either node is nil, return the other one
 	if original == nil {
-		return Clone(override)
+		return Clone(override, origins...)
 	}
 	if override == nil {
-		return Clone(original)
+		return Clone(original, origins...)
 	}
 
 	// If nodes are not both sequences, return override
 	if original.Kind != yaml.SequenceNode || override.Kind != yaml.SequenceNode {
-		return Clone(override)
+		return Clone(override, origins...)
 	}
 
 	// Create result sequence
@@ -97,14 +97,14 @@ func mergeSeq(original *yaml.Node, override *yaml.Node) *yaml.Node {
 
 	// First add all items from original
 	for _, origItem := range original.Content {
-		result.Content = append(result.Content, Clone(origItem))
+		result.Content = append(result.Content, Clone(origItem, origins...))
 	}
 
 	// Then process override items
 	for _, overrideItem := range override.Content {
 		if overrideItem.Kind != yaml.MappingNode {
 			// For non-mapping nodes, just append
-			result.Content = append(result.Content, Clone(overrideItem))
+			result.Content = append(result.Content, Clone(overrideItem, origins...))
 			continue
 		}
 
@@ -118,7 +118,7 @@ func mergeSeq(original *yaml.Node, override *yaml.Node) *yaml.Node {
 			// Check if the mapping nodes have matching key-value pairs
 			if haveSameKeyValue(existingItem, overrideItem) {
 				// Found a match, merge them
-				result.Content[i] = MergeNodes(existingItem, overrideItem)
+				result.Content[i] = MergeNodes(existingItem, overrideItem, origins...)
 				matched = true
 				break
 			}
@@ -126,7 +126,7 @@ func mergeSeq(original *yaml.Node, override *yaml.Node) *yaml.Node {
 
 		// If no match found, append as new item
 		if !matched {
-			result.Content = append(result.Content, Clone(overrideItem))
+			result.Content = append(result.Content, Clone(overrideItem, origins...))
 		}
 	}
 

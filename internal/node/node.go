@@ -26,7 +26,7 @@ func (np *NodePair) String() string {
 }
 
 // Clone returns a copy of the provided node
-func Clone(node *yaml.Node) *yaml.Node {
+func Clone(node *yaml.Node, origins ...Origins) *yaml.Node {
 	if node == nil {
 		return nil
 	}
@@ -37,7 +37,7 @@ func Clone(node *yaml.Node) *yaml.Node {
 		Tag:         node.Tag,
 		Value:       node.Value,
 		Anchor:      node.Anchor,
-		Alias:       Clone(node.Alias),
+		Alias:       Clone(node.Alias, origins...),
 		Content:     make([]*yaml.Node, len(node.Content)),
 		HeadComment: node.HeadComment,
 		LineComment: node.LineComment,
@@ -47,9 +47,12 @@ func Clone(node *yaml.Node) *yaml.Node {
 	}
 
 	for i, child := range node.Content {
-		out.Content[i] = Clone(child)
+		out.Content[i] = Clone(child, origins...)
 	}
 
+	for _, source := range origins {
+		source.Copy(out, node)
+	}
 	return out
 }
 

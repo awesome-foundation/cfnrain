@@ -172,7 +172,7 @@ func processMaps(originalContent []*yaml.Node,
 				mapName = fmt.Sprintf("%s%s", moduleConfig.Name, key)
 			}
 
-			copiedNode := node.Clone(moduleConfig.Node)
+			copiedNode := node.Clone(moduleConfig.Node, t.Origins)
 			node.RemoveFromMap(copiedNode, ForEach)
 			copiedConfig, err := t.ParseModuleConfig(mapName, copiedNode)
 			if err != nil {

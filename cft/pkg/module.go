@@ -108,10 +108,10 @@ func processModulesSection(t *cft.Template, n *yaml.Node,
 		}
 		moduleConfig.ParentRootDir = rootDir
 
-		baseUri := ""
+		baseUri := t.Origins.BaseURI(sourceValue(content[i+1]), "")
 		uri := moduleConfig.Source
 
-		moduleContent, err := getModuleContent(rootDir, t, fs, baseUri, uri)
+		moduleContent, err := getModuleContent(t.Origins.Directory(sourceValue(content[i+1]), rootDir), t, fs, baseUri, uri)
 		if err != nil {
 			return err
 		}
@@ -121,6 +121,8 @@ func processModulesSection(t *cft.Template, n *yaml.Node,
 		if err != nil {
 			return err
 		}
+
+		t.Origins.MarkModule(parsed.Node, moduleContent.NewRootDir, moduleContent.BaseUri)
 
 		// Transform the parsed module content
 		outputNode := node.MakeMapping()
@@ -207,12 +209,9 @@ func processModule(
 		return err
 	}
 
-	moduleAsTemplate := &cft.Template{
-		Node: &yaml.Node{
-			Kind:    yaml.DocumentNode,
-			Content: []*yaml.Node{moduleNode},
-		},
-	}
+	moduleAsTemplate := parsedModule.AsTemplate
+	moduleAsTemplate.Origins = t.Origins
+	t.Origins.Mark(moduleNode, parsedModule.RootDir)
 
 	transforms, err := moduleAsTemplate.GetSection(cft.Transform)
 	if err == nil {
@@ -279,7 +278,7 @@ func processModule(
 		fileRootDir = parsedModule.RootDir
 	}
 
-	err = ExtraIntrinsics(t.Node, fileRootDir)
+	err = ExtraIntrinsics(t.Node, fileRootDir, t.Origins)
 	if err != nil {
 		return err
 	}
@@ -292,7 +291,7 @@ func processModule(
 	return nil
 }
 
-func ExtraIntrinsics(n *yaml.Node, basePath string) error {
+func ExtraIntrinsics(n *yaml.Node, basePath string, origins ...node.Origins) error {
 
 	var err error
 
@@ -301,7 +300,7 @@ func ExtraIntrinsics(n *yaml.Node, basePath string) error {
 		return err
 	}
 
-	err = FnMerge(n)
+	err = FnMerge(n, origins...)
 	if err != nil {
 		return err
 	}
@@ -311,7 +310,7 @@ func ExtraIntrinsics(n *yaml.Node, basePath string) error {
 		return err
 	}
 
-	err = FnInsertFile(n, basePath)
+	err = FnInsertFile(n, basePath, origins...)
 	if err != nil {
 		return err
 	}
@@ -374,7 +373,7 @@ func (module *Module) ProcessResources(outputNode *yaml.Node) error {
 		nameNode := node.Clone(module.ResourcesNode.Content[i-1])
 		nameNode.Value = rename(module.Config.Name, nameNode.Value)
 		outputNode.Content = append(outputNode.Content, nameNode)
-		clonedResource := node.Clone(moduleResource)
+		clonedResource := node.Clone(moduleResource, module.ParentTemplate.Origins)
 
 		err := module.ProcessOverrides(name, moduleResource, clonedResource)
 		if err != nil {
@@ -390,16 +389,7 @@ func (module *Module) ProcessResources(outputNode *yaml.Node) error {
 			return fmt.Errorf("failed to resolve refs: %v", err)
 		}
 
-		fileRootDir := ""
-		if module.ParentModule != nil {
-			fileRootDir = module.ParentModule.Parsed.RootDir
-		} else {
-			fileRootDir = module.Config.ParentRootDir
-		}
-		if fileRootDir == "" {
-			fileRootDir = module.Parsed.RootDir
-		}
-		err = ExtraIntrinsics(clonedResource, fileRootDir)
+		err = ExtraIntrinsics(clonedResource, module.Parsed.RootDir, module.ParentTemplate.Origins)
 		if err != nil {
 			return err
 		}
@@ -531,39 +521,13 @@ func module(ctx *directiveContext) (bool, error) {
 	}
 
 	content := moduleContent.Content
-	baseUri := moduleContent.BaseUri
 
-	parsed, err := parseModule(content, ctx.rootDir, ctx.fs)
+	parsed, err := parseModule(content, moduleContent.NewRootDir, ctx.fs)
 	if err != nil {
 		return false, err
 	}
 	moduleNode := parsed.Node
-	moduleAsTemplate := parsed.AsTemplate
-
-	// Figure out parent nodes to handle nested modules
-	var newParent node.NodePair
-	if parent.Parent != nil && parent.Parent.Value != nil {
-		newParent = node.GetParent(n, parent.Parent.Value, nil)
-		newParent.Parent = &parent
-	}
-
-	// This needs to happen before recursing, since sub-modules need resolved constants in the parent
-	err = processRainSection(moduleAsTemplate)
-	if err != nil {
-		return false, err
-	}
-
-	_, err = transform(&transformContext{
-		nodeToTransform: moduleNode,
-		rootDir:         moduleContent.NewRootDir,
-		t:               moduleAsTemplate,
-		parent:          &newParent,
-		fs:              ctx.fs,
-		baseUri:         baseUri,
-	})
-	if err != nil {
-		return false, err
-	}
+	t.Origins.MarkModule(moduleNode, moduleContent.NewRootDir, moduleContent.BaseUri)
 
 	// Create a new node to represent the parsed module
 	var outputNode yaml.Node
@@ -631,7 +595,7 @@ func processAddedSections(
 			return err
 		}
 
-		err = FnInsertFile(n, rootDir)
+		err = FnInsertFile(n, rootDir, t.Origins)
 		if err != nil {
 			return err
 		}
@@ -639,4 +603,10 @@ func processAddedSections(
 	}
 
 	return nil
+}
+
+// sourceValue returns the Source value without discarding its origin.
+func sourceValue(config *yaml.Node) *yaml.Node {
+	_, source, _ := s11n.GetMapValue(config, Source)
+	return source
 }
