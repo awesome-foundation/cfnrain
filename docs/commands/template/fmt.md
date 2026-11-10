@@ -49,6 +49,8 @@ YAML output preserves merge keys (`<<: *anchor`). JSON output rejects merge keys
 
 The `singlequoted`, `doublequoted`, and `quotescalars` node styles quote strings. They also quote string keys such as `Integer`. Numbers, booleans, and nulls stay plain and keep their types. Strings such as `'0'`, `'1.0'`, and `'true'` stay quoted strings. The `singlequoted` style uses double quotes for strings with line breaks to preserve their exact text. The `quotescalars` style changes only scalars. Lists and mappings keep the flow or block style that the other formatting rules choose.
 
+The `flow` node style uses flow mappings even when `fmt` sorts their keys. The `quotescalars` style preserves flow mappings during sorting.
+
 The `literal` and `folded` node styles apply block formatting only to strings. Numbers, booleans, and nulls keep their types.
 
 The `folded` style uses a literal block when folded output changes a string's value. If literal output also changes the value, it uses double quotes.

@@ -144,8 +144,15 @@ func orderNode(node *yaml.Node, order ordering) *yaml.Node {
 	// Keep the tag and the anchor, or a short tag or an alias to it breaks.
 	out := *node
 	out.Content = nil
-	if NodeStyle != "original" {
+	if NodeStyle != "original" && NodeStyle != "flow" && NodeStyle != "quotescalars" {
 		out.Style = 0
+	}
+
+	if (NodeStyle == "flow" || NodeStyle == "quotescalars") && out.Style&yaml.FlowStyle != 0 {
+		for _, key := range nm.keys {
+			key.HeadComment = joinComments([]string{key.HeadComment, key.LineComment})
+			key.LineComment = ""
+		}
 	}
 
 	done := make(map[string]bool)
