@@ -321,3 +321,25 @@ func TestModuleMovedAnchors(t *testing.T) {
 		})
 	}
 }
+
+func TestNestedMovedAnchors(t *testing.T) {
+	for _, name := range []string{"nestedMv", "nestedMv-single", "movednested-mapping", "movednested-sequence"} {
+		t.Run(name, func(t *testing.T) {
+			runTest(name, t)
+			packaged, err := pkg.File("./tmpl/" + name + "-template.yaml")
+			if err != nil {
+				t.Fatal(err)
+			}
+			var check func(*yaml.Node)
+			check = func(n *yaml.Node) {
+				if n.Anchor != "" || n.Kind == yaml.AliasNode {
+					t.Errorf("packaged output retains anchor %q or alias %q", n.Anchor, n.Value)
+				}
+				for _, child := range n.Content {
+					check(child)
+				}
+			}
+			check(packaged.Node)
+		})
+	}
+}

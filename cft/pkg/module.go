@@ -495,6 +495,8 @@ func parseModule(content []byte, rootDir string, fs *embed.FS) (*ParsedModule, e
 		return nil, err
 	}
 
+	scopeModuleAnchors(&moduleNode)
+
 	// Treat the module as a template
 	moduleAsTemplate := cft.Template{Node: &moduleNode}
 

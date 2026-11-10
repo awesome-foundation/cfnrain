@@ -1,0 +1,10 @@
+Resources:
+  M:
+    Type: !Rain::Module moved-anchor-module.yaml
+    Properties:
+      Name: &tn {Fn::Join: ["-", [&in x, *in]]}
+  Later:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: *tn
+      DisplayName: *in

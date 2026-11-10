@@ -134,3 +134,43 @@ func TestFoldedInnerAnchorError(t *testing.T) {
 		t.Fatalf("expected an error naming the removed inner anchor t, got %v", err)
 	}
 }
+
+func TestPackagedAliasCycles(t *testing.T) {
+	for _, tc := range []struct{ name, input, want string }{
+		{"later safe definition", "Metadata: {cyclic: &a [*a], fallback: &a [safe]}", "Metadata: {cyclic: [[safe]], fallback: [safe]}"},
+		{"previous safe definition", "Metadata: {previous: &a [safe], cyclic: &a [*a]}", "Metadata: {previous: [safe], cyclic: [[safe]]}"},
+		{"self cycle", "Metadata: {cyclic: &a [*a]}", ""},
+		{"nested cycle", "Metadata: {cyclic: &a {child: &b [*a]}}", ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "cycle.yaml")
+			if err := os.WriteFile(path, []byte(tc.input), 0600); err != nil {
+				t.Fatal(err)
+			}
+			got, err := File(path)
+			if tc.want == "" {
+				if err == nil || !strings.Contains(err.Error(), `cannot resolve YAML alias "a" after packaging: its anchor is recursive`) {
+					t.Fatalf("expected an error naming recursive anchor a, got %v", err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			actual, err := yaml.Marshal(got.Node)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var actualValue, expectedValue any
+			if err := yaml.Unmarshal(actual, &actualValue); err != nil {
+				t.Fatal(err)
+			}
+			if err := yaml.Unmarshal([]byte(tc.want), &expectedValue); err != nil {
+				t.Fatal(err)
+			}
+			if diff := cmp.Diff(expectedValue, actualValue); diff != "" {
+				t.Fatal(diff)
+			}
+		})
+	}
+}

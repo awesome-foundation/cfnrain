@@ -1,0 +1,12 @@
+Parameters:
+  Pn:
+    Type: String
+Resources:
+  Inner:
+    Type: !Rain::Module nestedMv-inner.yaml
+    Properties:
+      Name: &tn !Ref Pn
+  T:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: *tn

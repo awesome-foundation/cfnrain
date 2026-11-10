@@ -1,0 +1,10 @@
+Resources:
+  MTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: [x, x]
+  Later:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: [x, x]
+      DisplayName: x
