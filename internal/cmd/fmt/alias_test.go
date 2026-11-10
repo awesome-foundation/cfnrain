@@ -1,6 +1,7 @@
 package fmt
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/awesome-foundation/cfnrain/cft/parse"
@@ -44,6 +45,9 @@ func TestFormatAnchoredFunctionAlias(t *testing.T) {
 					}
 					if d := cmp.Diff(want.Map(), got.Map()); d != "" {
 						t.Fatalf("function alias changed (-want +got):\n%s", d)
+					}
+					if mode == "yaml" && (!strings.Contains(res.output, "&a") || !strings.Contains(res.output, "*a")) {
+						t.Fatalf("YAML output lost the anchor or alias:\n%s", res.output)
 					}
 				})
 			}
