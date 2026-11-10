@@ -32,9 +32,16 @@ func TestDeprecationWarnings(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			oldRun := tc.command.Run
 			defer func() { tc.command.Run = oldRun }()
+			if flag := tc.command.Flags().Lookup("experimental"); flag != nil {
+				oldValue, oldChanged := flag.Value.String(), flag.Changed
+				t.Cleanup(func() {
+					if err := flag.Value.Set(oldValue); err != nil {
+						t.Error(err)
+					}
+					flag.Changed = oldChanged
+				})
+			}
 			defer func() {
-				forecast.Experimental = false
-				cc.Experimental = false
 				Cmd.SetOut(nil)
 				Cmd.SetErr(nil)
 				Cmd.SetArgs(nil)
@@ -82,19 +89,29 @@ func TestDeprecationWarnings(t *testing.T) {
 
 func TestDeprecationWarningRequiresExperimental(t *testing.T) {
 	for _, c := range []*cobra.Command{forecast.Cmd, cc.CCStateCmd} {
-		var stderr bytes.Buffer
-		c.SetErr(&stderr)
-		defer c.SetErr(nil)
-		if err := c.Flags().Set("experimental", "false"); err != nil {
-			t.Fatal(err)
-		}
-		if c == forecast.Cmd {
-			c.PreRun(c, nil)
-		} else {
-			cc.Cmd.PersistentPreRun(c, nil)
-		}
-		if stderr.Len() != 0 {
-			t.Fatalf("stderr without --experimental = %q", stderr.String())
-		}
+		t.Run(c.CommandPath(), func(t *testing.T) {
+			flag := c.Flags().Lookup("experimental")
+			oldValue, oldChanged := flag.Value.String(), flag.Changed
+			t.Cleanup(func() {
+				c.SetErr(nil)
+				if err := flag.Value.Set(oldValue); err != nil {
+					t.Error(err)
+				}
+				flag.Changed = oldChanged
+			})
+			var stderr bytes.Buffer
+			c.SetErr(&stderr)
+			if err := c.Flags().Set("experimental", "false"); err != nil {
+				t.Fatal(err)
+			}
+			if c == forecast.Cmd {
+				c.PreRun(c, nil)
+			} else {
+				cc.Cmd.PersistentPreRun(c, nil)
+			}
+			if stderr.Len() != 0 {
+				t.Fatalf("stderr without --experimental = %q", stderr.String())
+			}
+		})
 	}
 }
