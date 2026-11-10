@@ -1,0 +1,22 @@
+Modules:
+  M:
+    Source: ./sequence-scope-module.yaml
+    Properties:
+      Literal: '${HOME}'
+Outputs:
+  Collision:
+    Value: !GetAtt M.Collision
+  NestedCollision:
+    Value: !Sub '${M.Collision}-outer'
+  Literal:
+    Value: !GetAtt M.Literal
+  NestedLiteral:
+    Value: !Sub '${M.Literal}-outer'
+  LiteralMap:
+    Value: !GetAtt M.LiteralMap
+  ScalarCollision:
+    Value: !Sub ['${M.Sc}-${M.Sc}-${MBucket}', {MBucket: parent, RainOutputM_Sc: reserved}]
+  RefCollision:
+    Value: !Sub ['${M.Pl}-${MBucket}', {MBucket: parent}]
+  AttributeCollision:
+    Value: !Sub ['${M.Attr}-${MBucket.Arn}', {'MBucket.Arn': parent}]

@@ -280,28 +280,29 @@ func (module *Module) OutputSub(outputName string, outputVal any, n *yaml.Node) 
 				sub += "${" + word.W + "}"
 			} else {
 				if outputValue.Kind == yaml.MappingNode {
-					// Prepend the module name
 					v := outputValue.Content[1]
+					replacement := ""
+					bind := false
 					switch outputValue.Content[0].Value {
 					case string(cft.Sub):
-						if v.Kind == yaml.SequenceNode {
-							if boundName == "" {
-								boundName = moduleOutputVariable(module.Config.Name, outputName, n, outputValue, variables)
-								if variables == nil {
-									variables = node.MakeMapping()
-								}
-								variables.Content = append(variables.Content, node.MakeScalar(boundName), outputValue)
-							}
-							sub += "${" + boundName + "}"
-						} else {
-							sub += v.Value
-						}
+						bind = v.Kind == yaml.SequenceNode
+						replacement = v.Value
 					case string(cft.GetAtt):
-						ss := node.SequenceToStrings(v)
-						joined := strings.Join(ss, ".")
-						sub += "${" + joined + "}"
+						replacement = "${" + strings.Join(node.SequenceToStrings(v), ".") + "}"
 					case string(cft.Ref):
-						sub += "${" + v.Value + "}"
+						replacement = "${" + v.Value + "}"
+					}
+					if bind || subMapCaptures(replacement, variables) {
+						if boundName == "" {
+							boundName = subVariableName("RainOutput"+module.Config.Name+"_"+outputName, n, outputValue, variables)
+							if variables == nil {
+								variables = node.MakeMapping()
+							}
+							variables.Content = append(variables.Content, node.MakeScalar(boundName), outputValue)
+						}
+						sub += "${" + boundName + "}"
+					} else {
+						sub += replacement
 					}
 				} else if outputValue.Kind == yaml.ScalarNode {
 					sub += outputValue.Value
@@ -332,14 +333,27 @@ func (module *Module) OutputSub(outputName string, outputVal any, n *yaml.Node) 
 	return nil
 }
 
+// Check whether the destination map would capture an inserted reference.
+func subMapCaptures(s string, variables *yaml.Node) bool {
+	if variables == nil {
+		return false
+	}
+	for i := 0; i < len(variables.Content); i += 2 {
+		if strings.Contains(s, "${"+variables.Content[i].Value+"}") {
+			return true
+		}
+	}
+	return false
+}
+
 // Reserve names from both scopes, including references without explicit map entries.
-func moduleOutputVariable(moduleName, outputName string, nodes ...*yaml.Node) string {
-	base := "RainOutput" + strings.Map(func(r rune) rune {
+func subVariableName(base string, nodes ...*yaml.Node) string {
+	base = strings.Map(func(r rune) rune {
 		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' {
 			return r
 		}
 		return '_'
-	}, moduleName+"_"+outputName)
+	}, base)
 	for suffix := 0; ; suffix++ {
 		name := base
 		if suffix > 0 {

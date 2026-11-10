@@ -216,6 +216,7 @@ func (module *Module) ResolveSub(n *yaml.Node) error {
 	}
 
 	sub := ""
+	bindings := make(map[string]string)
 	for _, word := range words {
 		switch word.T {
 		case parse.STR:
@@ -269,6 +270,16 @@ func (module *Module) ResolveSub(n *yaml.Node) error {
 				}
 			default:
 				return fmt.Errorf("invalid Sub reference Kind: %s", word.W)
+			}
+
+			if subMapCaptures(resolved, variables) {
+				name := bindings[word.W]
+				if name == "" {
+					name = subVariableName("RainValue"+module.Config.Name+"_"+word.W, n, fakeNode, variables)
+					variables.Content = append(variables.Content, node.MakeScalar(name), fakeNode)
+					bindings[word.W] = name
+				}
+				resolved = "${" + name + "}"
 			}
 
 			// If we didn't change the word, it is either an intrinsic like
