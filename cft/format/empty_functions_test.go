@@ -63,7 +63,7 @@ func TestEmptyFunctionArgumentsJSON(t *testing.T) {
 		{"!Sub", "Fn::Sub"},
 		{"!Base64", "Fn::Base64"},
 	} {
-		for _, suffix := range []string{" ''", ""} {
+		for _, suffix := range []string{" ''", "", " ~", " null"} {
 			t.Run(tc.tag+suffix, func(t *testing.T) {
 				template, err := parse.String("Outputs:\n  Result:\n    Value: " + tc.tag + suffix + "\n")
 				if err != nil {
@@ -74,8 +74,12 @@ func TestEmptyFunctionArgumentsJSON(t *testing.T) {
 				if err := json.Unmarshal([]byte(output), &got); err != nil {
 					t.Fatal(err)
 				}
+				var argument any = ""
+				if suffix == " ~" || suffix == " null" {
+					argument = nil
+				}
 				want := map[string]any{"Outputs": map[string]any{"Result": map[string]any{
-					"Value": map[string]any{tc.key: ""},
+					"Value": map[string]any{tc.key: argument},
 				}}}
 				if d := cmp.Diff(want, got); d != "" {
 					t.Errorf("JSON mismatch (-want +got):\n%s", d)

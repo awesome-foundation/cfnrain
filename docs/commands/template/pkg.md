@@ -8,6 +8,8 @@ cfnrain pkg app.yaml -o app.packaged.yaml
 
 `deploy` and `forecast` package the template too, so you only need `pkg` to see or keep the packaged template. Run linters such as `cfn-lint` on the packaged template, because they do not know the cfnrain directives.
 
+For functions whose short form `fmt` [preserves only from the input](fmt.md), `pkg` writes the long form. An empty argument stays a string: bare `!Contains` becomes `Fn::Contains: ""`.
+
 | Flag | What it does |
 |------|--------------|
 | `-o`, `--output` | Write the result to a file |
