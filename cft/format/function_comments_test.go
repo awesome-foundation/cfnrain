@@ -239,3 +239,25 @@ func checkCommentRoundTrip(t *testing.T, template *cft.Template, actual string) 
 		t.Errorf("second format: %s", d)
 	}
 }
+
+func TestScalarFunctionLineCommentsInLists(t *testing.T) {
+	for _, tt := range []struct{ name, input, expected string }{
+		{"empty GetAZs", `Fn::GetAZs: "" # c`, `!GetAZs "" # c`},
+		{"Base64", "Fn::Base64: x # c", "!Base64 x # c"},
+		{"Ref", "!Ref AWS::Region # c", "!Ref AWS::Region # c"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			input := "Outputs:\n  Example:\n    Value:\n      - " + tt.input + "\n      - next\n"
+			expected := "Outputs:\n  Example:\n    Value:\n      - " + tt.expected + "\n      - next\n"
+			template, err := parse.String(input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			actual := format.String(template, format.Options{})
+			if d := cmp.Diff(expected, actual); d != "" {
+				t.Errorf("first format: %s", d)
+			}
+			checkCommentRoundTrip(t, template, actual)
+		})
+	}
+}
