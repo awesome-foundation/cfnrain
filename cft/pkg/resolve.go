@@ -176,8 +176,15 @@ func (module *Module) resolveParam(params *yaml.Node, n *yaml.Node, parentProps 
 				}
 			}
 
-			// If we didn't find a parent template prop or a default, fail
+			// An omitted value can refer to a parameter declared by the parent.
 			if parentVal == nil {
+				if module.ParentTemplate != nil {
+					parentParams, _ := module.ParentTemplate.GetSection(cft.Parameters)
+					_, parentParam, _ := s11n.GetMapValue(parentParams, prop.Value)
+					if parentParam != nil {
+						return true, nil
+					}
+				}
 				return false, fmt.Errorf("did not find %v in parent template Properties",
 					prop.Value)
 			}

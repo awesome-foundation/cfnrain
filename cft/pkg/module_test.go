@@ -356,15 +356,8 @@ func TestNestedMovedAnchors(t *testing.T) {
 }
 
 func TestParentParameterScope(t *testing.T) {
-	for _, name := range []string{"parent-param", "parent-param-default", "parent-param-nested"} {
+	for _, name := range []string{"parent-param", "parent-param-default", "parent-param-nested", "parent-param-missing"} {
 		t.Run(name, func(t *testing.T) { runTest(name, t) })
-	}
-}
-
-func TestMissingModuleParameterDoesNotUseParentImplicitly(t *testing.T) {
-	_, err := pkg.File("./tmpl/parent-param-missing-template.yaml")
-	if err == nil || !strings.Contains(err.Error(), "did not find Missing in parent template Properties") {
-		t.Fatalf("expected missing module parameter error, got %v", err)
 	}
 }
 

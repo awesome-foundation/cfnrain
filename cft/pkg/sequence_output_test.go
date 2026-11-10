@@ -33,8 +33,6 @@ func TestModuleOutputResolutionErrors(t *testing.T) {
 	for _, tc := range []struct {
 		name, value, properties, want string
 	}{
-		{"missing parameter", "!Ref Unset", "", "did not find Unset"},
-		{"missing Sub parameter", "!Sub '${Unset}-suffix'", "", "did not find Unset"},
 		{"join parameter", "!Sub '${P}'", "      P: !Join ['-', [a, b]]\n", "expected Sub reference"},
 		{"sequence Sub parameter", "!Sub '${P}-suffix'", "      P: !Sub ['${X}', {X: value}]\n", "module M parameter P uses sequence-form Sub"},
 		{"nested sequence Sub parameter", "!Join ['', [!Select [0, [!Sub '${P}-suffix']], !Ref Bucket]]", "      P: !Sub ['${X}', {X: value}]\n", "module M parameter P uses sequence-form Sub"},
@@ -96,5 +94,66 @@ func TestMalformedParentSubLocation(t *testing.T) {
 	err := module.OutputSub("Out", nil, doc.Content[0])
 	if err == nil || !strings.Contains(err.Error(), "line 1, column 10") || strings.Contains(err.Error(), "M.Out") {
 		t.Fatalf("expected location of malformed Sub without unrelated output name, got %v", err)
+	}
+}
+
+func TestMissingModuleParameterParentScope(t *testing.T) {
+	for _, value := range []string{"!Ref Unset", "!Sub '${Unset}-suffix'", "!Sub ['${Unset}-suffix', {}]"} {
+		for _, parent := range []struct {
+			name, declarations string
+			fallback           bool
+		}{
+			{"parameter", "Parameters:\n  Unset:\n    Type: String\n", true},
+			{"absent", "", false},
+			{"resource", "Resources:\n  Unset:\n    Type: AWS::SNS::Topic\n", false},
+		} {
+			for _, use := range []string{"resource", "GetAtt", "Sub", "unused"} {
+				t.Run(value+"/"+parent.name+"/"+use, func(t *testing.T) {
+					dir := t.TempDir()
+					module := "Parameters:\n  Unset:\n    Type: String\n"
+					if use == "resource" {
+						module += "Resources:\n  Example:\n    Type: Custom::Example\n    Properties:\n      Value: " + value + "\n"
+					} else {
+						module += "Resources:\n  Example:\n    Type: Custom::Example\nOutputs:\n  Out:\n    Value: " + value + "\n"
+					}
+					if err := os.WriteFile(filepath.Join(dir, "module.yaml"), []byte(module), 0600); err != nil {
+						t.Fatal(err)
+					}
+					input := parent.declarations + "Modules:\n  M:\n    Source: ./module.yaml\n"
+					if use == "GetAtt" {
+						input += "Outputs:\n  Result:\n    Value: !GetAtt M.Out\n"
+					} else if use == "Sub" {
+						input += "Outputs:\n  Result:\n    Value: !Sub '${M.Out}-outer'\n"
+					}
+					tmpl, err := parse.String(input)
+					if err != nil {
+						t.Fatal(err)
+					}
+					got, err := pkg.Template(tmpl, dir, nil)
+					if !parent.fallback && use != "unused" {
+						if err == nil || !strings.Contains(err.Error(), "did not find Unset in parent template Properties") {
+							t.Fatalf("expected missing parameter error, got %v", err)
+						}
+						if use != "resource" && !strings.Contains(err.Error(), "module output M.Out") {
+							t.Fatalf("expected output name in error, got %v", err)
+						}
+						return
+					}
+					if err != nil {
+						t.Fatal(err)
+					}
+					if use != "unused" {
+						output := format.String(got, format.Options{})
+						want := "${Unset}"
+						if value == "!Ref Unset" && use != "Sub" {
+							want = "!Ref Unset"
+						}
+						if !strings.Contains(output, want) || strings.Contains(output, "MUnset") {
+							t.Fatalf("expected reference to parent parameter %q, got:\n%s", want, output)
+						}
+					}
+				})
+			}
+		}
 	}
 }
