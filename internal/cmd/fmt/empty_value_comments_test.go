@@ -1,11 +1,13 @@
 package fmt
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/awesome-foundation/cfnrain/cft/format"
 	"github.com/awesome-foundation/cfnrain/cft/parse"
@@ -107,7 +109,9 @@ func TestEmptyValueComments(t *testing.T) {
 				if err := os.WriteFile(filename, []byte(first.output), 0600); err != nil {
 					t.Fatal(err)
 				}
-				cmd := exec.Command(os.Args[0], "-test.run=^TestNullVerifyHelper$", "--", "--node-style", style, "--verify", filename)
+				ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+				defer cancel()
+				cmd := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestNullVerifyHelper$", "--", "--node-style", style, "--verify", filename)
 				cmd.Env = append(os.Environ(), "CFNRAIN_NULL_VERIFY_HELPER=1")
 				if output, err := cmd.CombinedOutput(); err != nil {
 					t.Fatalf("fmt --verify: %v\n%s", err, output)
