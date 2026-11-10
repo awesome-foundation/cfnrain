@@ -1,0 +1,25 @@
+Resources:
+  XT:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: xx
+
+  YT:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: yy
+
+  XParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: xx
+
+  YParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: yy
+

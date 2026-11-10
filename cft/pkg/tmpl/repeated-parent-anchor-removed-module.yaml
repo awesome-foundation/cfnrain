@@ -1,0 +1,15 @@
+Parameters:
+  Name:
+    Type: String
+    Default: &a xx
+Resources:
+  First:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: *a
+  Second:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: &a xx

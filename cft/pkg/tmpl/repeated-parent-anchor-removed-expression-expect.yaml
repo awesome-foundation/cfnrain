@@ -1,0 +1,16 @@
+Resources:
+  XFirst:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: prefix-xx
+  XSecond:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: yy
+  XThird:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: zz

@@ -497,6 +497,7 @@ func parseModule(content []byte, rootDir string, fs *embed.FS) (*ParsedModule, e
 		return nil, err
 	}
 
+	bindRepeatedAnchors(&moduleNode)
 	scopeModuleAnchors(&moduleNode)
 
 	// Treat the module as a template

@@ -380,3 +380,16 @@ func TestRecursiveModuleDefaults(t *testing.T) {
 		}
 	}
 }
+
+func TestRepeatedParentAnchors(t *testing.T) {
+	for _, name := range []string{
+		"repeated-parent-anchor",
+		"repeated-parent-anchor-nested",
+		"repeated-parent-anchor-shadow",
+		"repeated-parent-anchor-removed",
+		"repeated-parent-anchor-removed-expression",
+		"repeated-parent-anchor-unique-nested",
+	} {
+		t.Run(name, func(t *testing.T) { runTest(name, t) })
+	}
+}

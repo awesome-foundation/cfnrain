@@ -1,0 +1,26 @@
+Parameters:
+  Prefix:
+    Type: String
+    Default: prefix
+  Base:
+    Type: String
+    Default: &base xx
+  Name:
+    Type: String
+    Default: &a !Join ['-', [!Ref Prefix, *base]]
+Resources:
+  First:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: *a
+  Second:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: &a yy
+  Third:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: &base zz

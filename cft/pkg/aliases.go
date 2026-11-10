@@ -26,6 +26,77 @@ func scopeModuleAnchors(root *yaml.Node) {
 	})
 }
 
+// bindRepeatedAnchors preserves source bindings before module expansion moves nodes.
+// Recursive names retain the alias resolver's existing fallback behavior.
+func bindRepeatedAnchors(root *yaml.Node) {
+	counts := make(map[string]int)
+	recursive := make(map[string]bool)
+	active := make(map[*yaml.Node]bool)
+	latest := make(map[string]*yaml.Node)
+	targets := make(map[*yaml.Node]*yaml.Node)
+	var collect func(*yaml.Node)
+	collect = func(n *yaml.Node) {
+		if n.Anchor != "" {
+			counts[n.Anchor]++
+			active[n] = true
+			// A completed nested definition still shadows an outer definition.
+			latest[n.Anchor] = n
+		}
+		if n.Kind == yaml.AliasNode {
+			targets[n] = latest[n.Value]
+			if active[targets[n]] {
+				recursive[n.Value] = true
+			}
+		}
+		for _, child := range n.Content {
+			collect(child)
+		}
+		if n.Anchor != "" {
+			delete(active, n)
+		}
+	}
+	collect(root)
+
+	preceding := make(map[string]*yaml.Node)
+	bound := make(map[*yaml.Node]*yaml.Node)
+	visitor.NewVisitor(root).Visit(func(v *visitor.Visitor) {
+		n := v.GetYamlNode()
+		if name := n.Anchor; counts[name] > 1 && !recursive[name] {
+			unique := fmt.Sprintf("rain_binding_%d_%s", moduleAnchorScope.Add(1), name)
+			for counts[unique] != 0 {
+				unique = fmt.Sprintf("rain_binding_%d_%s", moduleAnchorScope.Add(1), name)
+			}
+			n.Anchor = unique
+			preceding[name] = n
+		}
+		if n.Kind == yaml.AliasNode {
+			if target := preceding[n.Value]; target != nil {
+				n.Value = target.Anchor
+				bound[n] = target
+			}
+		}
+	})
+
+	// Copy bound values before expansion can discard their definitions.
+	// Resolve nested aliases from their source bindings, including unique names.
+	// Leave recursive names for resolveAliases and do not follow Alias pointers.
+	var copyBound func(*yaml.Node) *yaml.Node
+	copyBound = func(n *yaml.Node) *yaml.Node {
+		if target := targets[n]; target != nil && !recursive[n.Value] {
+			n = target
+		}
+		result := *n
+		result.Content = make([]*yaml.Node, len(n.Content))
+		for i, child := range n.Content {
+			result.Content[i] = copyBound(child)
+		}
+		return &result
+	}
+	for alias, target := range bound {
+		*alias = *copyBound(target)
+	}
+}
+
 type aliasCycleError struct{ name string }
 
 func (e *aliasCycleError) Error() string {

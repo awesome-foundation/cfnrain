@@ -157,6 +157,8 @@ func processRainSection(t *cft.Template) error {
 func Template(t *cft.Template, rootDir string, fs *embed.FS) (*cft.Template, error) {
 	var err error
 
+	bindRepeatedAnchors(t.Node)
+
 	// First look for a Rain section and store constants
 	err = processRainSection(t)
 	if err != nil {
