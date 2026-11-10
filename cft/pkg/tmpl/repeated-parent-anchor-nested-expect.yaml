@@ -1,0 +1,25 @@
+Resources:
+  WXT:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: xx
+
+  WYT:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: yy
+
+  WXParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: xx
+
+  WYParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: yy
+
