@@ -41,6 +41,8 @@ func String(t *cft.Template, opt Options) string {
 
 	if !opt.Unsorted {
 		node = orderTemplate(node)
+	} else {
+		moveUnsortedKeyComments(node)
 	}
 
 	err := enc.Encode(node)
@@ -136,4 +138,23 @@ func String(t *cft.Template, opt Options) string {
 // CftToYaml converts a template to a YAML string
 func CftToYaml(t *cft.Template) string {
 	return String(t, Options{JSON: false, Unsorted: false})
+}
+
+// moveUnsortedKeyComments keeps key comments away from explicit collection tags
+// and flow delimiters, where yaml.v3 can emit them between a key and its colon.
+func moveUnsortedKeyComments(n *yaml.Node) {
+	if n.Kind == yaml.MappingNode {
+		for i := 0; i < len(n.Content); i += 2 {
+			key, value := n.Content[i], n.Content[i+1]
+			taggedCollection := value.Style&yaml.TaggedStyle != 0 && len(value.Content) > 0 &&
+				(value.Kind == yaml.MappingNode || value.Kind == yaml.SequenceNode)
+			if key.LineComment != "" && (n.Style&yaml.FlowStyle != 0 || taggedCollection) {
+				key.HeadComment = joinComments([]string{key.HeadComment, key.LineComment})
+				key.LineComment = ""
+			}
+		}
+	}
+	for _, child := range n.Content {
+		moveUnsortedKeyComments(child)
+	}
 }
