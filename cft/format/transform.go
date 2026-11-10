@@ -259,6 +259,15 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 		}
 	}
 
+	// yaml.v3 consumes the first leading line break as the block header's
+	// line break. Quote these values so no leading blank line is lost.
+	if n.Kind == yaml.ScalarNode && strings.HasPrefix(n.Value, "\n") {
+		switch NodeStyle {
+		case "", "tagged", "flow", "strict-booleans", "original":
+			n.Style = n.Style&yaml.TaggedStyle | yaml.DoubleQuotedStyle
+		}
+	}
+
 	// yaml.v3 emits an explicit !!merge tag even for a plain merge key.
 	// Let the plain << spelling carry the tag implicitly instead.
 	if n.Kind == yaml.ScalarNode && n.Tag == "!!merge" && n.Value == "<<" && (n.Style == 0 || n.Style == yaml.FlowStyle) {

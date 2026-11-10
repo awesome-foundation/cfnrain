@@ -48,7 +48,9 @@ func String(t *cft.Template, opt Options) string {
 		panic(err)
 	}
 
-	parts := strings.Split(strings.TrimSpace(buf.String()), "\n")
+	// Remove only the encoder's final line terminator. Blank lines and tabs
+	// at the end can belong to the last scalar.
+	parts := strings.Split(strings.TrimSuffix(buf.String(), "\n"), "\n")
 	result := strings.Builder{}
 
 	lastIndent := 0
@@ -121,13 +123,14 @@ func String(t *cft.Template, opt Options) string {
 		lastLineWasEmpty = isEmpty
 	}
 
-	out := strings.TrimSpace(result.String())
+	// The layout pass can add a leading blank line, but the ending is data.
+	out := strings.TrimLeft(result.String(), "\n")
 
 	if opt.JSON {
-		out = convertToJSON(out)
+		out = convertToJSON(out) + "\n"
 	}
 
-	return out + "\n"
+	return out
 }
 
 // CftToYaml converts a template to a YAML string
