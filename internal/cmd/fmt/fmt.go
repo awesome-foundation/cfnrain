@@ -50,6 +50,11 @@ func formatString(input string, res *result) {
 		return
 	}
 
+	if err := node.CheckAliasCycles(source.Node); err != nil {
+		res.err = ui.Errorf(err, "unable to format input")
+		return
+	}
+
 	config.Debugf("%s", node.ToSJson(source.Node))
 
 	if uncdk {
