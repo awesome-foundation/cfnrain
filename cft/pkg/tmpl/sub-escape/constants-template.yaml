@@ -1,0 +1,12 @@
+Constants:
+  Prefix: resolved
+  Escaped: !Sub '${!Name}'
+Outputs:
+  Plain:
+    Value: !Sub '${!Name}'
+  Mixed:
+    Value: !Sub '${Rain::Prefix}-${!Name}'
+  Nested:
+    Value: !Sub '${Rain::Escaped}'
+  NestedMixed:
+    Value: !Sub '${Const::Prefix}-${Const::Escaped}'

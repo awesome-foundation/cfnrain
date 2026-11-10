@@ -88,8 +88,7 @@ func replaceConstants(n *yaml.Node, constants map[string]*yaml.Node, constantErr
 			// argument and leave any CloudFormation variables for the outer Sub.
 			if val.Kind == yaml.MappingNode && len(val.Content) == 2 &&
 				val.Content[0].Value == "Fn::Sub" && val.Content[1].Kind == yaml.ScalarNode {
-				if !inSub && (parse.IsSubNeeded(val.Content[1].Value) ||
-					strings.Contains(val.Content[1].Value, "${!")) {
+				if !inSub && isSubNeeded(val.Content[1].Value) {
 					if deferredErr == nil {
 						deferredErr = &plainSubConstantError{fmt.Errorf("constant %s uses Fn::Sub and cannot be interpolated into a plain string. Use !Sub for the outer value or !Rain::Constant %s for the whole value", w.W, w.W)}
 					}
@@ -162,8 +161,7 @@ func replaceTemplateConstants(t *cft.Template, definitions *yaml.Node) error {
 
 				// Remove unnecessary Subs
 				// Keep escaped variables for CloudFormation to resolve as literals.
-				if yamlNode.Content[1].Kind == yaml.ScalarNode &&
-					!parse.IsSubNeeded(arg.Value) && !strings.Contains(arg.Value, "${!") {
+				if yamlNode.Content[1].Kind == yaml.ScalarNode && !isSubNeeded(arg.Value) {
 					*yamlNode = *node.MakeScalar(arg.Value)
 				}
 			case "Ref":

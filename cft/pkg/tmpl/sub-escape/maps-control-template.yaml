@@ -1,0 +1,6 @@
+Modules:
+  M:
+    Source: ./maps-module.yaml
+    Properties:
+      Plain: !Sub '${!Name}'
+      Mixed: !Sub 'resolved-${!Name}'

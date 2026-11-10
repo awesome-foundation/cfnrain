@@ -1,0 +1,14 @@
+Parameters:
+  Prefix:
+    Type: String
+Resources:
+  Plain:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !Sub '${!Name}'
+  Mixed:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !Sub '${Prefix}-${!Name}'

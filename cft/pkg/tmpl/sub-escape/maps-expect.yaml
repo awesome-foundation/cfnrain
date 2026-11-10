@@ -1,0 +1,12 @@
+Resources:
+  M0Plain:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !Sub ${!Name}
+
+  M0Mixed:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !Sub resolved-${!Name}

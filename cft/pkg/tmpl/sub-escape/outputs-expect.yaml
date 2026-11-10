@@ -1,0 +1,6 @@
+Outputs:
+  Plain:
+    Value: !Sub ${!Name}
+
+  Mixed:
+    Value: !Sub resolved-${!Name}

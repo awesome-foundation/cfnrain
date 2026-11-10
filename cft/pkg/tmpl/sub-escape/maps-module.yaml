@@ -1,0 +1,16 @@
+Parameters:
+  Plain:
+    Type: String
+  Mixed:
+    Type: String
+Resources:
+  Plain:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !Ref Plain
+  Mixed:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !Ref Mixed
