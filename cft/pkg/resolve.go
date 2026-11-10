@@ -161,7 +161,7 @@ func (module *Module) resolveParam(params *yaml.Node, n *yaml.Node, parentProps 
 			}
 		}
 
-		*n = *parentVal
+		replaceNode(n, parentVal)
 
 		return true, nil
 	}
@@ -248,7 +248,7 @@ func (module *Module) ResolveSub(n *yaml.Node) error {
 		newProp = node.MakeScalar(sub)
 	}
 
-	*n = *newProp
+	replaceNode(n, newProp)
 
 	return nil
 }

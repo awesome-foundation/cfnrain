@@ -40,7 +40,7 @@ func wrapS3(n *yaml.Node, root string, options s3Options) (bool, error) {
 		return false, fmt.Errorf("implicit upload %q at line %d, column %d: %w", options.Path, n.Line, n.Column, err)
 	}
 
-	*n = *newNode
+	replaceNode(n, newNode)
 
 	return true, nil
 }

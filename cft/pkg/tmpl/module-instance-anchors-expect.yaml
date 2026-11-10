@@ -1,0 +1,41 @@
+Resources:
+  ABucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - Key: selected
+          Value: alpha
+        - Key: selectedAlias
+          Value: alpha
+        - Key: conditional
+          Value: yes1
+        - Key: conditionalAlias
+          Value: yes1
+        - Key: substituted
+          Value: alpha-sub
+        - Key: substitutedAlias
+          Value: alpha-sub
+        - Key: unfolded
+          Value: !Join [",", [alpha, !Ref AWS::Region]]
+        - Key: unfoldedAlias
+          Value: !Join [",", [alpha, !Ref AWS::Region]]
+  BBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - Key: selected
+          Value: beta
+        - Key: selectedAlias
+          Value: beta
+        - Key: conditional
+          Value: no1
+        - Key: conditionalAlias
+          Value: no1
+        - Key: substituted
+          Value: beta-sub
+        - Key: substitutedAlias
+          Value: beta-sub
+        - Key: unfolded
+          Value: !Join [",", [beta, !Ref AWS::Region]]
+        - Key: unfoldedAlias
+          Value: !Join [",", [beta, !Ref AWS::Region]]

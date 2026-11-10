@@ -35,7 +35,7 @@ func rainConstant(ctx *directiveContext) (bool, error) {
 		return false, fmt.Errorf("rain constant %s not found", name)
 	}
 
-	*ctx.n = *val
+	replaceNode(ctx.n, val)
 
 	return true, nil
 }
@@ -162,7 +162,7 @@ func replaceTemplateConstants(t *cft.Template, definitions *yaml.Node) error {
 				// Remove unnecessary Subs
 				// Keep empty arguments and escaped variables for CloudFormation.
 				if yamlNode.Content[1].Kind == yaml.ScalarNode && arg.Value != "" && !isSubNeeded(arg.Value) {
-					*yamlNode = *node.MakeScalar(arg.Value)
+					replaceNode(yamlNode, node.MakeScalar(arg.Value))
 				}
 			case "Ref":
 				// Ref is used with object constants
@@ -177,7 +177,7 @@ func replaceTemplateConstants(t *cft.Template, definitions *yaml.Node) error {
 						err = fmt.Errorf("constant %s not found", constName)
 						return
 					}
-					*yamlNode = *node.Clone(constVal)
+					replaceNode(yamlNode, node.Clone(constVal))
 				}
 			}
 		}

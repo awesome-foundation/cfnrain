@@ -1,0 +1,8 @@
+Resources:
+  MTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: plain
+Outputs:
+  X:
+    Value: plain

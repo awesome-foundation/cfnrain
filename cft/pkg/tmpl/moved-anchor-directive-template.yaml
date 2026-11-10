@@ -1,0 +1,9 @@
+Resources:
+  M:
+    Type: !Rain::Module moved-anchor-module.yaml
+    Properties:
+      Name: &tn plain
+  Later:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: *tn

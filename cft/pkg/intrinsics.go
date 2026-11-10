@@ -73,7 +73,7 @@ func FnJoin(n *yaml.Node) error {
 		}
 		ss := node.SequenceToStrings(items)
 		replacement := node.MakeScalar(strings.Join(ss, separator))
-		*vn = *replacement
+		replaceNode(vn, replacement)
 
 	}
 	visitor.NewVisitor(n).Visit(vf)
@@ -111,7 +111,7 @@ func FnMerge(n *yaml.Node) error {
 		for _, nodeToMerge := range mrg.Content {
 			merged = node.MergeNodes(merged, nodeToMerge)
 		}
-		*vn = *merged
+		replaceNode(vn, merged)
 	}
 	visitor.NewVisitor(n).Visit(vf)
 	return err
@@ -162,7 +162,7 @@ func FnSelect(n *yaml.Node) error {
 			}
 		}
 		if selected != nil {
-			*vn = *selected
+			replaceNode(vn, selected)
 		} else {
 			err = fmt.Errorf("invalid Fn::Select, invalid index: %s",
 				node.YamlStr(vn))
@@ -214,7 +214,7 @@ func FnInsertFile(n *yaml.Node, basePath string) error {
 
 		// Replace the node with the file contents as a scalar
 		replacement := node.MakeScalar(string(content))
-		*vn = *replacement
+		replaceNode(vn, replacement)
 	}
 	visitor.NewVisitor(n).Visit(vf)
 	return err
@@ -407,7 +407,7 @@ func (module *Module) FnInvoke(n *yaml.Node) error {
 		}
 
 		// Replace the Fn::Invoke node with the result
-		*vn = *result
+		replaceNode(vn, result)
 	}
 	visitor.NewVisitor(n).Visit(vf)
 	return err

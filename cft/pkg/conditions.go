@@ -375,7 +375,7 @@ func (module *Module) ProcessFnIf(n *yaml.Node,
 					}
 
 					// Replace the entire node with the replacement
-					*n = *replacement
+					replaceNode(n, replacement)
 					return false, nil
 				} else if slices.Contains(unResolved, name) {
 					newName := module.Config.Name + name

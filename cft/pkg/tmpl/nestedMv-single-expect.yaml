@@ -1,0 +1,9 @@
+Resources:
+  XT:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: xx
+  XInnerTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: xx

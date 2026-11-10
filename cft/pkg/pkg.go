@@ -42,7 +42,6 @@ import (
 
 	"github.com/awesome-foundation/cfnrain/cft"
 	"github.com/awesome-foundation/cfnrain/cft/parse"
-	"github.com/awesome-foundation/cfnrain/cft/visitor"
 	"github.com/awesome-foundation/cfnrain/internal/config"
 	"github.com/awesome-foundation/cfnrain/internal/node"
 	"github.com/awesome-foundation/cfnrain/internal/s11n"
@@ -206,34 +205,10 @@ func Template(t *cft.Template, rootDir string, fs *embed.FS) (*cft.Template, err
 		}
 	}
 
-	// Collect Anchors & Replace Alias Nodes
-	//
-	// 1. find alias nodes and save them in map with anchor name as key
-	// 2. replace alias nodes with the actual node
-	// 3. Marshal and Unmarshal to resolve new line/column numbers
-
-	v := visitor.NewVisitor(t.Node)
-	anchors := make(map[string]*yaml.Node)
-
-	collectAnchors := func(node *visitor.Visitor) {
-		yamlNode := node.GetYamlNode()
-		if yamlNode.Anchor != "" {
-			anchors[yamlNode.Anchor] = yamlNode
-			yamlNode.Anchor = ""
-		}
+	err = resolveAliases(t.Node)
+	if err != nil {
+		return nil, err
 	}
-
-	replaceAnchors := func(node *visitor.Visitor) {
-		yamlNode := node.GetYamlNode()
-		if yamlNode.Kind == yaml.AliasNode {
-			if anchor, ok := anchors[yamlNode.Value]; ok {
-				*yamlNode = *anchor
-			}
-		}
-	}
-
-	v.Visit(collectAnchors)
-	v.Visit(replaceAnchors)
 
 	//// Look for ${Rain::ConstantName} and ${Const::ConstantName}
 	//if t.HasSection(cft.Rain) || t.HasSection(cft.Constants) {

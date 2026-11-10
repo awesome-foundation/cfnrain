@@ -1,0 +1,10 @@
+Resources:
+  MTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: {Fn::Join: ["-", [x, x]]}
+  Later:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: {Fn::Join: ["-", [x, x]]}
+      DisplayName: x

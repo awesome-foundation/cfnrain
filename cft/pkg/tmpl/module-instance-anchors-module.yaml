@@ -1,0 +1,26 @@
+Parameters:
+  Name:
+    Type: String
+Conditions:
+  IsAlpha: !Equals [!Ref Name, alpha]
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - Key: selected
+          Value: &selected !Select [0, [!Ref Name, other]]
+        - Key: selectedAlias
+          Value: *selected
+        - Key: conditional
+          Value: &conditional !If [IsAlpha, yes1, no1]
+        - Key: conditionalAlias
+          Value: *conditional
+        - Key: substituted
+          Value: &substituted !Sub '${Name}-sub'
+        - Key: substitutedAlias
+          Value: *substituted
+        - Key: unfolded
+          Value: &unfolded !Join [",", [!Ref Name, !Ref AWS::Region]]
+        - Key: unfoldedAlias
+          Value: *unfolded

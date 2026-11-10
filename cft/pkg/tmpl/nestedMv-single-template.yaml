@@ -1,0 +1,5 @@
+Modules:
+  X:
+    Source: nestedMv-outer.yaml
+    Properties:
+      Pn: xx
