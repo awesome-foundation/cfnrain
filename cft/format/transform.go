@@ -240,14 +240,6 @@ func formatNode(n *yaml.Node, keepForm, functionArgument bool) *yaml.Node {
 			n.Style = yaml.LiteralStyle
 			if NodeStyle == "folded" {
 				n.Style = yaml.FoldedStyle
-				// yaml.v3 can add or remove line breaks around indented lines.
-				// Keep folded output only when the encoder preserves the value.
-				probe := yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: n.Value, Style: yaml.FoldedStyle}
-				encoded, err := yaml.Marshal(&probe)
-				var decoded string
-				if err != nil || yaml.Unmarshal(encoded, &decoded) != nil || decoded != n.Value {
-					n.Style = yaml.DoubleQuotedStyle
-				}
 			}
 		}
 	case "flow":

@@ -49,7 +49,7 @@ The `singlequoted`, `doublequoted`, and `quotescalars` node styles quote strings
 
 The `literal` and `folded` node styles apply block formatting only to strings. Numbers, booleans, and nulls keep their types.
 
-The `folded` style uses double quotes when the YAML encoder cannot preserve a string's line breaks in folded form.
+The `folded` style uses a literal block when folded output changes a string's value. If literal output also changes the value, it uses double quotes.
 
 With no file names, `fmt` reads standard input.
 
