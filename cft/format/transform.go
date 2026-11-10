@@ -281,6 +281,12 @@ func formatNode(n *yaml.Node, keepForm, functionArgument bool) *yaml.Node {
 		}
 	}
 
+	// yaml.v3 writes a block scalar whose first line starts with a tab in a
+	// form its own parser rejects. Quote these values in every style.
+	if n.Kind == yaml.ScalarNode && strings.HasPrefix(n.Value, "\t") {
+		n.Style = n.Style&yaml.TaggedStyle | yaml.DoubleQuotedStyle
+	}
+
 	// yaml.v3 emits an explicit !!merge tag even for a plain merge key.
 	// Let the plain << spelling carry the tag implicitly instead.
 	if n.Kind == yaml.ScalarNode && n.Tag == "!!merge" && n.Value == "<<" && (n.Style == 0 || n.Style == yaml.FlowStyle) {
