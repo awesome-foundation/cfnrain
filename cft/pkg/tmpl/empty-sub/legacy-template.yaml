@@ -1,0 +1,3 @@
+Resources:
+  M:
+    Type: !Rain::Module ./module.yaml

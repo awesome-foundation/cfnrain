@@ -66,11 +66,12 @@ func TestEmptySubOutput(t *testing.T) {
 		{"double quoted", "!Sub \"\"", "!Sub"},
 		{"bare", "!Sub", "!Sub"},
 		{"long form", "{Fn::Sub: \"\"}", "!Sub"},
+		{"empty constant", "!Sub ${Rain::X}", "!Sub"},
 		{"non-empty control", "!Sub hello", "hello"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			path := filepath.Join(t.TempDir(), "template.yaml")
-			input := "Outputs:\n  Result:\n    Value: " + tc.value + "\n"
+			input := "Rain:\n  Constants:\n    X: ''\nOutputs:\n  Result:\n    Value: " + tc.value + "\n"
 			if err := os.WriteFile(path, []byte(input), 0600); err != nil {
 				t.Fatal(err)
 			}
