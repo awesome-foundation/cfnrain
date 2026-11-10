@@ -38,10 +38,6 @@ func String(t *cft.Template, opt Options) string {
 
 	node := t.Node
 
-	buf := strings.Builder{}
-	enc := yaml.NewEncoder(&buf)
-	enc.SetIndent(2)
-
 	node = formatNode(node, false, false)
 
 	if !opt.Unsorted {
@@ -52,9 +48,69 @@ func String(t *cft.Template, opt Options) string {
 
 	quoteFlowNulls(node, false)
 
-	err := enc.Encode(node)
+	out, err := encodeYAML(node)
 	if err != nil {
 		panic(err)
+	}
+	if NodeStyle == "folded" {
+		// Each scalar advances only from folded to literal to quoted style.
+		// The loop ends when no scalar needs another style. The fmt command
+		// reports parse errors and structural mismatches.
+		for {
+			var decoded yaml.Node
+			if yaml.Unmarshal([]byte(out), &decoded) != nil || len(decoded.Content) == 0 {
+				break
+			}
+			original := node
+			if original.Kind == yaml.DocumentNode {
+				original = original.Content[0]
+			}
+			if !restoreBlockStrings(original, decoded.Content[0]) {
+				break
+			}
+			out, err = encodeYAML(node)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
+	if opt.JSON {
+		out = convertToJSON(out) + "\n"
+	}
+	return out
+}
+
+// restoreBlockStrings selects a safer style only when the actual output changes a value.
+func restoreBlockStrings(original, decoded *yaml.Node) bool {
+	if original.Kind != decoded.Kind || len(original.Content) != len(decoded.Content) {
+		return false
+	}
+	changed := false
+	if original.Kind == yaml.ScalarNode && original.Value != decoded.Value {
+		switch original.Style {
+		case yaml.FoldedStyle:
+			original.Style = yaml.LiteralStyle
+			changed = true
+		case yaml.LiteralStyle:
+			original.Style = yaml.DoubleQuotedStyle
+			changed = true
+		}
+	}
+	for i, child := range original.Content {
+		if restoreBlockStrings(child, decoded.Content[i]) {
+			changed = true
+		}
+	}
+	return changed
+}
+
+// encodeYAML applies the same encoder settings and layout to every style attempt.
+func encodeYAML(node *yaml.Node) (string, error) {
+	buf := strings.Builder{}
+	enc := yaml.NewEncoder(&buf)
+	enc.SetIndent(2)
+	if err := enc.Encode(node); err != nil {
+		return "", err
 	}
 
 	// Remove only the encoder's final line terminator. Blank lines and tabs
@@ -135,11 +191,7 @@ func String(t *cft.Template, opt Options) string {
 	// The layout pass can add a leading blank line, but the ending is data.
 	out := strings.TrimLeft(result.String(), "\n")
 
-	if opt.JSON {
-		out = convertToJSON(out) + "\n"
-	}
-
-	return out
+	return out, nil
 }
 
 // CftToYaml converts a template to a YAML string
