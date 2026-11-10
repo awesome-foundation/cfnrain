@@ -71,6 +71,10 @@ jobs:
         if: needs.changes.outputs.mode != 'docs'
         run: go test ./...
 
+      - name: Check packaging for data races
+        if: needs.changes.outputs.mode != 'docs'
+        run: go test -race ./cft/pkg ./internal/s11n
+
       - name: Check that docs/ names every command
         if: needs.changes.outputs.mode == 'docs'
         run: go test ./internal/cmd/rain -run TestEveryCommandIsDocumented
