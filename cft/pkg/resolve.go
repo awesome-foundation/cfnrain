@@ -15,6 +15,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+var errRecursiveDefault = errors.New("has a recursive default")
+
 // Resolve resolves Ref, Sub, and GetAtt in the node,
 // using module config Properties, Parameter defaults, and
 // other Resource names within the module.
@@ -154,7 +156,7 @@ func (module *Module) resolveParam(params *yaml.Node, n *yaml.Node, parentProps 
 				_, defaultNode, _ := s11n.GetMapValue(mParam, Default)
 				if defaultNode != nil {
 					if module.resolvingDefaults[prop.Value] {
-						return false, fmt.Errorf("module %s: parameter %s has a recursive default", module.Config.Name, prop.Value)
+						return false, fmt.Errorf("module %s: parameter %s %w", module.Config.Name, prop.Value, errRecursiveDefault)
 					}
 					if module.resolvingDefaults == nil {
 						module.resolvingDefaults = make(map[string]bool)
@@ -221,7 +223,7 @@ func (module *Module) ResolveSub(n *yaml.Node) error {
 				}
 				fakeNode = node.MakeGetAtt(left, right)
 			}
-			if err := module.Resolve(fakeNode); err != nil {
+			if err := module.Resolve(fakeNode); errors.Is(err, errRecursiveDefault) {
 				return err
 			}
 			switch fakeNode.Kind {

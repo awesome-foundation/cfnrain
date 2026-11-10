@@ -38,7 +38,7 @@ func (module *Module) ProcessOutputs() error {
 	// Resolve output values first
 	for i := 0; i < len(module.OutputsNode.Content); i += 2 {
 		outputNode := module.OutputsNode.Content[i+1]
-		if err := module.Resolve(outputNode); err != nil {
+		if err := module.Resolve(outputNode); errors.Is(err, errRecursiveDefault) {
 			return err
 		}
 	}

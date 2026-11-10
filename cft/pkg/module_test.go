@@ -348,7 +348,7 @@ func TestNestedMovedAnchors(t *testing.T) {
 }
 
 func TestParentParameterScope(t *testing.T) {
-	for _, name := range []string{"parent-param", "parent-param-default", "parent-param-nested"} {
+	for _, name := range []string{"parent-param", "parent-param-default", "parent-param-nested", "parent-param-missing"} {
 		t.Run(name, func(t *testing.T) { runTest(name, t) })
 	}
 }
