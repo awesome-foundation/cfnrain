@@ -160,8 +160,8 @@ func replaceTemplateConstants(t *cft.Template, definitions *yaml.Node) error {
 				}
 
 				// Remove unnecessary Subs
-				// Keep escaped variables for CloudFormation to resolve as literals.
-				if yamlNode.Content[1].Kind == yaml.ScalarNode && !isSubNeeded(arg.Value) {
+				// Keep empty arguments and escaped variables for CloudFormation.
+				if yamlNode.Content[1].Kind == yaml.ScalarNode && arg.Value != "" && !isSubNeeded(arg.Value) {
 					*yamlNode = *node.MakeScalar(arg.Value)
 				}
 			case "Ref":

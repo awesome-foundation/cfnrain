@@ -1,0 +1,15 @@
+Rain:
+  Constants:
+    X: ''
+Resources:
+  Parameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      SingleQuoted: !Sub ''
+      DoubleQuoted: !Sub ""
+      Bare: !Sub
+      LongForm:
+        Fn::Sub: ""
+      Constant: !Sub ${Rain::X}
+      Control: !Sub hello

@@ -34,6 +34,14 @@ func TestSub(t *testing.T) {
 	runTest("sub", t)
 }
 
+func TestEmptySubModule(t *testing.T) {
+	for _, name := range []string{"source", "legacy"} {
+		t.Run(name, func(t *testing.T) {
+			runTest("empty-sub/"+name, t)
+		})
+	}
+}
+
 func TestSubEscape(t *testing.T) {
 	for _, name := range []string{"resolve", "maps", "outputs", "outputs-sub", "constants", "maps-control"} {
 		t.Run(name, func(t *testing.T) {

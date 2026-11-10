@@ -1,0 +1,11 @@
+Resources:
+  MParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      SingleQuoted: !Sub ''
+      DoubleQuoted: !Sub ''
+      Bare: !Sub ''
+      LongForm: !Sub ''
+      Constant: !Sub ''
+      Control: hello

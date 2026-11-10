@@ -236,12 +236,14 @@ func (module *Module) ResolveSub(n *yaml.Node) error {
 		}
 	}
 
-	// Keep Sub for unresolved variables and escaped variables.
+	// Keep Sub for empty arguments, unresolved variables, and escaped variables.
 	var newProp *yaml.Node
-	if isSubNeeded(sub) {
+	if sub == "" || isSubNeeded(sub) {
 		newProp = node.MakeMapping()
 		newProp.Content = append(newProp.Content, node.MakeScalar(string(cft.Sub)))
-		newProp.Content = append(newProp.Content, node.MakeScalar(sub))
+		arg := node.MakeScalar(sub)
+		arg.Tag = "!!str"
+		newProp.Content = append(newProp.Content, arg)
 	} else {
 		newProp = node.MakeScalar(sub)
 	}
