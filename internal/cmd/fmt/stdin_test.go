@@ -4,7 +4,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/awesome-foundation/cfnrain/internal/cmd"
 	rainfmt "github.com/awesome-foundation/cfnrain/internal/cmd/fmt"
 )
 
@@ -69,7 +68,7 @@ func TestFmtWriteStdin(t *testing.T) {
 		write.Changed = false
 	}()
 
-	if code := cmd.Test(rainfmt.Cmd); code == 0 {
+	if err := rainfmt.Cmd.Execute(); err == nil {
 		t.Error("expected an error for --write with stdin")
 	}
 }
