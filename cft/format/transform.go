@@ -122,6 +122,10 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 
 	// Is it a scalar?
 	if n.Kind == yaml.ScalarNode {
+		// An empty null list item loses its line comment when parsed again.
+		if n.Tag == "!!null" && n.Value == "" && n.LineComment != "" {
+			n.Value = "null"
+		}
 		// Is it a string
 		if n.Tag == "!!str" {
 			// Reformat how yaml thinks is best

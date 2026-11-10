@@ -70,6 +70,35 @@ func String(input string) (*cft.Template, error) {
 	if err != nil {
 		return &cft.Template{}, fmt.Errorf("invalid YAML: %s", err)
 	}
+	// yaml.v3 can attach a comment after an empty null to the next node.
+	// Give these nulls an explicit value before the parser assigns comments.
+	lines := strings.Split(input, "\n")
+	changed := false
+	var explicitNulls func(*yaml.Node)
+	explicitNulls = func(n *yaml.Node) {
+		if n.Kind == yaml.ScalarNode && n.Tag == "!!null" && n.Value == "" && n.Line > 0 && n.Line <= len(lines) {
+			line := []rune(lines[n.Line-1])
+			if n.Column > 0 && n.Column <= len(line) {
+				tail := string(line[n.Column-1:])
+				rest := strings.TrimSpace(strings.TrimPrefix(tail, "!!null"))
+				if strings.HasPrefix(rest, "#") {
+					// Use the node's suffix so a # in an earlier key stays intact.
+					pos := len(string(line[:n.Column-1])) + strings.Index(tail, "#")
+					lines[n.Line-1] = lines[n.Line-1][:pos] + "null " + lines[n.Line-1][pos:]
+					changed = true
+				}
+			}
+		}
+		for _, child := range n.Content {
+			explicitNulls(child)
+		}
+	}
+	explicitNulls(&n)
+	if changed {
+		if err := yaml.Unmarshal([]byte(strings.Join(lines, "\n")), &n); err != nil {
+			return &cft.Template{}, fmt.Errorf("invalid YAML: %s", err)
+		}
+	}
 
 	return Node(&n)
 }
