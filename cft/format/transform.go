@@ -211,6 +211,11 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 	switch NodeStyle {
 	case "tagged":
 		n.Style = yaml.TaggedStyle
+		// Short function arguments can have an implicit tag after parsing.
+		// Emit that tag on the first run too.
+		if n.Tag == "" {
+			n.Tag = scalarTag
+		}
 	case "doublequoted", "singlequoted", "quotescalars":
 		if NodeStyle != "quotescalars" || n.Kind == yaml.ScalarNode {
 			n.Style = 0
