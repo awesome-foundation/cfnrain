@@ -70,3 +70,5 @@ templates/app.yaml: would reformat
 ```
 
 `--verify` compares the input text with the formatted YAML. A JSON file never passes unless you also give `-j`.
+
+The `flow` node style uses flow mappings even when `fmt` sorts their keys. The `quotescalars` style preserves flow mappings during sorting.

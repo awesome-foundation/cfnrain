@@ -34,7 +34,7 @@ func TestSortedMappingComments(t *testing.T) {
 					mapping := root.Content[i+1]
 					for j := 1; j < len(mapping.Content); j += 2 {
 						value := mapping.Content[j]
-						if style == "original" && value.Style&yaml.FlowStyle == 0 {
+						if value.Style&yaml.FlowStyle == 0 {
 							t.Errorf("mapping lost flow style:\n%s", output)
 						}
 					}
@@ -57,17 +57,10 @@ func TestEmptySortedMappingComments(t *testing.T) {
 func TestSortedMappingDefaultStyle(t *testing.T) {
 	oldStyle := format.NodeStyle
 	t.Cleanup(func() { format.NodeStyle = oldStyle })
-	for _, style := range []string{"", "flow", "quotescalars"} {
-		t.Run(style, func(t *testing.T) {
-			output := checkSortedMappingFormat(t, "Metadata:\n  M: {a: 1} # c\n  E: {} # d\nResources: {}\n", style)
-			want := "Metadata:\n\n  # c\n  M:\n    a: 1\n\n  E: {} # d\n\nResources: {}\n"
-			if style == "quotescalars" {
-				want = "\"Metadata\":\n\n  # c\n  \"M\":\n    \"a\": 1\n\n  \"E\": {} # d\n\n\"Resources\": {}\n"
-			}
-			if output != want {
-				t.Fatalf("output:\n%swant:\n%s", output, want)
-			}
-		})
+	output := checkSortedMappingFormat(t, "Metadata:\n  M: {a: 1} # c\n  E: {} # d\nResources: {}\n", "")
+	want := "Metadata:\n\n  # c\n  M:\n    a: 1\n\n  E: {} # d\n\nResources: {}\n"
+	if output != want {
+		t.Fatalf("output:\n%swant:\n%s", output, want)
 	}
 }
 
@@ -84,7 +77,7 @@ func TestSortedRootMappingComment(t *testing.T) {
 func TestSortedMappingStyleCompatibility(t *testing.T) {
 	oldStyle := format.NodeStyle
 	t.Cleanup(func() { format.NodeStyle = oldStyle })
-	for _, style := range []string{"flow", "tagged"} {
+	for _, style := range []string{"tagged"} {
 		for _, comments := range []bool{false, true} {
 			name := style + "/without comments"
 			line, rline := "", ""
@@ -139,4 +132,16 @@ func checkSortedMappingFormat(t *testing.T, input, style string) string {
 		t.Fatalf("fmt --verify: %v\n%s", err, output)
 	}
 	return first.output
+}
+
+func TestSortedFlowKeyComments(t *testing.T) {
+	oldStyle := format.NodeStyle
+	t.Cleanup(func() { format.NodeStyle = oldStyle })
+	input := "Metadata: # line\n  M:\n    a: 1\nResources:\n  R: # rline\n    Type: AWS::SNS::Topic\n"
+	output := checkSortedMappingFormat(t, input, "flow")
+	for _, comment := range []string{"# line", "# rline"} {
+		if strings.Count(output, comment) != 1 {
+			t.Fatalf("comment lost or duplicated: %s", output)
+		}
+	}
 }
