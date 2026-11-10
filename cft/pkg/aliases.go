@@ -33,6 +33,7 @@ func bindRepeatedAnchors(root *yaml.Node) {
 	recursive := make(map[string]bool)
 	active := make(map[*yaml.Node]bool)
 	latest := make(map[string]*yaml.Node)
+	targets := make(map[*yaml.Node]*yaml.Node)
 	var collect func(*yaml.Node)
 	collect = func(n *yaml.Node) {
 		if n.Anchor != "" {
@@ -41,8 +42,11 @@ func bindRepeatedAnchors(root *yaml.Node) {
 			// A completed nested definition still shadows an outer definition.
 			latest[n.Anchor] = n
 		}
-		if n.Kind == yaml.AliasNode && active[latest[n.Value]] {
-			recursive[n.Value] = true
+		if n.Kind == yaml.AliasNode {
+			targets[n] = latest[n.Value]
+			if active[targets[n]] {
+				recursive[n.Value] = true
+			}
 		}
 		for _, child := range n.Content {
 			collect(child)
@@ -74,10 +78,11 @@ func bindRepeatedAnchors(root *yaml.Node) {
 	})
 
 	// Copy bound values before expansion can discard their definitions.
-	// Leave other aliases for resolveAliases and do not follow Alias pointers.
+	// Resolve nested aliases from their source bindings, including unique names.
+	// Leave recursive names for resolveAliases and do not follow Alias pointers.
 	var copyBound func(*yaml.Node) *yaml.Node
 	copyBound = func(n *yaml.Node) *yaml.Node {
-		if target := bound[n]; target != nil {
+		if target := targets[n]; target != nil && !recursive[n.Value] {
 			n = target
 		}
 		result := *n
