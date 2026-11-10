@@ -33,6 +33,10 @@ func TestModInMod(t *testing.T) {
 	runTest("modinmod", t)
 }
 
+func TestSequenceSubOutput(t *testing.T) {
+	runTest("sequence-output", t)
+}
+
 func TestSub(t *testing.T) {
 	runTest("sub", t)
 }

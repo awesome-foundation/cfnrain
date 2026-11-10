@@ -195,6 +195,17 @@ func (module *Module) resolveParam(params *yaml.Node, n *yaml.Node, parentProps 
 func (module *Module) ResolveSub(n *yaml.Node) error {
 
 	prop := n.Content[1]
+	var variables *yaml.Node
+	if prop.Kind == yaml.SequenceNode {
+		if len(prop.Content) != 2 || prop.Content[0].Kind != yaml.ScalarNode || prop.Content[1].Kind != yaml.MappingNode {
+			return fmt.Errorf("invalid sequence-form Sub in module %s", module.Config.Name)
+		}
+		variables = prop.Content[1]
+		if err := module.Resolve(variables); err != nil {
+			return err
+		}
+		prop = prop.Content[0]
+	}
 	words, err := parse.ParseSub(prop.Value, true)
 	if err != nil {
 		return err
@@ -210,6 +221,13 @@ func (module *Module) ResolveSub(n *yaml.Node) error {
 		case parse.REF:
 			fallthrough
 		case parse.GETATT:
+			if variables != nil {
+				_, value, _ := s11n.GetMapValue(variables, word.W)
+				if value != nil {
+					sub += "${" + word.W + "}"
+					continue
+				}
+			}
 			var resolved string
 
 			// Create a fake node that we can send to Resolve
@@ -254,6 +272,11 @@ func (module *Module) ResolveSub(n *yaml.Node) error {
 		default:
 			return fmt.Errorf("unexpected word type %v for %s", word.T, word.W)
 		}
+	}
+
+	if variables != nil {
+		prop.Value = sub
+		return nil
 	}
 
 	// Keep Sub for empty arguments, unresolved variables, and escaped variables.

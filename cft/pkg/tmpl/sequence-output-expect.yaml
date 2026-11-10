@@ -1,0 +1,24 @@
+Resources:
+  Example:
+    Type: Custom::Example
+    Properties:
+      Direct: !Sub ['${X}-example-${MBucket.Arn}', {X: !Ref MBucket}]
+      Nested: !Sub
+        - '${RainOutputM_Out}-x'
+        - RainOutputM_Out: !Sub ['${X}-example-${MBucket.Arn}', {X: !Ref MBucket}]
+      WithMap: !Sub
+        - '${RainOutputM_Out}-${Local}'
+        - Local: suffix
+          RainOutputM_Out: !Sub ['${X}-example-${MBucket.Arn}', {X: !Ref MBucket}]
+      Collision: !Sub
+        - '${RainOutputM_Out2}-${RainOutputM_Out}-${RainOutputM_Out1}'
+        - RainOutputM_Out: parent
+          RainOutputM_Out2: !Sub ['${X}-example-${MBucket.Arn}', {X: !Ref MBucket}]
+      ModuleCollision: !Sub
+        - '${RainOutputM_Collision1}-x'
+        - RainOutputM_Collision1: !Sub ['${RainOutputM_Collision}', {RainOutputM_Collision: example}]
+      Shadowed: !Sub ['${M.Out}', {'M.Out': parent}]
+      ScalarDirect: !Sub '${MBucket}'
+      ScalarNested: !Sub '${MBucket}-x'
+  MBucket:
+    Type: AWS::S3::Bucket
