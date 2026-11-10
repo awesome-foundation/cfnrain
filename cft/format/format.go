@@ -31,6 +31,11 @@ func CheckMultilineBegin(s string) bool {
 
 // String returns a string representation of the supplied cft.Template
 func String(t *cft.Template, opt Options) string {
+	if NodeStyle == "strict-boolean" {
+		NodeStyle = "strict-booleans"
+		defer func() { NodeStyle = "strict-boolean" }()
+	}
+
 	node := t.Node
 
 	buf := strings.Builder{}
