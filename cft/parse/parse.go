@@ -106,6 +106,9 @@ func String(input string) (*cft.Template, error) {
 					if n.Tag != "!!null" {
 						value = "\"\" "
 					}
+					if pos > 0 && !strings.ContainsAny(lines[n.Line-1][pos-1:pos], " \t") {
+						value = " " + value
+					}
 					lines[n.Line-1] = lines[n.Line-1][:pos] + value + lines[n.Line-1][pos:]
 					rewritten[current] = true
 				}

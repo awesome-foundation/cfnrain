@@ -17,6 +17,8 @@ func TestEmptyValueComments(t *testing.T) {
 	t.Cleanup(func() { format.NodeStyle = oldStyle })
 	for _, style := range []string{"", "original"} {
 		for _, tc := range []struct{ name, input, want string }{
+			{"flow anchor", "  L: [&q, # c\n    *q]\n", ""},
+			{"combined anchors", "  L: [&q, # bad\n    *q]\n  V: &a # c\n  W: *a\n", ""},
 			{"anchor", "  V: &a # c\n  W: *a\n", "  V: &a null # c\n\n  W: *a\n"},
 			{"string anchor", "  V: &a !!str # c\n  W: *a\n", "  V: &a \"\" # c\n\n  W: *a\n"},
 			{"string", "  V: !!str # c\n  W: x\n", "  V: \"\" # c\n\n  W: x\n"},
@@ -36,7 +38,32 @@ func TestEmptyValueComments(t *testing.T) {
 					t.Fatal(first.err)
 				}
 				want := "Metadata:\n" + tc.want + "\nResources: {}\n"
-				if strings.HasPrefix(tc.name, "flow") {
+				if tc.name == "flow anchor" || tc.name == "combined anchors" {
+					parsed, err := parse.String(first.output)
+					if err != nil {
+						t.Fatal(err)
+					}
+					wantComments := map[string]string{"q": "# c"}
+					if tc.name == "combined anchors" {
+						wantComments = map[string]string{"q": "# bad", "a": "# c"}
+					}
+					var check func(*yaml.Node)
+					check = func(n *yaml.Node) {
+						if want, ok := wantComments[n.Anchor]; ok {
+							if n.LineComment != want {
+								t.Fatalf("anchor %s comment = %q, want %q", n.Anchor, n.LineComment, want)
+							}
+							delete(wantComments, n.Anchor)
+						}
+						for _, child := range n.Content {
+							check(child)
+						}
+					}
+					check(parsed.Node)
+					if len(wantComments) != 0 {
+						t.Fatalf("missing anchors: %v", wantComments)
+					}
+				} else if strings.HasPrefix(tc.name, "flow") {
 					parsed, err := parse.String(first.output)
 					if err != nil {
 						t.Fatal(err)
