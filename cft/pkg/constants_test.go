@@ -380,3 +380,70 @@ Outputs:
 		}
 	})
 }
+
+func TestSequenceSubConstants(t *testing.T) {
+	input := `Constants:
+  X: hello
+Outputs:
+  Value:
+    Value: !Sub ['${Rain::X}-${Name}', {Name: world}]
+`
+	expected := `Outputs:
+  Value:
+    Value: !Sub ['hello-${Name}', {Name: world}]
+`
+	assertPackagedConstants(t, input, expected)
+}
+
+func TestSequenceSubMissingConstant(t *testing.T) {
+	tmpl, err := parse.String("Outputs:\n  Value:\n    Value: !Sub ['${Rain::Missing}-${Name}', {Name: world}]\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = Template(tmpl, ".", nil)
+	if err == nil || !strings.Contains(err.Error(), "did not find Constant Missing") {
+		t.Fatalf("expected missing constant error, got %v", err)
+	}
+}
+
+func TestSequenceSubConstantWinsOverVariableMap(t *testing.T) {
+	assertPackagedConstants(t, `Constants:
+  X: hello
+Outputs:
+  Value:
+    Value: !Sub ['${Rain::X}', {'Rain::X': shadow}]
+`, `Outputs:
+  Value:
+    Value: !Sub ['hello', {'Rain::X': shadow}]
+`)
+}
+
+func TestSequenceSubConstantPreservesEscapes(t *testing.T) {
+	assertPackagedConstants(t, `Constants:
+  Escaped: !Sub '${!Literal}'
+Outputs:
+  Value:
+    Value: !Sub ['${Rain::Escaped}', {}]
+`, `Outputs:
+  Value:
+    Value: !Sub ['${!Literal}', {}]
+`)
+}
+
+func TestSequenceSubDeferredConstantError(t *testing.T) {
+	tmpl, err := parse.String(`Constants:
+  B: !Sub '${Env}-b'
+  Deferred: '${Rain::B}'
+Outputs:
+  Value:
+    Value: !Sub ['${Rain::Deferred}-${Name}', {Name: world}]
+`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = Template(tmpl, ".", nil)
+	want := "constant Deferred: constant B uses Fn::Sub and cannot be interpolated into a plain string"
+	if err == nil || !strings.Contains(err.Error(), want) {
+		t.Fatalf("expected %q, got %v", want, err)
+	}
+}
