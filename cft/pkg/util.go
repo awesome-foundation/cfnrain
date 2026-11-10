@@ -47,7 +47,13 @@ func (s *s3Path) HTTP() string {
 	return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", s.bucket, s.region, s.key)
 }
 
-var uploads = map[string]*s3Path{}
+type uploadKey struct {
+	path      string
+	zip       bool
+	extension string
+}
+
+var uploads = map[uploadKey]*s3Path{}
 
 func zipPath(root string) (string, error) {
 	tmpFile, err := os.CreateTemp(os.TempDir(), "*.zip")
@@ -125,8 +131,11 @@ func resolvePath(root, path string) string {
 // the files again. A Run script may have changed them.
 func forgetUploads(root, path string) {
 	path = resolvePath(root, path)
-	delete(uploads, path)
-	delete(uploads, "zip:"+path)
+	for key := range uploads {
+		if key.path == path {
+			delete(uploads, key)
+		}
+	}
 }
 
 // Upload a file or directory to S3.
@@ -134,10 +143,7 @@ func forgetUploads(root, path string) {
 func upload(root, path string, force bool, extension string) (*s3Path, error) {
 	path = resolvePath(root, path)
 
-	artifactName := path
-	if force {
-		artifactName = "zip:" + artifactName
-	}
+	artifactName := uploadKey{path: path, zip: force, extension: extension}
 
 	if result, ok := uploads[artifactName]; ok {
 		config.Debugf("Using existing upload for: %s\n", path)
