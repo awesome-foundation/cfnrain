@@ -11,7 +11,9 @@ import (
 // Global, set by command arg --node-style
 var NodeStyle string
 
-var NodeStyleDocs = "Set the node output style to tagged, doublequoted, singlequoted, literal, folded, strict-boolean (alias strict-booleans), quotescalars, original, or flow"
+const nodeStyleNames = "tagged, doublequoted, singlequoted, literal, folded, strict-boolean (alias strict-booleans), quotescalars, original, or flow"
+
+var NodeStyleDocs = "Set the node output style to " + nodeStyleNames
 
 func joinComments(comments []string) string {
 	var out []string
@@ -231,7 +233,7 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 		n.Style = yaml.FlowStyle
 	case "original":
 		// Do nothing, leave it alone
-	case "strict-boolean", "strict-booleans":
+	case "strict-booleans":
 		// Enforce YAML 1.2 behavior: Only `true` and `false` are booleans, all others are strings
 		if n.Kind == yaml.ScalarNode && n.Tag == "!!str" && isAmbiguousScalar(n.Value) {
 			n.Style = yaml.DoubleQuotedStyle
@@ -242,7 +244,7 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 		// Default style for consistent formatting
 		n.Style = 0
 	default:
-		panic("invalid --node-style: " + NodeStyle)
+		panic("invalid --node-style: " + NodeStyle + ". Valid names: " + nodeStyleNames)
 	}
 
 	// A function tag hides the argument's string type from the YAML encoder.
