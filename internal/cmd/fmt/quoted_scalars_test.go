@@ -13,10 +13,17 @@ func TestQuotedStylesPreserveScalarTypes(t *testing.T) {
   Float: 1.5
   Boolean: true
   NullValue: null
-  Strings: ['0', '1.0', 'true', 'null', text]
+  Strings:
+    - '0'
+    - '1.0'
+    - 'true'
+    - 'null'
+    - text
 Outputs:
   Selected:
-    Value: !Select [0, [a, b]]
+    Value: !Select
+      - 0
+      - [a, b]
   Reference:
     Value: !Ref Name
 `
@@ -54,5 +61,56 @@ Outputs:
 				t.Fatalf("second format changed the output:\n%s", second.output)
 			}
 		})
+	}
+}
+
+func TestQuotedStylesPreserveFunctionScalarTypes(t *testing.T) {
+	oldStyle := format.NodeStyle
+	t.Cleanup(func() { format.NodeStyle = oldStyle })
+	for _, style := range []string{"singlequoted", "doublequoted", "quotescalars"} {
+		for _, argument := range []string{"!GetAZs ~", "!GetAZs null", "!Base64 true", "!Ref 1", "!Ref 1.5", "!Ref '1'", "!Base64 'true'", "!GetAZs 'null'", "!GetAZs ''", "!GetAtt Bucket.Arn"} {
+			t.Run(style+"/"+argument, func(t *testing.T) {
+				format.NodeStyle = style
+				var first, second result
+				formatString("Outputs:\n  Test:\n    Value: "+argument+"\n", &first)
+				if first.err != nil {
+					t.Fatal(first.err)
+				}
+				formatString(first.output, &second)
+				if second.err != nil {
+					t.Fatal(second.err)
+				}
+				if !second.ok {
+					t.Fatalf("output would reformat:\n%s", first.output)
+				}
+			})
+		}
+	}
+}
+
+func TestQuoteScalarsPreservesFlowCollections(t *testing.T) {
+	oldStyle := format.NodeStyle
+	t.Cleanup(func() { format.NodeStyle = oldStyle })
+	format.NodeStyle = "quotescalars"
+	const input = `Metadata:
+  Joined: !Join ["", [a, !Ref AWS::Region]]
+  Tags: [{Key: k, Value: v}]
+`
+	var first, second result
+	formatString(input, &first)
+	if first.err != nil {
+		t.Fatal(first.err)
+	}
+	for _, want := range []string{`!Join ["", ["a", !Ref "AWS::Region"]]`, `[{"Key": "k", "Value": "v"}]`} {
+		if !strings.Contains(first.output, want) {
+			t.Errorf("missing flow collection %s in:\n%s", want, first.output)
+		}
+	}
+	formatString(first.output, &second)
+	if second.err != nil {
+		t.Fatal(second.err)
+	}
+	if !second.ok {
+		t.Fatalf("output would reformat:\n%s", first.output)
 	}
 }
