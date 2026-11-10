@@ -4,6 +4,8 @@
 
 Use it to share tags, policies, or whole resource definitions between templates.
 
+For paths used in modules, see [File paths in module resources](../modules/index.md#file-paths-in-module-resources).
+
 ## Example
 
 The template:

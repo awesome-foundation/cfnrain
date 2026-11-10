@@ -161,6 +161,7 @@ func (module *Module) resolveParam(params *yaml.Node, n *yaml.Node, parentProps 
 			}
 		}
 
+		module.ParentTemplate.Origins.Copy(n, parentVal)
 		*n = *parentVal
 
 		return true, nil

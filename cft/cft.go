@@ -44,6 +44,7 @@ type Template struct {
 	ModuleMaps     map[string]*ModuleConfig
 	ModuleOutputs  map[string]*yaml.Node
 	ModuleResolved []*yaml.Node
+	Origins        node.Origins
 }
 
 // Map returns the template as a map[string]interface{}

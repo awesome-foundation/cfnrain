@@ -4,6 +4,8 @@
 
 Use it for inline Lambda code, scripts, policies in a text format, and other text that is easier to edit in its own file.
 
+For paths used in modules, see [File paths in module resources](../modules/index.md#file-paths-in-module-resources).
+
 ## Example
 
 The template:

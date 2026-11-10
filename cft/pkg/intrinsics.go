@@ -82,7 +82,7 @@ func FnJoin(n *yaml.Node) error {
 
 // FnMerge merges objects and lists together.
 // The arguments must be fully resolvable client-side
-func FnMerge(n *yaml.Node) error {
+func FnMerge(n *yaml.Node, origins ...node.Origins) error {
 
 	var err error
 	vf := func(v *visitor.Visitor) {
@@ -109,7 +109,7 @@ func FnMerge(n *yaml.Node) error {
 		}
 		merged := &yaml.Node{}
 		for _, nodeToMerge := range mrg.Content {
-			merged = node.MergeNodes(merged, nodeToMerge)
+			merged = node.MergeNodes(merged, nodeToMerge, origins...)
 		}
 		*vn = *merged
 	}
@@ -175,7 +175,7 @@ func FnSelect(n *yaml.Node) error {
 }
 
 // FnInsertFile inserts the contents of a local file into the template
-func FnInsertFile(n *yaml.Node, basePath string) error {
+func FnInsertFile(n *yaml.Node, basePath string, origins ...node.Origins) error {
 
 	var err error
 	vf := func(v *visitor.Visitor) {
@@ -201,7 +201,11 @@ func FnInsertFile(n *yaml.Node, basePath string) error {
 		// Resolve the file path (handle relative paths)
 		path := filePath.Value
 		if !filepath.IsAbs(path) {
-			path = filepath.Join(basePath, path)
+			root := basePath
+			for _, source := range origins {
+				root = source.Directory(filePath, root)
+			}
+			path = filepath.Join(root, path)
 		}
 
 		// Read the file contents
@@ -310,7 +314,7 @@ func (module *Module) FnInvoke(n *yaml.Node) error {
 		}
 
 		// Get the module content
-		moduleContent, getErr := getModuleContent(module.Parsed.RootDir, module.ParentTemplate, module.Parsed.FS, "", moduleConfig.Source)
+		moduleContent, getErr := getModuleContent(t.Origins.Directory(sourceValue(moduleNode), module.Parsed.RootDir), module.ParentTemplate, module.Parsed.FS, t.Origins.BaseURI(sourceValue(moduleNode), ""), moduleConfig.Source)
 		if getErr != nil {
 			err = fmt.Errorf("failed to get module content for %s: %v", moduleNameStr, getErr)
 			v.Stop()
@@ -325,12 +329,14 @@ func (module *Module) FnInvoke(n *yaml.Node) error {
 			return
 		}
 
+		t.Origins.MarkModule(parsed.Node, moduleContent.NewRootDir, moduleContent.BaseUri)
+
 		// Create a copy of the module config with the overridden parameters
 		newModuleConfig := *moduleConfig
 
 		// Create a deep copy of the PropertiesNode or create a new one if it doesn't exist
 		if moduleConfig.PropertiesNode != nil {
-			newModuleConfig.PropertiesNode = node.Clone(moduleConfig.PropertiesNode)
+			newModuleConfig.PropertiesNode = node.Clone(moduleConfig.PropertiesNode, t.Origins)
 		} else {
 			newModuleConfig.PropertiesNode = node.MakeMapping()
 		}
@@ -343,13 +349,13 @@ func (module *Module) FnInvoke(n *yaml.Node) error {
 			// Add or replace the parameter in the module config
 			node.RemoveFromMap(newModuleConfig.PropertiesNode, paramName)
 			newModuleConfig.PropertiesNode.Content = append(newModuleConfig.PropertiesNode.Content,
-				node.Clone(parameters.Content[i]), node.Clone(paramValue))
+				node.Clone(parameters.Content[i], t.Origins), node.Clone(paramValue, t.Origins))
 		}
 
 		// Create a temporary module to process
 		tempModule := &Module{
 			Config:         &newModuleConfig,
-			Node:           node.Clone(parsed.Node),
+			Node:           node.Clone(parsed.Node, t.Origins),
 			ParentTemplate: module.ParentTemplate,
 			Parsed:         parsed,
 		}
@@ -376,7 +382,7 @@ func (module *Module) FnInvoke(n *yaml.Node) error {
 					_, valueNode, _ := s11n.GetMapValue(outputObj, "Value")
 					if valueNode != nil {
 						// Clone the output value
-						result = node.Clone(valueNode)
+						result = node.Clone(valueNode, t.Origins)
 
 						// Resolve references in the output value
 						err = tempModule.Resolve(result)
@@ -387,7 +393,7 @@ func (module *Module) FnInvoke(n *yaml.Node) error {
 						}
 
 						// Process any intrinsic functions in the result
-						err = ExtraIntrinsics(result, tempModule.Parsed.RootDir)
+						err = ExtraIntrinsics(result, tempModule.Parsed.RootDir, t.Origins)
 						if err != nil {
 							err = fmt.Errorf("failed to process intrinsic functions in output %s: %v", outputKeyStr, err)
 							v.Stop()
@@ -407,6 +413,7 @@ func (module *Module) FnInvoke(n *yaml.Node) error {
 		}
 
 		// Replace the Fn::Invoke node with the result
+		t.Origins.Copy(vn, result)
 		*vn = *result
 	}
 	visitor.NewVisitor(n).Visit(vf)

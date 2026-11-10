@@ -76,7 +76,13 @@ func transform(ctx *transformContext) (bool, error) {
 		for found := range s11n.MatchAll(ctx.nodeToTransform, path) {
 			nodeParent := node.GetParent(found, ctx.nodeToTransform, nil)
 			nodeParent.Parent = ctx.parent
-			c, err := fn(&directiveContext{found, ctx.rootDir, ctx.t, nodeParent, ctx.fs, ctx.baseUri})
+			root := ctx.rootDir
+			baseURI := ctx.baseUri
+			if len(found.Content) == 2 {
+				root = ctx.t.Origins.Directory(found.Content[1], root)
+				baseURI = ctx.t.Origins.BaseURI(found.Content[1], baseURI)
+			}
+			c, err := fn(&directiveContext{found, root, ctx.t, nodeParent, ctx.fs, baseURI})
 			if err != nil {
 				config.Debugf("Error packaging template: %s\n", err)
 				if path := packagingPath(ctx.nodeToTransform, found); path != "" {
@@ -157,6 +163,10 @@ func processRainSection(t *cft.Template) error {
 // rootDir must be passed in so that any included assets can be loaded from the same directory
 func Template(t *cft.Template, rootDir string, fs *embed.FS) (*cft.Template, error) {
 	var err error
+	if t.Origins == nil {
+		t.Origins = make(node.Origins)
+	}
+	t.Origins.Mark(t.Node, rootDir)
 
 	// First look for a Rain section and store constants
 	err = processRainSection(t)

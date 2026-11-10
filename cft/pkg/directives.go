@@ -35,6 +35,7 @@ type s3Options struct {
 	Format         s3Format `yaml:"Format"`
 	Run            string   `yaml:"Run"`
 	Extension      string   `yaml:"Extension"`
+	runRoot        string
 }
 
 type directiveContext struct {
@@ -97,6 +98,7 @@ func includeLiteral(ctx *directiveContext) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	ctx.t.Origins.Mark(&contentNode, filepath.Dir(path))
 
 	_, err = transform(&transformContext{
 		nodeToTransform: &contentNode,
@@ -177,7 +179,11 @@ func handleS3(root string, options s3Options) (*yaml.Node, error) {
 
 	// Check to see if we need to run a build command first
 	if options.Run != "" {
-		if err := runS3Command(root, options.Run); err != nil {
+		runRoot := options.runRoot
+		if runRoot == "" {
+			runRoot = root
+		}
+		if err := runS3Command(runRoot, options.Run); err != nil {
 			return nil, err
 		}
 		forgetUploads(root, options.Path)
@@ -253,7 +259,7 @@ func includeS3Object(ctx *directiveContext) (bool, error) {
 						_, parentProp, _ := s11n.GetMapValue(moduleParentProps, s3opt.Content[1].Value)
 						if parentProp != nil {
 							// Replace the Ref with the value
-							node.SetMapValue(n.Content[1], name, node.Clone(parentProp))
+							node.SetMapValue(n.Content[1], name, node.Clone(parentProp, ctx.t.Origins))
 						} else {
 							config.Debugf("expected Properties to have Path")
 						}
@@ -273,7 +279,10 @@ func includeS3Object(ctx *directiveContext) (bool, error) {
 		return false, err
 	}
 
-	newNode, err := handleS3(ctx.rootDir, options)
+	_, pathNode, _ := s11n.GetMapValue(n.Content[1], "Path")
+	_, runNode, _ := s11n.GetMapValue(n.Content[1], "Run")
+	options.runRoot = ctx.t.Origins.Directory(runNode, ctx.rootDir)
+	newNode, err := handleS3(ctx.t.Origins.Directory(pathNode, ctx.rootDir), options)
 	if err != nil {
 		return false, err
 	}

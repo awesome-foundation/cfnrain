@@ -193,6 +193,9 @@ func getModuleContent(
 		}
 	}
 
+	if newRootDir == "" {
+		newRootDir = root
+	}
 	retval := &ModuleContent{content, newRootDir, baseUri}
 	contentCache[cacheKey] = retval
 	return retval, nil

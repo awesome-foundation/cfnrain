@@ -35,6 +35,7 @@ func rainConstant(ctx *directiveContext) (bool, error) {
 		return false, fmt.Errorf("rain constant %s not found", name)
 	}
 
+	ctx.t.Origins.Copy(ctx.n, val)
 	*ctx.n = *val
 
 	return true, nil
@@ -145,6 +146,15 @@ func replaceTemplateConstants(t *cft.Template, definitions *yaml.Node) error {
 
 			key := yamlNode.Content[0].Value
 			switch key {
+			case "Rain::Constant":
+				name := yamlNode.Content[1].Value
+				if val, ok := constants[name]; ok {
+					if err = t.ConstantErrors[name]; err != nil {
+						return
+					}
+					t.Origins.Copy(yamlNode, val)
+					*yamlNode = *node.Clone(val, t.Origins)
+				}
 			case "Fn::Sub":
 				arg := yamlNode.Content[1]
 				if arg.Kind == yaml.SequenceNode && len(arg.Content) == 2 {
@@ -177,7 +187,8 @@ func replaceTemplateConstants(t *cft.Template, definitions *yaml.Node) error {
 						err = fmt.Errorf("constant %s not found", constName)
 						return
 					}
-					*yamlNode = *node.Clone(constVal)
+					t.Origins.Copy(yamlNode, constVal)
+					*yamlNode = *node.Clone(constVal, t.Origins)
 				}
 			}
 		}
