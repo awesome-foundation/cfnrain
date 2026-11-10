@@ -15,23 +15,32 @@ func TestUnsortedKeyComments(t *testing.T) {
 	t.Cleanup(func() { format.NodeStyle, unsortedFlag = oldStyle, oldUnsorted })
 	unsortedFlag = true
 	for _, style := range []string{"flow", "tagged"} {
-		for _, input := range []string{
-			"Resources:\n  R: # rline\n    Type: AWS::SNS::Topic\n",
-			"Metadata: # section\n  Z: # collection\n    - a\n    - b\n  A: last\n",
-			"Metadata:\n  Z: # scalar\n    text\n  A: {} # empty\n",
-			"Metadata:\n  # head\n  Z: # key\n    K: v\n  A: last\n",
+		for _, tc := range []struct {
+			name, input, wantFlow string
+			comments              []string
+		}{
+			{"resource", "Resources:\n  R: # rline\n    Type: AWS::SNS::Topic\n", "", []string{"# rline"}},
+			{"sequence", "Metadata: # section\n  Z: # collection\n    - a\n    - b\n  A: last\n", "", []string{"# section", "# collection"}},
+			{"scalar and empty value", "Metadata:\n  Z: # scalar\n    text\n  A: {} # empty\n", "", []string{"# scalar", "# empty"}},
+			{"head", "Metadata:\n  # head\n  Z: # key\n    K: v\n  A: last\n", "", []string{"# head", "# key"}},
+			{"empty mapping", "Resources:\n  R: # empty\n    {}\n", "", []string{"# empty"}},
+			{"empty sequence", "Resources:\n  R: # empty\n    []\n", "", []string{"# empty"}},
+			{"scalar compatibility", "Metadata:\n  Z: # scalar\n    text\n", "{Metadata: {Z: text, # scalar\n\n}}\n", []string{"# scalar"}},
 		} {
-			t.Run(style+"/"+input, func(t *testing.T) {
+			t.Run(style+"/"+tc.name, func(t *testing.T) {
 				format.NodeStyle = style
 				var first, second result
-				formatString(input, &first)
+				formatString(tc.input, &first)
 				if first.err != nil {
 					t.Fatal(first.err)
 				}
-				for _, comment := range []string{"# rline", "# section", "# collection", "# scalar", "# empty", "# head", "# key"} {
-					if strings.Count(first.output, comment) != strings.Count(input, comment) {
+				for _, comment := range tc.comments {
+					if strings.Count(first.output, comment) != strings.Count(tc.input, comment) {
 						t.Fatalf("comment %q lost or duplicated:\n%s", comment, first.output)
 					}
+				}
+				if style == "flow" && tc.wantFlow != "" && first.output != tc.wantFlow {
+					t.Fatalf("output changed from main:\n%s\nwant:\n%s", first.output, tc.wantFlow)
 				}
 				formatString(first.output, &second)
 				if second.err != nil || !second.ok || first.output != second.output {

@@ -146,9 +146,8 @@ func moveUnsortedKeyComments(n *yaml.Node) {
 	if n.Kind == yaml.MappingNode {
 		for i := 0; i < len(n.Content); i += 2 {
 			key, value := n.Content[i], n.Content[i+1]
-			taggedCollection := value.Style&yaml.TaggedStyle != 0 && len(value.Content) > 0 &&
-				(value.Kind == yaml.MappingNode || value.Kind == yaml.SequenceNode)
-			if key.LineComment != "" && (n.Style&yaml.FlowStyle != 0 || taggedCollection) {
+			collection := value.Kind == yaml.MappingNode || value.Kind == yaml.SequenceNode
+			if key.LineComment != "" && collection && (n.Style&yaml.FlowStyle != 0 || value.Style&yaml.TaggedStyle != 0) {
 				key.HeadComment = joinComments([]string{key.HeadComment, key.LineComment})
 				key.LineComment = ""
 			}
