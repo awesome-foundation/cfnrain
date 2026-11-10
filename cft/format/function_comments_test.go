@@ -240,24 +240,35 @@ func checkCommentRoundTrip(t *testing.T, template *cft.Template, actual string) 
 	}
 }
 
-func TestScalarFunctionLineCommentsInLists(t *testing.T) {
-	for _, tt := range []struct{ name, input, expected string }{
-		{"empty GetAZs", `Fn::GetAZs: "" # c`, `!GetAZs "" # c`},
-		{"Base64", "Fn::Base64: x # c", "!Base64 x # c"},
-		{"Ref", "!Ref AWS::Region # c", "!Ref AWS::Region # c"},
+func TestScalarFunctionComments(t *testing.T) {
+	for _, function := range []struct{ name, input, expected string }{
+		{"empty GetAZs", `Fn::GetAZs: ""`, `!GetAZs ""`},
+		{"single quoted GetAZs", "Fn::GetAZs: ''", `!GetAZs ""`},
+		{"short GetAZs", `!GetAZs ""`, `!GetAZs ""`},
+		{"empty Base64", `Fn::Base64: ""`, `!Base64 ""`},
+		{"Base64", "Fn::Base64: x", "!Base64 x"},
+		{"Ref", "!Ref AWS::Region", "!Ref AWS::Region"},
+		{"ImportValue", "Fn::ImportValue: x", "!ImportValue x"},
 	} {
-		t.Run(tt.name, func(t *testing.T) {
-			input := "Outputs:\n  Example:\n    Value:\n      - " + tt.input + "\n      - next\n"
-			expected := "Outputs:\n  Example:\n    Value:\n      - " + tt.expected + "\n      - next\n"
-			template, err := parse.String(input)
-			if err != nil {
-				t.Fatal(err)
-			}
-			actual := format.String(template, format.Options{})
-			if d := cmp.Diff(expected, actual); d != "" {
-				t.Errorf("first format: %s", d)
-			}
-			checkCommentRoundTrip(t, template, actual)
-		})
+		for _, context := range []struct{ name, input, expected string }{
+			{"list line comment", "    Value:\n      - %s # c\n      - next\n", "    Value:\n      - %s # c\n      - next\n"},
+			{"last item", "    Value:\n      - previous\n      - %s # c\n", "    Value:\n      - previous\n      - %s # c\n"},
+			{"list head comment", "    Value:\n      # head\n      - %s\n      - next\n", "    Value:\n\n      # head\n      - %s\n      - next\n"},
+			{"mapping value", "    Value:\n      %s # c\n    Export:\n      Name: n\n", "    Value: %s # c\n    Export:\n      Name: n\n"},
+		} {
+			t.Run(function.name+"/"+context.name, func(t *testing.T) {
+				input := "Outputs:\n  Example:\n" + fmt.Sprintf(context.input, function.input)
+				expected := "Outputs:\n  Example:\n" + fmt.Sprintf(context.expected, function.expected)
+				template, err := parse.String(input)
+				if err != nil {
+					t.Fatal(err)
+				}
+				actual := format.String(template, format.Options{})
+				if d := cmp.Diff(expected, actual); d != "" {
+					t.Errorf("first format: %s", d)
+				}
+				checkCommentRoundTrip(t, template, actual)
+			})
+		}
 	}
 }

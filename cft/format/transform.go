@@ -175,11 +175,6 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 			last.FootComment = joinComments([]string{last.FootComment, formatted.FootComment})
 			formatted.FootComment = ""
 		}
-		if n.Kind == yaml.SequenceNode && formatted.Kind == yaml.ScalarNode && formatted.Value == "" && formatted.LineComment != "" {
-			// yaml.v3 attaches a bare empty scalar's line comment to the next item.
-			// Quote the argument so the comment stays on this item.
-			formatted.Style = yaml.DoubleQuotedStyle
-		}
 		n.Content[i] = formatted
 	}
 
@@ -224,6 +219,13 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 	}
 	// A literal << string must stay quoted so it cannot become a merge key.
 	if n.Kind == yaml.ScalarNode && n.Tag == "!!str" && n.Value == "<<" && (n.Style == 0 || n.Style == yaml.FlowStyle) {
+		n.Style = yaml.DoubleQuotedStyle
+	}
+
+	// yaml.v3 can attach comments on a bare empty short-form argument to the
+	// next node. Quote the argument so head and line comments stay with it.
+	if n.Kind == yaml.ScalarNode && n.Value == "" && strings.HasPrefix(n.Tag, "!") && !strings.HasPrefix(n.Tag, "!!") &&
+		(n.HeadComment != "" || n.LineComment != "") {
 		n.Style = yaml.DoubleQuotedStyle
 	}
 
