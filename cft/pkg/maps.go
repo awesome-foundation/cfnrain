@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/awesome-foundation/cfnrain/cft"
-	"github.com/awesome-foundation/cfnrain/cft/parse"
 	"github.com/awesome-foundation/cfnrain/cft/visitor"
 	"github.com/awesome-foundation/cfnrain/internal/node"
 	"github.com/awesome-foundation/cfnrain/internal/s11n"
@@ -45,7 +44,7 @@ func mapPlaceholders(n *yaml.Node, index int, key string, identifier string) {
 				case string(cft.Sub):
 					r := replaceMapStr(content[1].Value,
 						index, key, identifier)
-					if parse.IsSubNeeded(r) {
+					if isSubNeeded(r) {
 						yamlNode.Value = r
 					} else {
 						*yamlNode = *node.MakeScalar(r)

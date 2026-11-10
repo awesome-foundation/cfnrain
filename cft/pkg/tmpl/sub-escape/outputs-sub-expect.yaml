@@ -1,0 +1,6 @@
+Outputs:
+  Escaped:
+    Value: !Sub ${!Name}-x
+
+  Region:
+    Value: !Sub ${AWS::Region}-x

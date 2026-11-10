@@ -252,7 +252,7 @@ func (module *Module) OutputSub(outputName string, outputVal any, n *yaml.Node) 
 					v := outputValue.Content[1]
 					switch outputValue.Content[0].Value {
 					case string(cft.Sub):
-						sub += "${" + v.Value + "}"
+						sub += v.Value
 					case string(cft.GetAtt):
 						ss := node.SequenceToStrings(v)
 						joined := strings.Join(ss, ".")
@@ -268,7 +268,7 @@ func (module *Module) OutputSub(outputName string, outputVal any, n *yaml.Node) 
 	}
 
 	var subNode *yaml.Node
-	if parse.IsSubNeeded(sub) {
+	if isSubNeeded(sub) {
 		subNode = node.MakeMapping()
 		subNode.Content = append(subNode.Content, node.MakeScalar(string(cft.Sub)))
 		subNode.Content = append(subNode.Content, node.MakeScalar(sub))

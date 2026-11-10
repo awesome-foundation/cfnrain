@@ -1,0 +1,7 @@
+Modules:
+  M:
+    Source: ./maps-module.yaml
+    ForEach: [resolved]
+    Properties:
+      Plain: !Sub '${!Name}'
+      Mixed: !Sub '${$Identifier}-${!Name}'

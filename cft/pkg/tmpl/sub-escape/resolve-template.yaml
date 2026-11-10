@@ -1,0 +1,5 @@
+Modules:
+  M:
+    Source: ./resolve-module.yaml
+    Properties:
+      Prefix: resolved

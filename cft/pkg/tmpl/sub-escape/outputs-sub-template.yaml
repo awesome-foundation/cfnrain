@@ -1,0 +1,8 @@
+Modules:
+  M:
+    Source: ./outputs-sub-module.yaml
+Outputs:
+  Escaped:
+    Value: !Sub '${M.Esc}-x'
+  Region:
+    Value: !Sub '${M.Region}-x'

@@ -1,0 +1,12 @@
+Outputs:
+  Plain:
+    Value: !Sub ${!Name}
+
+  Mixed:
+    Value: !Sub resolved-${!Name}
+
+  Nested:
+    Value: !Sub ${!Name}
+
+  NestedMixed:
+    Value: !Sub resolved-${!Name}

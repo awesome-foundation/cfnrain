@@ -34,6 +34,14 @@ func TestSub(t *testing.T) {
 	runTest("sub", t)
 }
 
+func TestSubEscape(t *testing.T) {
+	for _, name := range []string{"resolve", "maps", "outputs", "outputs-sub", "constants", "maps-control"} {
+		t.Run(name, func(t *testing.T) {
+			runTest("sub-escape/"+name, t)
+		})
+	}
+}
+
 func TestMany(t *testing.T) {
 	runTest("many", t)
 }

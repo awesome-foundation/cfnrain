@@ -236,9 +236,9 @@ func (module *Module) ResolveSub(n *yaml.Node) error {
 		}
 	}
 
-	// Put the sub back if there were any unresolved variables
+	// Keep Sub for unresolved variables and escaped variables.
 	var newProp *yaml.Node
-	if parse.IsSubNeeded(sub) {
+	if isSubNeeded(sub) {
 		newProp = node.MakeMapping()
 		newProp.Content = append(newProp.Content, node.MakeScalar(string(cft.Sub)))
 		newProp.Content = append(newProp.Content, node.MakeScalar(sub))

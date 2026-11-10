@@ -1,0 +1,12 @@
+Resources:
+  MPlain:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !Sub ${!Name}
+
+  MMixed:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !Sub resolved-${!Name}

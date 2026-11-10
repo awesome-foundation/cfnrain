@@ -1,0 +1,6 @@
+Resources: {}
+Outputs:
+  Esc:
+    Value: !Sub '${!Name}'
+  Region:
+    Value: !Sub '${AWS::Region}'
