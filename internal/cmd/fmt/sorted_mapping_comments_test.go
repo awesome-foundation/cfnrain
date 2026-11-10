@@ -15,7 +15,7 @@ func TestSortedMappingComments(t *testing.T) {
 	oldStyle := format.NodeStyle
 	t.Cleanup(func() { format.NodeStyle = oldStyle })
 	for _, section := range []string{"Metadata", "Parameters", "Resources", "Outputs", "Transform"} {
-		for _, style := range []string{"original", "flow"} {
+		for _, style := range []string{"original", "flow", "quotescalars"} {
 			t.Run(section+"/"+style, func(t *testing.T) {
 				input := section + ":\n  M: {a: 1} # c\n  E: {} # d\n"
 				if section != "Resources" {
@@ -57,10 +57,27 @@ func TestEmptySortedMappingComments(t *testing.T) {
 func TestSortedMappingDefaultStyle(t *testing.T) {
 	oldStyle := format.NodeStyle
 	t.Cleanup(func() { format.NodeStyle = oldStyle })
-	output := checkSortedMappingFormat(t, "Metadata:\n  M: {a: 1} # c\n  E: {} # d\nResources: {}\n", "")
-	want := "Metadata:\n\n  # c\n  M:\n    a: 1\n\n  E: {} # d\n\nResources: {}\n"
-	if output != want {
-		t.Fatalf("output:\n%swant:\n%s", output, want)
+	for _, style := range []string{"", "flow", "quotescalars"} {
+		t.Run(style, func(t *testing.T) {
+			output := checkSortedMappingFormat(t, "Metadata:\n  M: {a: 1} # c\n  E: {} # d\nResources: {}\n", style)
+			want := "Metadata:\n\n  # c\n  M:\n    a: 1\n\n  E: {} # d\n\nResources: {}\n"
+			if style == "quotescalars" {
+				want = "\"Metadata\":\n\n  # c\n  \"M\":\n    \"a\": 1\n\n  \"E\": {} # d\n\n\"Resources\": {}\n"
+			}
+			if output != want {
+				t.Fatalf("output:\n%swant:\n%s", output, want)
+			}
+		})
+	}
+}
+
+func TestSortedRootMappingComment(t *testing.T) {
+	oldStyle := format.NodeStyle
+	t.Cleanup(func() { format.NodeStyle = oldStyle })
+	for _, style := range []string{"flow", "quotescalars"} {
+		t.Run(style, func(t *testing.T) {
+			checkSortedMappingFormat(t, "{Metadata: {M: {a: 1}}, Resources: {}} # c\n", style)
+		})
 	}
 }
 

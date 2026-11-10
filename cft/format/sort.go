@@ -72,7 +72,14 @@ func orderTemplate(node *yaml.Node) *yaml.Node {
 		node = node.Content[0]
 	}
 
-	return orderNode(node, orders)
+	out := orderNode(node, orders)
+	if out.Style&yaml.FlowStyle == 0 && out.LineComment != "" && len(out.Content) > 0 {
+		// The root has no parent key to carry its trailing comment.
+		first := out.Content[0]
+		first.HeadComment = joinComments([]string{out.LineComment, first.HeadComment})
+		out.LineComment = ""
+	}
+	return out
 }
 
 type nodeMap struct {
@@ -123,6 +130,13 @@ func orderNode(node *yaml.Node, order ordering) *yaml.Node {
 		} else if subOrder, ok := order.children["*"]; ok {
 			nm.values[key] = orderNode(value, subOrder)
 		}
+		child := nm.values[key]
+		if child.Kind == yaml.MappingNode && child.Style&yaml.FlowStyle == 0 && child.LineComment != "" && len(child.Content) > 0 {
+			// Keep the trailing comment above the property when its mapping becomes block style.
+			property := nm.keyMap[key]
+			property.HeadComment = joinComments([]string{property.HeadComment, child.LineComment})
+			child.LineComment = ""
+		}
 	}
 
 	// Build the output node
@@ -151,13 +165,6 @@ func orderNode(node *yaml.Node, order ordering) *yaml.Node {
 			out.Content = append(out.Content, key)
 			out.Content = append(out.Content, nm.values[key.Value])
 		}
-	}
-
-	if out.Style&yaml.FlowStyle == 0 && out.LineComment != "" && len(out.Content) > 0 {
-		// Block mappings have no closing delimiter for a line comment.
-		first := out.Content[0]
-		first.HeadComment = joinComments([]string{out.LineComment, first.HeadComment})
-		out.LineComment = ""
 	}
 
 	return &out
