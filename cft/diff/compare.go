@@ -102,7 +102,7 @@ func equalInterfaceMaps(old, new map[interface{}]interface{}) bool {
 		if number, ok := key.(float64); ok && math.IsNaN(number) {
 			matched := false
 			for i, candidate := range nanValues {
-				if compareValues(val, candidate).Mode() == Unchanged {
+				if equalYAMLValues(val, candidate) {
 					nanValues = append(nanValues[:i], nanValues[i+1:]...)
 					matched = true
 					break
@@ -111,9 +111,49 @@ func equalInterfaceMaps(old, new map[interface{}]interface{}) bool {
 			if !matched {
 				return false
 			}
-		} else if candidate, ok := new[key]; !ok || compareValues(val, candidate).Mode() != Unchanged {
+		} else if candidate, ok := new[key]; !ok || !equalYAMLValues(val, candidate) {
 			return false
 		}
 	}
 	return true
+}
+
+// equalYAMLValues keeps DeepEqual semantics inside non-string-keyed mappings,
+// except that YAML NaN values compare as equal. This equality is symmetric, so
+// the one-to-one NaN-key match does not depend on map iteration order.
+func equalYAMLValues(old, new interface{}) bool {
+	if reflect.TypeOf(old) != reflect.TypeOf(new) {
+		return false
+	}
+	switch v := old.(type) {
+	case float64:
+		n := new.(float64)
+		return v == n || (math.IsNaN(v) && math.IsNaN(n))
+	case []interface{}:
+		n := new.([]interface{})
+		if len(v) != len(n) || (v == nil) != (n == nil) {
+			return false
+		}
+		for i, val := range v {
+			if !equalYAMLValues(val, n[i]) {
+				return false
+			}
+		}
+		return true
+	case map[string]interface{}:
+		n := new.(map[string]interface{})
+		if len(v) != len(n) || (v == nil) != (n == nil) {
+			return false
+		}
+		for key, val := range v {
+			if candidate, ok := n[key]; !ok || !equalYAMLValues(val, candidate) {
+				return false
+			}
+		}
+		return true
+	case map[interface{}]interface{}:
+		return equalInterfaceMaps(v, new.(map[interface{}]interface{}))
+	default:
+		return reflect.DeepEqual(old, new)
+	}
 }

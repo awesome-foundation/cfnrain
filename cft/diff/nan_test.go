@@ -18,6 +18,11 @@ func TestCompareNaN(t *testing.T) {
 		{"string", math.NaN(), ".nan", Changed},
 		{"null", math.NaN(), nil, Changed},
 		{"slice", []interface{}{math.NaN()}, []interface{}{math.NaN()}, Unchanged},
+		{"numeric empty to null", map[interface{}]interface{}{80: ""}, map[interface{}]interface{}{80: nil}, Changed},
+		{"numeric null to empty", map[interface{}]interface{}{80: nil}, map[interface{}]interface{}{80: ""}, Changed},
+		{"nested empty to null", map[interface{}]interface{}{80: map[string]interface{}{"v": []interface{}{""}}}, map[interface{}]interface{}{80: map[string]interface{}{"v": []interface{}{nil}}}, Changed},
+		{"nil to empty list", map[interface{}]interface{}{80: []interface{}(nil)}, map[interface{}]interface{}{80: []interface{}{}}, Changed},
+		{"nil to empty mapping", map[interface{}]interface{}{80: map[string]interface{}(nil)}, map[interface{}]interface{}{80: map[string]interface{}{}}, Changed},
 		{"numeric key", map[interface{}]interface{}{80: math.NaN()}, map[interface{}]interface{}{80: math.NaN()}, Unchanged},
 		{"nested list", map[interface{}]interface{}{80: []interface{}{math.NaN()}}, map[interface{}]interface{}{80: []interface{}{math.NaN()}}, Unchanged},
 		{"numeric key change", map[interface{}]interface{}{80: math.NaN()}, map[interface{}]interface{}{81: math.NaN()}, Changed},
@@ -36,5 +41,15 @@ func TestCompareNaN(t *testing.T) {
 				t.Fatalf("got %v, want %v", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestNaNKeyMatchingIsIndependentOfMapOrder(t *testing.T) {
+	for i := 0; i < 1000; i++ {
+		a := map[interface{}]interface{}{math.NaN(): "", math.NaN(): nil}
+		b := map[interface{}]interface{}{math.NaN(): nil, math.NaN(): ""}
+		if compareValues(a, b).Mode() != Unchanged || compareValues(b, a).Mode() != Unchanged {
+			t.Fatal("NaN key matching changed with map iteration order")
+		}
 	}
 }

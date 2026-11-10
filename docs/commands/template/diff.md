@@ -18,4 +18,4 @@ cfnrain diff old.yaml new.yaml
 
 `(+)` is an addition, `(-)` is a removal, `(>)` is a change and `(|)` is a parent of a change. `-l` (`--long`) also shows the parts that did not change. `diff` compares two local files. It does not compare a file with a deployed stack.
 
-YAML NaN values compare as equal, including values under numeric keys and NaN mapping keys. Changes to other values still appear.
+`diff` treats every YAML NaN value as equal to every other NaN value.

@@ -42,3 +42,24 @@ func TestStylesPreserveNaN(t *testing.T) {
 		}
 	}
 }
+
+func TestNaNKeysWithEmptyAndNullValues(t *testing.T) {
+	oldStyle := format.NodeStyle
+	t.Cleanup(func() { format.NodeStyle = oldStyle })
+	format.NodeStyle = ""
+	const input = `M: {P: {.nan: "", .NaN: null}}`
+	for i := 0; i < 100; i++ {
+		var first, second result
+		formatString(input, &first)
+		if first.err != nil {
+			t.Fatal(first.err)
+		}
+		formatString(first.output, &second)
+		if second.err != nil {
+			t.Fatal(second.err)
+		}
+		if !second.ok || first.output != second.output {
+			t.Fatalf("output would reformat:\n%s", second.output)
+		}
+	}
+}
