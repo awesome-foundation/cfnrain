@@ -67,6 +67,8 @@ Outputs:
 
 Inside `!Sub`, CloudFormation resolves `${!HOME}` to the literal text `${HOME}`, so the output value is `${HOME}-x`. A module expression `!Ref Name` gets `${!HOME}` unchanged.
 
+For an EC2 launch template, use `Name: '\${!HOME}'` as the [AWS `Fn::Sub` reference](https://docs.aws.amazon.com/AWSCloudFormation/latest/TemplateReference/intrinsic-function-reference-sub.html#intrinsic-function-reference-sub-parameters) requires.
+
 You can also pass a reference on purpose. With `Name: '${AWS::Region}'`, `pkg` produces `Value: !Sub ${AWS::Region}-x`. CloudFormation substitutes the deployment Region.
 
 ## Logical IDs
