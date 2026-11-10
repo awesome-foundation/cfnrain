@@ -245,7 +245,7 @@ func (module *Module) ResolveSub(n *yaml.Node) error {
 				}
 				fakeNode = node.MakeGetAtt(left, right)
 			}
-			if err := module.Resolve(fakeNode); errors.Is(err, errRecursiveDefault) {
+			if err := module.Resolve(fakeNode); err != nil {
 				return err
 			}
 			switch fakeNode.Kind {

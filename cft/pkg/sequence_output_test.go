@@ -34,6 +34,7 @@ func TestModuleOutputResolutionErrors(t *testing.T) {
 		name, value, properties, want string
 	}{
 		{"missing parameter", "!Ref Unset", "", "did not find Unset"},
+		{"missing Sub parameter", "!Sub '${Unset}-suffix'", "", "did not find Unset"},
 		{"join parameter", "!Sub '${P}'", "      P: !Join ['-', [a, b]]\n", "expected Sub reference"},
 		{"sequence Sub parameter", "!Sub '${P}-suffix'", "      P: !Sub ['${X}', {X: value}]\n", "module M parameter P uses sequence-form Sub"},
 		{"nested sequence Sub parameter", "!Join ['', [!Select [0, [!Sub '${P}-suffix']], !Ref Bucket]]", "      P: !Sub ['${X}', {X: value}]\n", "module M parameter P uses sequence-form Sub"},
