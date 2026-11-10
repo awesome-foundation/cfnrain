@@ -26,29 +26,32 @@ func MatchOne(node *yaml.Node, path string) *yaml.Node {
 }
 
 // MatchAll returns all yaml nodes that match the provided path.
+// It completes the traversal before returning, so callers can modify matched nodes.
 // The path is a `/`-separated string that describes a path into the template's tree.
 // Wildcard elements (which can be map keys or array indices) are represented by a `*`.
 // Matching an arbitrary number (including zero) of descendents can be done with `**`.
 func MatchAll(node *yaml.Node, path string) <-chan *yaml.Node {
-	ch := make(chan *yaml.Node)
-	go func() {
-		matchPath(ch, node, strings.Split(path, "/"))
-		close(ch)
-	}()
+	var matches []*yaml.Node
+	matchPath(&matches, node, strings.Split(path, "/"))
+	ch := make(chan *yaml.Node, len(matches))
+	for _, n := range matches {
+		ch <- n
+	}
+	close(ch)
 
 	return ch
 }
 
-func matchPath(ch chan<- *yaml.Node, n *yaml.Node, path []string) {
+func matchPath(matches *[]*yaml.Node, n *yaml.Node, path []string) {
 	if n.Kind == yaml.DocumentNode {
 		for _, doc := range n.Content {
-			matchPath(ch, doc, path)
+			matchPath(matches, doc, path)
 		}
 		return
 	}
 
 	if len(path) == 0 {
-		ch <- n
+		*matches = append(*matches, n)
 		return
 	}
 
@@ -57,7 +60,7 @@ func matchPath(ch chan<- *yaml.Node, n *yaml.Node, path []string) {
 
 	// Deal with recursive descent
 	if head == "**" {
-		matchPath(ch, n, tail)
+		matchPath(matches, n, tail)
 
 		if n.Kind == yaml.MappingNode {
 			for i := 0; i < len(n.Content); i += 2 {
@@ -65,11 +68,11 @@ func matchPath(ch chan<- *yaml.Node, n *yaml.Node, path []string) {
 					config.Debugf("About to step over array at %v:%s", i, n.Content[i].Value)
 					config.Debugf("n:\n%v", node.ToSJson(n))
 				}
-				matchPath(ch, n.Content[i+1], path)
+				matchPath(matches, n.Content[i+1], path)
 			}
 		} else if n.Kind == yaml.SequenceNode {
 			for _, child := range n.Content {
-				matchPath(ch, child, path)
+				matchPath(matches, child, path)
 			}
 		}
 	}
@@ -92,7 +95,7 @@ func matchPath(ch chan<- *yaml.Node, n *yaml.Node, path []string) {
 				}
 				value := n.Content[i+1]
 				if filter(value, query) {
-					matchPath(ch, value, tail)
+					matchPath(matches, value, tail)
 				}
 			}
 		}
@@ -100,7 +103,7 @@ func matchPath(ch chan<- *yaml.Node, n *yaml.Node, path []string) {
 		if head == "*" {
 			for _, child := range n.Content {
 				if filter(child, query) {
-					matchPath(ch, child, tail)
+					matchPath(matches, child, tail)
 				}
 			}
 		} else {
@@ -108,7 +111,7 @@ func matchPath(ch chan<- *yaml.Node, n *yaml.Node, path []string) {
 			if err == nil && i < len(n.Content) {
 				value := n.Content[i]
 				if filter(value, query) {
-					matchPath(ch, value, tail)
+					matchPath(matches, value, tail)
 				}
 			}
 		}

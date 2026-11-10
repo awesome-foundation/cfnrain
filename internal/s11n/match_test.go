@@ -148,3 +148,26 @@ func TestMatchPath(t *testing.T) {
 		}
 	}
 }
+
+func TestMatchAllMutation(t *testing.T) {
+	for range 100 {
+		root := toNode(map[string]interface{}{
+			"First":  map[string]interface{}{"Ref": "FirstValue"},
+			"Second": map[string]interface{}{"Ref": "SecondValue"},
+		})
+		want := []*yaml.Node{root.Content[1], root.Content[3]}
+		var got []*yaml.Node
+		for n := range s11n.MatchAll(root, "**/*|Ref") {
+			got = append(got, n)
+			*n = yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "replaced"}
+		}
+		if len(got) != len(want) {
+			t.Fatalf("expected %d matches, got %d", len(want), len(got))
+		}
+		for i := range want {
+			if got[i] != want[i] || want[i].Value != "replaced" {
+				t.Fatal("matches must retain their order and point to the original nodes")
+			}
+		}
+	}
+}
