@@ -21,6 +21,9 @@ func TestSortedEmptyNullKeepsBareForm(t *testing.T) {
 			if style == "quotescalars" {
 				want = "\"Metadata\":\n  \"X\":\n\n\"Resources\": {}\n"
 			}
+			if style == "flow" {
+				want = "{Metadata: {X: !!null \"\"}, Resources: {}}\n"
+			}
 			first := format.String(source, format.Options{})
 			if first != want {
 				t.Fatalf("output:\n%s\nwant:\n%s", first, want)

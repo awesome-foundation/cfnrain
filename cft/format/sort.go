@@ -148,7 +148,7 @@ func orderNode(node *yaml.Node, order ordering) *yaml.Node {
 		out.Style = 0
 	}
 
-	if NodeStyle == "flow" && out.Style&yaml.FlowStyle != 0 {
+	if (NodeStyle == "flow" || NodeStyle == "quotescalars") && out.Style&yaml.FlowStyle != 0 {
 		for _, key := range nm.keys {
 			key.HeadComment = joinComments([]string{key.HeadComment, key.LineComment})
 			key.LineComment = ""
