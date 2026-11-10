@@ -37,7 +37,7 @@ A function whose argument has a YAML anchor keeps its long form, so aliases stil
 | `-j`, `--json` | Write JSON instead of YAML |
 | `-u`, `--unsorted` | Keep the original order of sections and properties |
 | `--uncdk` | Remove CDK metadata, simplify logical IDs, and turn `Fn::Join` into `Fn::Sub` |
-| `--node-style` | Choose how to write YAML values: `tagged`, `doublequoted`, `singlequoted`, `literal`, `folded`, `strict-boolean`, `quotescalars`, `original` or `flow` |
+| `--node-style` | Choose how to write YAML values: `tagged`, `doublequoted`, `singlequoted`, `literal`, `folded`, `strict-boolean` (alias `strict-booleans`), `quotescalars`, `original` or `flow` |
 | `-p`, `--pkl` | Write [Pkl](../../pkl.md) instead of YAML |
 | `--pkl-basic` | With `--pkl`, do not use the Pkl modules of the `cfn` package |
 | `--pkl-package` | With `--pkl`, the alias or full URI of the Pkl package. The default is `@cfn`. |
