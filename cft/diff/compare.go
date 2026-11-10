@@ -23,6 +23,11 @@ func compareValues(old, new interface{}) Diff {
 		return value{new, Changed}
 	}
 
+	// YAML has one NaN value. IEEE NaN inequality is not a template change.
+	if v, ok := old.(float64); ok && math.IsNaN(v) && math.IsNaN(new.(float64)) {
+		return value{old, Unchanged}
+	}
+
 	switch v := old.(type) {
 	case []interface{}:
 		return compareSlices(v, new.([]interface{}))
