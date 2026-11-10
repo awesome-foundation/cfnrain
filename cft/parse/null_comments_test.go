@@ -10,6 +10,10 @@ import (
 func TestEmptyNullCommentsPreserveValue(t *testing.T) {
 	for _, input := range []string{
 		"V: # c\nZ: null\n",
+		"V: &a # c\nW: *a\n",
+		"V: &a !!null # c\nW: *a\n",
+		"V: !!null &a # c\nW: *a\n",
+		"V: {a: , # c\n b: 1}\n",
 		"V: !!null # c\nZ: null\n",
 		"V: !!null \"\" # c\nZ: null\n",
 		"V:\n  - # c\n  - null\n",
