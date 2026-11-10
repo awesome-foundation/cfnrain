@@ -182,10 +182,15 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 	switch NodeStyle {
 	case "tagged":
 		n.Style = yaml.TaggedStyle
-	case "doublequoted":
-		n.Style = yaml.DoubleQuotedStyle
-	case "singlequoted":
-		n.Style = yaml.SingleQuotedStyle
+	case "doublequoted", "singlequoted", "quotescalars":
+		n.Style = 0
+		// Quote strings and tagged function scalars, but preserve other scalar types.
+		if n.Kind == yaml.ScalarNode && (n.ShortTag() == "!!str" || !strings.HasPrefix(n.ShortTag(), "!!")) {
+			n.Style = yaml.DoubleQuotedStyle
+			if NodeStyle == "singlequoted" {
+				n.Style = yaml.SingleQuotedStyle
+			}
+		}
 	case "literal":
 		n.Style = yaml.LiteralStyle
 	case "folded":
@@ -194,10 +199,6 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 		n.Style = yaml.FlowStyle
 	case "original":
 		// Do nothing, leave it alone
-	case "quotescalars":
-		if n.Kind == yaml.ScalarNode {
-			n.Style = yaml.DoubleQuotedStyle
-		}
 	case "strict-booleans":
 		// Enforce YAML 1.2 behavior: Only `true` and `false` are booleans, all others are strings
 		if n.Kind == yaml.ScalarNode && n.Tag == "!!str" && isAmbiguousScalar(n.Value) {
