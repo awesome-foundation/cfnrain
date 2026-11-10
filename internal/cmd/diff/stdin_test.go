@@ -1,7 +1,10 @@
 package diff_test
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/awesome-foundation/cfnrain/internal/cmd/diff"
@@ -68,4 +71,22 @@ func TestDiffStdinTwice(t *testing.T) {
 	if err := diff.Cmd.Args(diff.Cmd, []string{"a.yaml", "b.yaml"}); err != nil {
 		t.Errorf("unexpected error: %s", err)
 	}
+}
+
+func TestDiffRightStdinParseError(t *testing.T) {
+	input := filepath.Join(t.TempDir(), "invalid.yaml")
+	if err := os.WriteFile(input, []byte("a: [b"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	defer pipeStdin(input)()
+	defer func() {
+		err := recover()
+		if err == nil {
+			t.Fatal("expected a parse error")
+		}
+		if !strings.Contains(fmt.Sprint(err), "unable to parse template '-'") {
+			t.Fatalf("error names the wrong input: %v", err)
+		}
+	}()
+	diff.Cmd.Run(diff.Cmd, []string{"../../../test/templates/success.template", "-"})
 }

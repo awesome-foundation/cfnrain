@@ -2,8 +2,10 @@ package fmt_test
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
+	"github.com/awesome-foundation/cfnrain/internal/cmd"
 	rainfmt "github.com/awesome-foundation/cfnrain/internal/cmd/fmt"
 )
 
@@ -70,5 +72,53 @@ func TestFmtWriteStdin(t *testing.T) {
 
 	if err := rainfmt.Cmd.Execute(); err == nil {
 		t.Error("expected an error for --write with stdin")
+	}
+}
+
+func TestFmtStdinOutput(t *testing.T) {
+	for _, tc := range []struct {
+		name, input string
+		mixed       bool
+		code        int
+		want        string
+	}{
+		{name: "empty", input: "", code: 1, want: ""},
+		{name: "mixed", input: "Description: stdin\n", mixed: true, want: "--- # <stdin>\nDescription: stdin\n--- # other.yaml\nDescription: file\n...\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			input := filepath.Join(dir, "stdin.yaml")
+			if err := os.WriteFile(input, []byte(tc.input), 0600); err != nil {
+				t.Fatal(err)
+			}
+			defer pipeStdin(input)()
+			t.Chdir(dir)
+			args := []string{"-"}
+			if tc.mixed {
+				if err := os.WriteFile("other.yaml", []byte("Description: file\n"), 0600); err != nil {
+					t.Fatal(err)
+				}
+				args = append(args, "other.yaml")
+			}
+			output, err := os.Create(filepath.Join(dir, "stdout"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer output.Close()
+			oldStdout := os.Stdout
+			os.Stdout = output
+			defer func() { os.Stdout = oldStdout }()
+			os.Args = append([]string{os.Args[0]}, args...)
+			if code := cmd.Test(rainfmt.Cmd); code != tc.code {
+				t.Fatalf("exit status = %d, want %d", code, tc.code)
+			}
+			got, err := os.ReadFile(output.Name())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(got) != tc.want {
+				t.Fatalf("output = %q, want %q", got, tc.want)
+			}
+		})
 	}
 }
