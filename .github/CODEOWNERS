@@ -1,2 +1,3 @@
 # Code owners. GitHub requests a review from these owners on every pull request.
 * @allixsenos
+/.coderabbit.yaml @allixsenos
