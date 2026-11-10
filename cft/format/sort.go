@@ -126,12 +126,9 @@ func orderNode(node *yaml.Node, order ordering) *yaml.Node {
 	}
 
 	// Build the output node
-	// Keep the tag and the anchor, or a short tag or an alias to it breaks
-	out := &yaml.Node{
-		Kind:   yaml.MappingNode,
-		Tag:    node.Tag,
-		Anchor: node.Anchor,
-	}
+	// Keep the style, comments, tag, and anchor when reordering content.
+	out := *node
+	out.Content = nil
 
 	done := make(map[string]bool)
 
@@ -152,5 +149,5 @@ func orderNode(node *yaml.Node, order ordering) *yaml.Node {
 		}
 	}
 
-	return out
+	return &out
 }
