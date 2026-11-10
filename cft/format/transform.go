@@ -55,6 +55,7 @@ func shortTag(funcName string) (tag string, parseOnly bool) {
 // there, so each function keeps the form the source used.
 func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 	n = node.Clone(n)
+	scalarTag := n.ShortTag()
 
 	// Is it a map?
 	if n.Kind == yaml.MappingNode {
@@ -74,6 +75,7 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 				footComments := []string{n.FootComment, n.Content[0].FootComment, n.Content[1].FootComment}
 
 				n = n.Content[1]
+				scalarTag = n.ShortTag()
 				n.Tag = tag
 				if anchor != "" {
 					n.Anchor = anchor
@@ -106,6 +108,7 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 						n.Content = []*yaml.Node{}
 						n.Kind = yaml.ScalarNode
 						n.Value = strings.Join(parts, ".")
+						scalarTag = "!!str"
 					}
 				}
 
@@ -204,10 +207,17 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 	switch NodeStyle {
 	case "tagged":
 		n.Style = yaml.TaggedStyle
-	case "doublequoted":
-		n.Style = yaml.DoubleQuotedStyle
-	case "singlequoted":
-		n.Style = yaml.SingleQuotedStyle
+	case "doublequoted", "singlequoted", "quotescalars":
+		if NodeStyle != "quotescalars" || n.Kind == yaml.ScalarNode {
+			n.Style = 0
+		}
+		// Use the argument's type before a short function tag replaces it.
+		if n.Kind == yaml.ScalarNode && scalarTag == "!!str" {
+			n.Style = yaml.DoubleQuotedStyle
+			if NodeStyle == "singlequoted" {
+				n.Style = yaml.SingleQuotedStyle
+			}
+		}
 	case "literal":
 		n.Style = yaml.LiteralStyle
 	case "folded":
@@ -216,10 +226,6 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 		n.Style = yaml.FlowStyle
 	case "original":
 		// Do nothing, leave it alone
-	case "quotescalars":
-		if n.Kind == yaml.ScalarNode {
-			n.Style = yaml.DoubleQuotedStyle
-		}
 	case "strict-booleans":
 		// Enforce YAML 1.2 behavior: Only `true` and `false` are booleans, all others are strings
 		if n.Kind == yaml.ScalarNode && n.Tag == "!!str" && isAmbiguousScalar(n.Value) {
