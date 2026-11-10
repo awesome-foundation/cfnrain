@@ -206,34 +206,29 @@ func Template(t *cft.Template, rootDir string, fs *embed.FS) (*cft.Template, err
 		}
 	}
 
-	// Collect Anchors & Replace Alias Nodes
-	//
-	// 1. find alias nodes and save them in map with anchor name as key
-	// 2. replace alias nodes with the actual node
-	// 3. Marshal and Unmarshal to resolve new line/column numbers
-
-	v := visitor.NewVisitor(t.Node)
+	// Resolve each alias against the last preceding anchor with that name.
+	// Modules can introduce the same anchor names more than once.
 	anchors := make(map[string]*yaml.Node)
-
-	collectAnchors := func(node *visitor.Visitor) {
-		yamlNode := node.GetYamlNode()
-		if yamlNode.Anchor != "" {
-			anchors[yamlNode.Anchor] = yamlNode
-			yamlNode.Anchor = ""
+	visitor.NewVisitor(t.Node).Visit(func(v *visitor.Visitor) {
+		n := v.GetYamlNode()
+		if n.Anchor != "" {
+			anchors[n.Anchor] = n
+			n.Anchor = ""
 		}
-	}
-
-	replaceAnchors := func(node *visitor.Visitor) {
-		yamlNode := node.GetYamlNode()
-		if yamlNode.Kind == yaml.AliasNode {
-			if anchor, ok := anchors[yamlNode.Value]; ok {
-				*yamlNode = *anchor
+		if n.Kind == yaml.AliasNode {
+			anchor, ok := anchors[n.Value]
+			if !ok {
+				err = fmt.Errorf("cannot resolve YAML alias %q after packaging: its anchor is missing", n.Value)
+				v.Stop()
+				return
 			}
+			*n = *node.Clone(anchor)
+			v.SkipChildren()
 		}
+	})
+	if err != nil {
+		return nil, err
 	}
-
-	v.Visit(collectAnchors)
-	v.Visit(replaceAnchors)
 
 	//// Look for ${Rain::ConstantName} and ${Const::ConstantName}
 	//if t.HasSection(cft.Rain) || t.HasSection(cft.Constants) {

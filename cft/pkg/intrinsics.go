@@ -14,16 +14,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// replaceNode preserves the anchor on a resolved expression for later aliases.
-// Copy first so the replacement's own anchor does not change.
-func replaceNode(n, replacement *yaml.Node) {
-	anchor := n.Anchor
-	*n = *replacement
-	if anchor != "" {
-		n.Anchor = anchor
-	}
-}
-
 // intrinsicErrorString hides the string tag added to empty short-form arguments.
 func intrinsicErrorString(n *yaml.Node) string {
 	if n.Kind == yaml.MappingNode && len(n.Content) == 2 {

@@ -278,3 +278,13 @@ func expectProps(n *yaml.Node, names ...string) (map[string]string, bool) {
 	return props, true
 }
 */
+
+// replaceNode preserves the anchor on a resolved expression for later aliases.
+// Copy first so the replacement's own anchor does not change.
+func replaceNode(n, replacement *yaml.Node) {
+	anchor := n.Anchor
+	*n = *replacement
+	if anchor != "" {
+		n.Anchor = anchor
+	}
+}

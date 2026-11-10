@@ -3,6 +3,7 @@ package pkg
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/awesome-foundation/cfnrain/cft/parse"
@@ -24,11 +25,15 @@ func TestPackagedFunctionAliases(t *testing.T) {
 		{"sub short", `!Sub '${Const::Text}'`, `hello`},
 		{"constant ref", `!Ref Const::Text`, `hello`},
 		{"constant directive", `!Rain::Constant Text`, `hello`},
+		{"env", `!Rain::Env CFNRAIN_ANCHOR_TEST`, `hello`},
+		{"include", `!Rain::Include text.txt`, `hello`},
+		{"embed", `!Rain::Embed text.txt`, `hello`},
 		{"insert file", `{Fn::InsertFile: text.txt}`, `hello`},
 		{"unresolved join", `!Join [",", [!Ref Input, y]]`, `{Fn::Join: [",", [{Ref: Input}, y]]}`},
 		{"unfolded split", `!Split [",", "x,y"]`, `{Fn::Split: [",", "x,y"]}`},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("CFNRAIN_ANCHOR_TEST", "hello")
 			dir := t.TempDir()
 			if err := os.WriteFile(filepath.Join(dir, "text.txt"), []byte("hello"), 0600); err != nil {
 				t.Fatal(err)
@@ -114,5 +119,18 @@ func TestModuleFoldedAnchors(t *testing.T) {
 				t.Fatal(diff)
 			}
 		})
+	}
+}
+
+func TestFoldedInnerAnchorError(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "template.yaml")
+	input := "Outputs:\n  Original:\n    Value: &s !Select [0, [&t x, y]]\n  Outer:\n    Value: *s\n  Inner:\n    Value: *t\n"
+	if err := os.WriteFile(path, []byte(input), 0600); err != nil {
+		t.Fatal(err)
+	}
+	_, err := File(path)
+	if err == nil || !strings.Contains(err.Error(), `cannot resolve YAML alias "t" after packaging: its anchor is missing`) {
+		t.Fatalf("expected an error naming the removed inner anchor t, got %v", err)
 	}
 }

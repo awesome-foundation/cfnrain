@@ -307,3 +307,7 @@ func TestSelectComputedLists(t *testing.T) {
 func TestSelectComputedModuleLists(t *testing.T) {
 	runTest("select-computed-module", t)
 }
+
+func TestModuleInstanceAnchors(t *testing.T) {
+	runTest("module-instance-anchors", t)
+}

@@ -1,0 +1,9 @@
+Modules:
+  A:
+    Source: module-instance-anchors-module.yaml
+    Properties:
+      Name: alpha
+  B:
+    Source: module-instance-anchors-module.yaml
+    Properties:
+      Name: beta

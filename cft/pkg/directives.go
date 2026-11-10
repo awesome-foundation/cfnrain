@@ -72,11 +72,13 @@ func includeString(ctx *directiveContext) (bool, error) {
 		return false, err
 	}
 
-	err = ctx.n.Encode(strings.TrimSpace(string(content)))
+	var replacement yaml.Node
+	err = replacement.Encode(strings.TrimSpace(string(content)))
 	if err != nil {
 		return false, err
 	}
 
+	replaceNode(ctx.n, &replacement)
 	return true, nil
 }
 
@@ -110,7 +112,7 @@ func includeLiteral(ctx *directiveContext) (bool, error) {
 	}
 
 	// Unwrap from the document node
-	*ctx.n = *contentNode.Content[0]
+	replaceNode(ctx.n, contentNode.Content[0])
 	return true, nil
 }
 
@@ -128,7 +130,7 @@ func includeEnv(ctx *directiveContext) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	*ctx.n = newNode
+	replaceNode(ctx.n, &newNode)
 	return true, nil
 }
 
@@ -278,7 +280,7 @@ func includeS3Object(ctx *directiveContext) (bool, error) {
 		return false, err
 	}
 
-	*n = *newNode
+	replaceNode(n, newNode)
 
 	return true, nil
 }
@@ -298,7 +300,7 @@ func includeS3Http(ctx *directiveContext) (bool, error) {
 		return false, err
 	}
 
-	*ctx.n = *newNode
+	replaceNode(ctx.n, newNode)
 
 	return true, nil
 }
@@ -318,7 +320,7 @@ func includeS3URI(ctx *directiveContext) (bool, error) {
 		return false, err
 	}
 
-	*ctx.n = *newNode
+	replaceNode(ctx.n, newNode)
 
 	return true, nil
 }
