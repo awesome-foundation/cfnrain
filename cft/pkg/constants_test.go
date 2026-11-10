@@ -447,3 +447,13 @@ Outputs:
 		t.Fatalf("expected %q, got %v", want, err)
 	}
 }
+
+func TestCommentedEmptyNullConstants(t *testing.T) {
+	for _, value := range []string{"", "!!null", `!!null ""`} {
+		t.Run(value, func(t *testing.T) {
+			input := "Rain:\n  Constants:\n    A: " + value + " # c\n    B: x${Const::A}y\nOutputs:\n  Direct:\n    Value: !Sub 'a${Const::A}b'\n  Derived:\n    Value: !Rain::Constant B\n"
+			expected := "Outputs:\n  Direct:\n    Value: ab\n  Derived:\n    Value: xy\n"
+			assertPackagedConstants(t, input, expected)
+		})
+	}
+}
