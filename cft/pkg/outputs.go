@@ -35,14 +35,15 @@ func (module *Module) ProcessOutputs() error {
 		return nil
 	}
 
-	// Resolve output values first
+	// Resolve output values first. Keep errors for outputs the parent uses.
+	outputErrors := make(map[string]error)
 	for i := 0; i < len(module.OutputsNode.Content); i += 2 {
 		outputNode := module.OutputsNode.Content[i+1]
 		if err := module.Resolve(outputNode); err != nil {
 			if errors.Is(err, errRecursiveDefault) {
 				return err
 			}
-			return fmt.Errorf("module output %s.%s: %w", module.Config.Name, module.OutputsNode.Content[i].Value, err)
+			outputErrors[module.OutputsNode.Content[i].Value] = fmt.Errorf("module output %s.%s: %w", module.Config.Name, module.OutputsNode.Content[i].Value, err)
 		}
 	}
 
@@ -54,8 +55,14 @@ func (module *Module) ProcessOutputs() error {
 	}
 	t.ModuleOutputs[module.Config.Name] = module.OutputsNode
 
-	// Iterate over module outputs
-	for outputName, outputVal := range module.Outputs() {
+	// Process outputs in document order so generated maps have stable order.
+	outputs := module.Outputs()
+	for i := 0; i < len(module.OutputsNode.Content); i += 2 {
+		outputName := module.OutputsNode.Content[i].Value
+		outputVal := outputs[outputName]
+		if outputErrors[outputName] != nil {
+			outputVal = outputErrors[outputName]
+		}
 
 		var err error
 
@@ -135,10 +142,6 @@ func (module *Module) GetArrayIndexFromString(s string) (int, error) {
 // Returns nil if it's not a match.
 func (module *Module) CheckOutputGetAtt(s string, outputName string, outputVal any) (*yaml.Node, error) {
 	tokens := strings.Split(s, ".")
-	outputValue, err := encodeOutputValue(outputName, outputVal)
-	if err != nil {
-		return nil, err
-	}
 	if len(tokens) != 2 {
 		return nil, nil
 	}
@@ -162,7 +165,7 @@ func (module *Module) CheckOutputGetAtt(s string, outputName string, outputVal a
 					return nil, err
 				}
 				if idx == mappedConfig.MapIndex {
-					return outputValue, nil
+					return encodeOutputValue(outputName, outputVal)
 				}
 			}
 		}
@@ -175,7 +178,7 @@ func (module *Module) CheckOutputGetAtt(s string, outputName string, outputVal a
 	if tokens[1] != outputName {
 		return nil, nil
 	}
-	return outputValue, nil
+	return encodeOutputValue(outputName, outputVal)
 }
 
 // Convert an output value back to a Node.
@@ -183,6 +186,9 @@ func (module *Module) CheckOutputGetAtt(s string, outputName string, outputVal a
 // This also has the benefit of doing a deep copy to avoid
 // accidentally referring to the same object repeatedly.
 func encodeOutputValue(outputName string, outputVal any) (*yaml.Node, error) {
+	if err, ok := outputVal.(error); ok {
+		return nil, err
+	}
 	var outputNode yaml.Node
 	outputValMap, ok := outputVal.(map[string]any)
 	// TODO - It could be a plain string.. though this would be rare
@@ -234,12 +240,13 @@ func (module *Module) OutputSub(outputName string, outputVal any, n *yaml.Node) 
 	var variables *yaml.Node
 	if prop.Kind == yaml.SequenceNode {
 		if len(prop.Content) != 2 || prop.Content[0].Kind != yaml.ScalarNode || prop.Content[1].Kind != yaml.MappingNode {
-			return fmt.Errorf("invalid parent Sub for module output %s.%s", module.Config.Name, outputName)
+			return fmt.Errorf("invalid sequence-form Sub at line %d, column %d: expected a string and a variable map", prop.Line, prop.Column)
 		}
 		variables = prop.Content[1]
 		prop = prop.Content[0]
 	}
 	s := prop.Value
+	boundName := ""
 	words, err := parse.ParseSub(s, true)
 	if err != nil {
 		return err
@@ -274,12 +281,14 @@ func (module *Module) OutputSub(outputName string, outputVal any, n *yaml.Node) 
 					switch outputValue.Content[0].Value {
 					case string(cft.Sub):
 						if v.Kind == yaml.SequenceNode {
-							name := moduleOutputVariable(module.Config.Name, outputName, n, outputValue, variables)
-							if variables == nil {
-								variables = node.MakeMapping()
+							if boundName == "" {
+								boundName = moduleOutputVariable(module.Config.Name, outputName, n, outputValue, variables)
+								if variables == nil {
+									variables = node.MakeMapping()
+								}
+								variables.Content = append(variables.Content, node.MakeScalar(boundName), outputValue)
 							}
-							variables.Content = append(variables.Content, node.MakeScalar(name), outputValue)
-							sub += "${" + name + "}"
+							sub += "${" + boundName + "}"
 						} else {
 							sub += v.Value
 						}
@@ -299,7 +308,9 @@ func (module *Module) OutputSub(outputName string, outputVal any, n *yaml.Node) 
 
 	if variables != nil {
 		prop.Value = sub
-		n.Content[1] = &yaml.Node{Kind: yaml.SequenceNode, Tag: "!!seq", Content: []*yaml.Node{prop, variables}}
+		if n.Content[1].Kind != yaml.SequenceNode {
+			n.Content[1] = &yaml.Node{Kind: yaml.SequenceNode, Tag: "!!seq", Content: []*yaml.Node{prop, variables}}
+		}
 		return nil
 	}
 
@@ -328,7 +339,7 @@ func moduleOutputVariable(moduleName, outputName string, nodes ...*yaml.Node) st
 	for suffix := 0; ; suffix++ {
 		name := base
 		if suffix > 0 {
-			name += strconv.Itoa(suffix)
+			name += "_" + strconv.Itoa(suffix)
 		}
 		used := false
 		for _, n := range nodes {

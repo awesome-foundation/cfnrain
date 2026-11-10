@@ -10,8 +10,10 @@ Resources:
       Direct: !GetAtt M.Out
       Nested: !Sub '${M.Out}-x'
       WithMap: !Sub ['${M.Out}-${Local}', {Local: suffix}]
-      Collision: !Sub ['${M.Out}-${RainOutputM_Out}-${RainOutputM_Out1}', {RainOutputM_Out: parent}]
+      Collision: !Sub ['${M.Out}-${RainOutputM_Out}-${RainOutputM_Out_1}', {RainOutputM_Out: parent}]
       ModuleCollision: !Sub '${M.Collision}-x'
       Shadowed: !Sub ['${M.Out}', {'M.Out': parent}]
       ScalarDirect: !GetAtt M.Scalar
       ScalarNested: !Sub '${M.Scalar}-x'
+      Repeated: !Sub '${M.Out}|${M.Out}|${M.Out}|${M.Out2}'
+      TwoOutputs: !Sub '${M.Out}-${M.Out2}'

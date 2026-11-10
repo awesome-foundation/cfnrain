@@ -256,6 +256,9 @@ func (module *Module) ResolveSub(n *yaml.Node) error {
 					ss := node.SequenceToStrings(fakeNode.Content[1])
 					resolved = fmt.Sprintf("${%s}", strings.Join(ss, "."))
 				case node.Sub:
+					if fakeNode.Content[1].Kind == yaml.SequenceNode {
+						return fmt.Errorf("module %s parameter %s uses sequence-form Sub and cannot be interpolated into a Sub string", module.Config.Name, word.W)
+					}
 					resolved = fakeNode.Content[1].Value
 				default:
 					return fmt.Errorf("expected Sub reference to be Ref, Sub, or GetAtt: %s", word.W)

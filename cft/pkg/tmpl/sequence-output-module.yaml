@@ -4,6 +4,8 @@ Parameters:
 Resources:
   Bucket:
     Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ['${Name}-${Suffix}', {Suffix: example}]
 Outputs:
   Out:
     Value: !Sub ['${X}-${Name}-${Bucket.Arn}', {X: !Ref Bucket}]
@@ -11,3 +13,5 @@ Outputs:
     Value: !Sub '${Bucket}'
   Collision:
     Value: !Sub ['${RainOutputM_Collision}', {RainOutputM_Collision: !Ref Name}]
+  Out2:
+    Value: !Sub ['${X}', {X: !Ref Bucket}]
