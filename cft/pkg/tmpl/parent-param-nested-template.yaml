@@ -1,0 +1,8 @@
+Parameters:
+  Name:
+    Type: String
+Modules:
+  X:
+    Source: parent-param-nested-module.yaml
+    Properties:
+      Name: !Join ["-", [!Ref Name, outer]]

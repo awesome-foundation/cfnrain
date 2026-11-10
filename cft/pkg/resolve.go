@@ -15,6 +15,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+var errRecursiveDefault = errors.New("has a recursive default")
+
 // Resolve resolves Ref, Sub, and GetAtt in the node,
 // using module config Properties, Parameter defaults, and
 // other Resource names within the module.
@@ -51,6 +53,9 @@ func (module *Module) Resolve(n *yaml.Node) error {
 		switch vn.Content[0].Value {
 		case string(cft.Ref):
 			err = module.ResolveRef(vn)
+			// Parent properties retain their scope. Defaults have already
+			// been resolved in module scope by resolveParam.
+			v.SkipChildren()
 		case string(cft.Sub):
 			err = module.ResolveSub(vn)
 		case string(cft.GetAtt):
@@ -150,7 +155,20 @@ func (module *Module) resolveParam(params *yaml.Node, n *yaml.Node, parentProps 
 			if mParam != nil {
 				_, defaultNode, _ := s11n.GetMapValue(mParam, Default)
 				if defaultNode != nil {
-					parentVal = defaultNode
+					if module.resolvingDefaults[prop.Value] {
+						return false, fmt.Errorf("module %s: parameter %s %w", module.Config.Name, prop.Value, errRecursiveDefault)
+					}
+					if module.resolvingDefaults == nil {
+						module.resolvingDefaults = make(map[string]bool)
+					}
+					module.resolvingDefaults[prop.Value] = true
+					defer delete(module.resolvingDefaults, prop.Value)
+					parentVal = node.Clone(defaultNode)
+					if len(parentVal.Content) > 0 {
+						if err := module.Resolve(parentVal); err != nil {
+							return false, err
+						}
+					}
 				}
 			}
 
@@ -205,7 +223,9 @@ func (module *Module) ResolveSub(n *yaml.Node) error {
 				}
 				fakeNode = node.MakeGetAtt(left, right)
 			}
-			module.Resolve(fakeNode)
+			if err := module.Resolve(fakeNode); errors.Is(err, errRecursiveDefault) {
+				return err
+			}
 			switch fakeNode.Kind {
 			case yaml.ScalarNode:
 				resolved = fakeNode.Value

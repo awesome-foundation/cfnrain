@@ -1,0 +1,8 @@
+Parameters:
+  Name:
+    Type: String
+Modules:
+  Y:
+    Source: parent-param-module.yaml
+    Properties:
+      Name: !Join ["-", [!Ref Name, inner]]

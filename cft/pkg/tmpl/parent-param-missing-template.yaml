@@ -1,0 +1,11 @@
+Parameters:
+  Missing:
+    Type: String
+Modules:
+  X:
+    Source: parent-param-missing-module.yaml
+Outputs:
+  RefValue:
+    Value: !GetAtt X.RefValue
+  SubValue:
+    Value: !GetAtt X.SubValue
