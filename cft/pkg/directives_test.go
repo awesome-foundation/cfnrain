@@ -125,13 +125,14 @@ func TestHandleS3RunDropsCachedUpload(t *testing.T) {
 		// The script removes dist, so a real upload fails with a file error
 		writeScript(t, filepath.Join(dir, "build.sh"), "rm -rf dist\n")
 
-		key := dist
-		if zip {
-			key = "zip:" + dist
-		}
+		key := uploadKey{path: dist, zip: zip}
 		cached := &s3Path{bucket: "cached-bucket", key: "cached-key"}
-		uploads[key] = cached
-		t.Cleanup(func() { delete(uploads, key) })
+		for _, extension := range []string{"", "json", "txt"} {
+			variant := key
+			variant.extension = extension
+			uploads[variant] = cached
+			t.Cleanup(func() { delete(uploads, variant) })
+		}
 
 		// Without Run, the cached upload is used
 		n, err := handleS3(dir, s3Options{Path: "dist", Zip: zip})
@@ -143,6 +144,11 @@ func TestHandleS3RunDropsCachedUpload(t *testing.T) {
 		_, err = handleS3(dir, s3Options{Path: "dist", Zip: zip, Run: "build.sh"})
 		if !errors.Is(err, os.ErrNotExist) {
 			t.Errorf("zip=%v, Run: want a file-not-found error from a fresh upload, got %v", zip, err)
+		}
+		for key := range uploads {
+			if key.path == dist {
+				t.Errorf("Run left a cached upload: %+v", key)
+			}
 		}
 	}
 }
@@ -156,13 +162,13 @@ func TestForgetUploadsOnlyAfterSuccess(t *testing.T) {
 	dir := t.TempDir()
 	dist := filepath.Join(dir, "dist")
 	writeScript(t, filepath.Join(dir, "build.sh"), "exit 1\n")
-	uploads[dist] = &s3Path{bucket: "b", key: "k"}
-	t.Cleanup(func() { delete(uploads, dist) })
+	uploads[uploadKey{path: dist}] = &s3Path{bucket: "b", key: "k"}
+	t.Cleanup(func() { delete(uploads, uploadKey{path: dist}) })
 
 	if _, err := handleS3(dir, s3Options{Path: "dist", Run: "build.sh"}); err == nil {
 		t.Fatal("expected the Run error")
 	}
-	if _, ok := uploads[dist]; !ok {
+	if _, ok := uploads[uploadKey{path: dist}]; !ok {
 		t.Error("a failed Run dropped the cached upload")
 	}
 }
