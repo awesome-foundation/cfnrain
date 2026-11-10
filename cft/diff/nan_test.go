@@ -18,6 +18,17 @@ func TestCompareNaN(t *testing.T) {
 		{"string", math.NaN(), ".nan", Changed},
 		{"null", math.NaN(), nil, Changed},
 		{"slice", []interface{}{math.NaN()}, []interface{}{math.NaN()}, Unchanged},
+		{"numeric key", map[interface{}]interface{}{80: math.NaN()}, map[interface{}]interface{}{80: math.NaN()}, Unchanged},
+		{"nested list", map[interface{}]interface{}{80: []interface{}{math.NaN()}}, map[interface{}]interface{}{80: []interface{}{math.NaN()}}, Unchanged},
+		{"numeric key change", map[interface{}]interface{}{80: math.NaN()}, map[interface{}]interface{}{81: math.NaN()}, Changed},
+		{"key type change", map[interface{}]interface{}{80: math.NaN()}, map[interface{}]interface{}{"80": math.NaN()}, Changed},
+		{"value change", map[interface{}]interface{}{80: math.NaN()}, map[interface{}]interface{}{80: 1.0}, Changed},
+		{"NaN key", map[interface{}]interface{}{math.NaN(): 1}, map[interface{}]interface{}{math.NaN(): 1}, Unchanged},
+		{"NaN key value change", map[interface{}]interface{}{math.NaN(): 1}, map[interface{}]interface{}{math.NaN(): 2}, Changed},
+		{"NaN key removed", map[interface{}]interface{}{math.NaN(): 1}, map[interface{}]interface{}{}, Changed},
+		{"NaN key added", map[interface{}]interface{}{}, map[interface{}]interface{}{math.NaN(): 1}, Changed},
+		{"multiple NaN keys", map[interface{}]interface{}{math.NaN(): 1, math.NaN(): 2}, map[interface{}]interface{}{math.NaN(): 2, math.NaN(): 1}, Unchanged},
+		{"NaN keys cannot reuse a match", map[interface{}]interface{}{math.NaN(): 1, math.NaN(): 1}, map[interface{}]interface{}{math.NaN(): 1, math.NaN(): 2}, Changed},
 		{"map", map[string]interface{}{"v": math.NaN()}, map[string]interface{}{"v": math.NaN()}, Unchanged},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

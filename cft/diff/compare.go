@@ -33,6 +33,10 @@ func compareValues(old, new interface{}) Diff {
 		return compareSlices(v, new.([]interface{}))
 	case map[string]interface{}:
 		return CompareMaps(v, new.(map[string]interface{}))
+	case map[interface{}]interface{}:
+		if !equalInterfaceMaps(v, new.(map[interface{}]interface{})) {
+			return value{new, Changed}
+		}
 	default:
 		if !reflect.DeepEqual(old, new) {
 			return value{new, Changed}
@@ -79,4 +83,37 @@ func CompareMaps(old, new map[string]interface{}) Diff {
 	}
 
 	return d
+}
+
+// equalInterfaceMaps compares YAML mappings whose keys are not all strings.
+func equalInterfaceMaps(old, new map[interface{}]interface{}) bool {
+	if len(old) != len(new) || (old == nil) != (new == nil) {
+		return false
+	}
+	// NaN keys cannot be looked up, even with the same key variable.
+	// Keep their values separately and match each entry only once.
+	var nanValues []interface{}
+	for key, val := range new {
+		if number, ok := key.(float64); ok && math.IsNaN(number) {
+			nanValues = append(nanValues, val)
+		}
+	}
+	for key, val := range old {
+		if number, ok := key.(float64); ok && math.IsNaN(number) {
+			matched := false
+			for i, candidate := range nanValues {
+				if compareValues(val, candidate).Mode() == Unchanged {
+					nanValues = append(nanValues[:i], nanValues[i+1:]...)
+					matched = true
+					break
+				}
+			}
+			if !matched {
+				return false
+			}
+		} else if candidate, ok := new[key]; !ok || compareValues(val, candidate).Mode() != Unchanged {
+			return false
+		}
+	}
+	return true
 }
