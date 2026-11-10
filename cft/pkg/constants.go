@@ -147,11 +147,14 @@ func replaceTemplateConstants(t *cft.Template, definitions *yaml.Node) error {
 			key := yamlNode.Content[0].Value
 			switch key {
 			case "Fn::Sub":
-				// Leave sequence-form template substitutions unchanged.
-				if yamlNode.Content[1].Kind != yaml.ScalarNode {
+				arg := yamlNode.Content[1]
+				if arg.Kind == yaml.SequenceNode && len(arg.Content) == 2 {
+					arg = arg.Content[0]
+				}
+				if arg.Kind != yaml.ScalarNode {
 					return
 				}
-				err = replaceConstants(yamlNode.Content[1], constants, t.ConstantErrors, true)
+				err = replaceConstants(arg, constants, t.ConstantErrors, true)
 				if err != nil {
 					config.Debugf("%v", err)
 					return
@@ -159,9 +162,9 @@ func replaceTemplateConstants(t *cft.Template, definitions *yaml.Node) error {
 
 				// Remove unnecessary Subs
 				// Keep escaped variables for CloudFormation to resolve as literals.
-				if !parse.IsSubNeeded(yamlNode.Content[1].Value) &&
-					!strings.Contains(yamlNode.Content[1].Value, "${!") {
-					*yamlNode = *node.MakeScalar(yamlNode.Content[1].Value)
+				if yamlNode.Content[1].Kind == yaml.ScalarNode &&
+					!parse.IsSubNeeded(arg.Value) && !strings.Contains(arg.Value, "${!") {
+					*yamlNode = *node.MakeScalar(arg.Value)
 				}
 			case "Ref":
 				// Ref is used with object constants

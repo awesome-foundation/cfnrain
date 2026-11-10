@@ -380,3 +380,28 @@ Outputs:
 		}
 	})
 }
+
+func TestSequenceSubConstants(t *testing.T) {
+	input := `Constants:
+  X: hello
+Outputs:
+  Value:
+    Value: !Sub ['${Rain::X}-${Name}', {Name: world}]
+`
+	expected := `Outputs:
+  Value:
+    Value: !Sub ['hello-${Name}', {Name: world}]
+`
+	assertPackagedConstants(t, input, expected)
+}
+
+func TestSequenceSubMissingConstant(t *testing.T) {
+	tmpl, err := parse.String("Outputs:\n  Value:\n    Value: !Sub ['${Rain::Missing}-${Name}', {Name: world}]\n")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = Template(tmpl, ".", nil)
+	if err == nil || !strings.Contains(err.Error(), "did not find Constant Missing") {
+		t.Fatalf("expected missing constant error, got %v", err)
+	}
+}
