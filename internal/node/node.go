@@ -27,17 +27,26 @@ func (np *NodePair) String() string {
 
 // Clone returns a copy of the provided node
 func Clone(node *yaml.Node) *yaml.Node {
+	return clone(node, make(map[*yaml.Node]*yaml.Node))
+}
+
+func clone(node *yaml.Node, active map[*yaml.Node]*yaml.Node) *yaml.Node {
 	if node == nil {
 		return nil
 	}
 
+	// Keep recursive alias links inside the copy. Callers can then resolve or
+	// reject them without overflowing while copying the graph.
+	if out, ok := active[node]; ok {
+		return out
+	}
 	out := &yaml.Node{
-		Kind:        node.Kind,
-		Style:       node.Style,
-		Tag:         node.Tag,
-		Value:       node.Value,
-		Anchor:      node.Anchor,
-		Alias:       Clone(node.Alias),
+		Kind:   node.Kind,
+		Style:  node.Style,
+		Tag:    node.Tag,
+		Value:  node.Value,
+		Anchor: node.Anchor,
+
 		Content:     make([]*yaml.Node, len(node.Content)),
 		HeadComment: node.HeadComment,
 		LineComment: node.LineComment,
@@ -46,8 +55,11 @@ func Clone(node *yaml.Node) *yaml.Node {
 		Column:      node.Column,
 	}
 
+	active[node] = out
+	defer delete(active, node)
+	out.Alias = clone(node.Alias, active)
 	for i, child := range node.Content {
-		out.Content[i] = Clone(child)
+		out.Content[i] = clone(child, active)
 	}
 
 	return out

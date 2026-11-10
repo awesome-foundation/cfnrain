@@ -30,7 +30,7 @@ Ten functions keep the form that your template uses, short or long: `Fn::Contain
 
 A function whose argument has a YAML anchor keeps its long form, so aliases still refer to the argument rather than the whole function.
 
-`fmt` rejects a YAML alias cycle with an error that names the anchor. This also applies to `--json`.
+`fmt` rejects a YAML alias cycle with an error that names the anchor. This applies to every output format.
 
 | Flag | What it does |
 |------|--------------|
