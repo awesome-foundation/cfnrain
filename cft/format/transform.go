@@ -122,10 +122,6 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 
 	// Is it a scalar?
 	if n.Kind == yaml.ScalarNode {
-		// An empty null list item loses its line comment when parsed again.
-		if n.Tag == "!!null" && n.Value == "" && n.LineComment != "" {
-			n.Value = "null"
-		}
 		// Is it a string
 		if n.Tag == "!!str" {
 			// Reformat how yaml thinks is best
@@ -141,6 +137,10 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 
 	for i, child := range n.Content {
 		formatted := formatNode(child, keepForm)
+		// An empty null list item loses its line comment when parsed again.
+		if n.Kind == yaml.SequenceNode && formatted.Kind == yaml.ScalarNode && formatted.Tag == "!!null" && formatted.Value == "" && formatted.LineComment != "" {
+			formatted.Value = "null"
+		}
 		if n.Kind == yaml.MappingNode && i%2 == 1 && child.Kind == yaml.MappingNode && formatted.Kind != yaml.MappingNode {
 			// Comments on a shortened function describe the containing property,
 			// not the next key or the first item of a sequence argument.

@@ -23,7 +23,11 @@ func TestNullComments(t *testing.T) {
 			if mapping {
 				name = "mapping/" + value
 				body = "  Value: " + value + " # c\n  Z: end\n"
-				wantBody = "  Value: " + wantValue + " # c\n\n  Z: end\n"
+				if value == "" || strings.HasPrefix(value, "!!null") {
+					wantBody = "  Value: # c\n\n  Z: end\n"
+				} else {
+					wantBody = "  Value: " + wantValue + " # c\n\n  Z: end\n"
+				}
 			}
 			t.Run(name, func(t *testing.T) {
 				var first, second result
