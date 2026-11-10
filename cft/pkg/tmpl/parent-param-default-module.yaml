@@ -1,0 +1,22 @@
+Parameters:
+  Name:
+    Type: String
+  Other:
+    Type: String
+    Default: fallback
+  WithDef:
+    Type: String
+    Default: !Join ["-", [!Ref Other, d]]
+  WithDefRes:
+    Type: String
+    Default: !Join ["-", [!Ref B, d]]
+Resources:
+  B:
+    Type: AWS::SNS::Topic
+  T:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !Ref Name
+      Description: !Ref WithDef
+      Name: !Ref WithDefRes

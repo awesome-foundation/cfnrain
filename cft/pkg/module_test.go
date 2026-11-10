@@ -2,6 +2,9 @@ package pkg_test
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/awesome-foundation/cfnrain/cft/diff"
@@ -345,5 +348,30 @@ func TestNestedMovedAnchors(t *testing.T) {
 }
 
 func TestParentParameterScope(t *testing.T) {
-	runTest("parent-param", t)
+	for _, name := range []string{"parent-param", "parent-param-default", "parent-param-nested"} {
+		t.Run(name, func(t *testing.T) { runTest(name, t) })
+	}
+}
+
+func TestRecursiveModuleDefaults(t *testing.T) {
+	for _, tc := range []struct{ name, params string }{
+		{"sub", "  A: {Type: String, Default: !Sub '${A}-x'}\n"},
+		{"self", "  A: {Type: String, Default: !Join [\"-\", [!Ref A, x]]}\n"},
+		{"mutual", "  A: {Type: String, Default: !Ref B}\n  B: {Type: String, Default: !Join [\"-\", [!Ref A, x]]}\n"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			if err := os.WriteFile(filepath.Join(dir, "module.yaml"), []byte("Parameters:\n"+tc.params+"Resources:\n  T:\n    Type: AWS::SSM::Parameter\n    Properties: {Type: String, Value: !Ref A}\n"), 0600); err != nil {
+				t.Fatal(err)
+			}
+			path := filepath.Join(dir, "template.yaml")
+			if err := os.WriteFile(path, []byte("Modules:\n  X:\n    Source: module.yaml\n"), 0600); err != nil {
+				t.Fatal(err)
+			}
+			_, err := pkg.File(path)
+			if err == nil || !strings.Contains(err.Error(), "module X: parameter A has a recursive default") {
+				t.Fatalf("expected recursive default error, got %v", err)
+			}
+		})
+	}
 }

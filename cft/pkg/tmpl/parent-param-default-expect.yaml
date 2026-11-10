@@ -1,0 +1,36 @@
+Parameters:
+  Other:
+    Type: String
+
+Resources:
+  XB:
+    Type: AWS::SNS::Topic
+
+  XT:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !Join
+        - '-'
+        - - !Ref Other
+          - x
+      Description: given-d
+      Name: !Join
+        - '-'
+        - - !Ref XB
+          - d
+
+  YB:
+    Type: AWS::SNS::Topic
+
+  YT:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: literal
+      Description: fallback-d
+      Name: !Join
+        - '-'
+        - - !Ref YB
+          - d
+

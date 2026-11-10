@@ -51,8 +51,8 @@ func (module *Module) Resolve(n *yaml.Node) error {
 		switch vn.Content[0].Value {
 		case string(cft.Ref):
 			err = module.ResolveRef(vn)
-			// The replacement belongs to the parent scope.
-			// Do not resolve its references as module parameters.
+			// Parent properties retain their scope. Defaults have already
+			// been resolved in module scope by resolveParam.
 			v.SkipChildren()
 		case string(cft.Sub):
 			err = module.ResolveSub(vn)
@@ -153,7 +153,20 @@ func (module *Module) resolveParam(params *yaml.Node, n *yaml.Node, parentProps 
 			if mParam != nil {
 				_, defaultNode, _ := s11n.GetMapValue(mParam, Default)
 				if defaultNode != nil {
-					parentVal = defaultNode
+					if module.resolvingDefaults[prop.Value] {
+						return false, fmt.Errorf("module %s: parameter %s has a recursive default", module.Config.Name, prop.Value)
+					}
+					if module.resolvingDefaults == nil {
+						module.resolvingDefaults = make(map[string]bool)
+					}
+					module.resolvingDefaults[prop.Value] = true
+					defer delete(module.resolvingDefaults, prop.Value)
+					parentVal = node.Clone(defaultNode)
+					if len(parentVal.Content) > 0 {
+						if err := module.Resolve(parentVal); err != nil {
+							return false, err
+						}
+					}
 				}
 			}
 
@@ -208,7 +221,9 @@ func (module *Module) ResolveSub(n *yaml.Node) error {
 				}
 				fakeNode = node.MakeGetAtt(left, right)
 			}
-			module.Resolve(fakeNode)
+			if err := module.Resolve(fakeNode); err != nil {
+				return err
+			}
 			switch fakeNode.Kind {
 			case yaml.ScalarNode:
 				resolved = fakeNode.Value

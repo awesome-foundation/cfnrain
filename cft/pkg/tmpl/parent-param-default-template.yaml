@@ -1,0 +1,13 @@
+Parameters:
+  Other:
+    Type: String
+Modules:
+  X:
+    Source: parent-param-default-module.yaml
+    Properties:
+      Name: !Join ["-", [!Ref Other, x]]
+      Other: given
+  Y:
+    Source: parent-param-default-module.yaml
+    Properties:
+      Name: literal

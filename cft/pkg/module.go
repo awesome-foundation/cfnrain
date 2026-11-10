@@ -45,6 +45,8 @@ type Module struct {
 	ModulesNode     *yaml.Node
 	Parsed          *ParsedModule
 	ParentModule    *Module
+
+	resolvingDefaults map[string]bool
 }
 
 // Outputs returns the Outputs node as a map

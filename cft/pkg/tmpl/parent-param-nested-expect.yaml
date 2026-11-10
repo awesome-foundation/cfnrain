@@ -1,0 +1,17 @@
+Parameters:
+  Name:
+    Type: String
+
+Resources:
+  XYT:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !Join
+        - '-'
+        - - !Join
+            - '-'
+            - - !Ref Name
+              - outer
+          - inner
+
