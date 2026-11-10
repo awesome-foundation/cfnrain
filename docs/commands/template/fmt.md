@@ -47,7 +47,7 @@ YAML output preserves merge keys (`<<: *anchor`). JSON output rejects merge keys
 
 With no file names, `fmt` reads standard input.
 
-JSON output preserves empty `Fn::GetAZs` arguments as `""`, including bare `!GetAZs` from `pkg` output.
+JSON output preserves empty function arguments as `""`. A bare short-form function tag with no value also becomes `""`, including tags from `pkg` output.
 
 Format every template in place:
 

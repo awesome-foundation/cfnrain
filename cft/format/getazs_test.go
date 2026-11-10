@@ -53,3 +53,34 @@ func TestGetAZsJSON(t *testing.T) {
 		})
 	}
 }
+
+func TestEmptyFunctionArgumentsJSON(t *testing.T) {
+	for _, tc := range []struct {
+		tag string
+		key string
+	}{
+		{"!Ref", "Ref"},
+		{"!Sub", "Fn::Sub"},
+		{"!Base64", "Fn::Base64"},
+	} {
+		for _, suffix := range []string{" ''", ""} {
+			t.Run(tc.tag+suffix, func(t *testing.T) {
+				template, err := parse.String("Outputs:\n  Result:\n    Value: " + tc.tag + suffix + "\n")
+				if err != nil {
+					t.Fatal(err)
+				}
+				output := format.String(template, format.Options{JSON: true})
+				var got any
+				if err := json.Unmarshal([]byte(output), &got); err != nil {
+					t.Fatal(err)
+				}
+				want := map[string]any{"Outputs": map[string]any{"Result": map[string]any{
+					"Value": map[string]any{tc.key: ""},
+				}}}
+				if d := cmp.Diff(want, got); d != "" {
+					t.Errorf("JSON mismatch (-want +got):\n%s", d)
+				}
+			})
+		}
+	}
+}

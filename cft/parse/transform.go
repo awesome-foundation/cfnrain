@@ -70,8 +70,8 @@ func NormalizeNode(n *yaml.Node) error {
 			body := node.Clone(n)
 
 			// Fix empty Fn values (should never be null)
-			if tag == "!GetAZs" && body.Kind == yaml.ScalarNode && body.Value == "" {
-				// A bare !GetAZs has an empty string argument, not null.
+			if body.Kind == yaml.ScalarNode && body.Value == "" {
+				// A bare function tag has an empty string argument, not null.
 				body.Tag = "!!str"
 			} else if body.Tag == "!!null" {
 				body.Tag = "!!str"
