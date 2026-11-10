@@ -70,6 +70,51 @@ func String(input string) (*cft.Template, error) {
 	if err != nil {
 		return &cft.Template{}, fmt.Errorf("invalid YAML: %s", err)
 	}
+	// yaml.v3 can attach a comment after an empty null to the next node.
+	// Parse explicit nulls to attach their comments, then restore their empty values.
+	lines := strings.Split(input, "\n")
+	rewritten := make(map[int]bool)
+	index := 0
+	var explicitNulls func(*yaml.Node)
+	explicitNulls = func(n *yaml.Node) {
+		current := index
+		index++
+		if n.Kind == yaml.ScalarNode && n.Tag == "!!null" && n.Value == "" && n.Line > 0 && n.Line <= len(lines) {
+			line := []rune(lines[n.Line-1])
+			if n.Column > 0 && n.Column <= len(line) {
+				tail := string(line[n.Column-1:])
+				rest := strings.TrimSpace(strings.TrimPrefix(tail, "!!null"))
+				if strings.HasPrefix(rest, "#") {
+					// Use the node's suffix so a # in an earlier key stays intact.
+					pos := len(string(line[:n.Column-1])) + strings.Index(tail, "#")
+					lines[n.Line-1] = lines[n.Line-1][:pos] + "null " + lines[n.Line-1][pos:]
+					rewritten[current] = true
+				}
+			}
+		}
+		for _, child := range n.Content {
+			explicitNulls(child)
+		}
+	}
+	explicitNulls(&n)
+	if len(rewritten) > 0 {
+		if err := yaml.Unmarshal([]byte(strings.Join(lines, "\n")), &n); err != nil {
+			return &cft.Template{}, fmt.Errorf("invalid YAML: %s", err)
+		}
+		// The rewrite changes scalar text only, so traversal order stays the same.
+		index = 0
+		var restoreNulls func(*yaml.Node)
+		restoreNulls = func(n *yaml.Node) {
+			if rewritten[index] {
+				n.Value = ""
+			}
+			index++
+			for _, child := range n.Content {
+				restoreNulls(child)
+			}
+		}
+		restoreNulls(&n)
+	}
 
 	return Node(&n)
 }
