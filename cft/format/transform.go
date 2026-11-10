@@ -53,9 +53,10 @@ func shortTag(funcName string) (tag string, parseOnly bool) {
 // Fix up yaml.Nodes on the way out of a template.
 // keepForm is true inside a short !GetStackOutput: AWS forbids short functions
 // there, so each function keeps the form the source used.
-func formatNode(n *yaml.Node, keepForm, functionArgument bool) *yaml.Node {
+func formatNode(n *yaml.Node, keepForm, functionArgument, flow bool) *yaml.Node {
 	n = node.Clone(n)
 	scalarTag := n.ShortTag()
+	scalarStyle := n.Style
 
 	// Is it a map?
 	if n.Kind == yaml.MappingNode {
@@ -124,6 +125,9 @@ func formatNode(n *yaml.Node, keepForm, functionArgument bool) *yaml.Node {
 		}
 	}
 
+	flow = flow || NodeStyle == "flow" ||
+		((NodeStyle == "original" || NodeStyle == "quotescalars") && n.Style&yaml.FlowStyle != 0)
+
 	// Is it a scalar?
 	if n.Kind == yaml.ScalarNode {
 		// Is it a string
@@ -140,10 +144,10 @@ func formatNode(n *yaml.Node, keepForm, functionArgument bool) *yaml.Node {
 	}
 
 	for i, child := range n.Content {
-		formatted := formatNode(child, keepForm, functionArgument)
+		formatted := formatNode(child, keepForm, functionArgument, flow)
 		// Empty null list items and anchored nulls need an explicit value.
 		if (n.Kind == yaml.SequenceNode || formatted.Anchor != "") && formatted.Kind == yaml.ScalarNode && formatted.Tag == "!!null" && formatted.Value == "" && formatted.LineComment != "" {
-			if functionArgument {
+			if functionArgument || flow {
 				// pkg reads scalar text in function arguments, including nulls.
 				formatted.Style = yaml.TaggedStyle | yaml.DoubleQuotedStyle
 			} else {
@@ -287,6 +291,13 @@ func formatNode(n *yaml.Node, keepForm, functionArgument bool) *yaml.Node {
 	// A literal << string must stay quoted so it cannot become a merge key.
 	if n.Kind == yaml.ScalarNode && n.Tag == "!!str" && n.Value == "<<" && (n.Style == 0 || n.Style == yaml.FlowStyle) {
 		n.Style = yaml.DoubleQuotedStyle
+	}
+
+	// yaml.v3 emits an empty null as an empty string inside a flow collection.
+	// Keep explicit empty nulls quoted if sorting later removes the flow style.
+	if n.Kind == yaml.ScalarNode && n.Tag == "!!null" && n.Value == "" &&
+		(flow || NodeStyle == "quotescalars" && scalarStyle&(yaml.DoubleQuotedStyle|yaml.SingleQuotedStyle) != 0) {
+		n.Style = yaml.TaggedStyle | yaml.DoubleQuotedStyle
 	}
 
 	return n

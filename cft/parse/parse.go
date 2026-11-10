@@ -79,7 +79,9 @@ func String(input string) (*cft.Template, error) {
 	explicitNulls = func(n *yaml.Node) {
 		current := index
 		index++
-		if n.Kind == yaml.ScalarNode && (n.Tag == "!!null" || strings.HasPrefix(n.Tag, "!") && !strings.HasPrefix(n.Tag, "!!")) && n.Value == "" && n.Line > 0 && n.Line <= len(lines) {
+		// Quoted and block values can follow their tag and comment on the next line.
+		if n.Kind == yaml.ScalarNode && (n.Tag == "!!null" || n.Tag == "!!str" || strings.HasPrefix(n.Tag, "!") && !strings.HasPrefix(n.Tag, "!!")) && n.Value == "" &&
+			n.Style&(yaml.DoubleQuotedStyle|yaml.SingleQuotedStyle|yaml.LiteralStyle|yaml.FoldedStyle) == 0 && n.Line > 0 && n.Line <= len(lines) {
 			line := []rune(lines[n.Line-1])
 			if n.Column > 0 && n.Column <= len(line) {
 				tail := string(line[n.Column-1:])

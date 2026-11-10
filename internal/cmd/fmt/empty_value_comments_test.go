@@ -4,9 +4,12 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/awesome-foundation/cfnrain/cft/format"
+	"github.com/awesome-foundation/cfnrain/cft/parse"
+	"gopkg.in/yaml.v3"
 )
 
 func TestEmptyValueComments(t *testing.T) {
@@ -15,6 +18,8 @@ func TestEmptyValueComments(t *testing.T) {
 	for _, style := range []string{"", "original"} {
 		for _, tc := range []struct{ name, input, want string }{
 			{"anchor", "  V: &a # c\n  W: *a\n", "  V: &a null # c\n\n  W: *a\n"},
+			{"string anchor", "  V: &a !!str # c\n  W: *a\n", "  V: &a \"\" # c\n\n  W: *a\n"},
+			{"string", "  V: !!str # c\n  W: x\n", "  V: \"\" # c\n\n  W: x\n"},
 			{"anchor control", "  V: &a 1 # c\n  W: *a\n", "  V: &a 1 # c\n\n  W: *a\n"},
 			{"GetAZs", "  Q: !GetAZs # c\n  R: next\n", "  Q: !GetAZs \"\" # c\n\n  R: next\n"},
 			{"GetAZs control", "  Q: !GetAZs '' # c\n  R: next\n", "  Q: !GetAZs \"\" # c\n\n  R: next\n"},
@@ -31,7 +36,37 @@ func TestEmptyValueComments(t *testing.T) {
 					t.Fatal(first.err)
 				}
 				want := "Metadata:\n" + tc.want + "\nResources: {}\n"
-				if first.output != want {
+				if strings.HasPrefix(tc.name, "flow") {
+					parsed, err := parse.String(first.output)
+					if err != nil {
+						t.Fatal(err)
+					}
+					var found bool
+					var check func(*yaml.Node)
+					check = func(n *yaml.Node) {
+						if n.Kind == yaml.MappingNode {
+							for i := 0; i < len(n.Content); i += 2 {
+								if n.Content[i].Value == "a" {
+									found = true
+									comments := n.Content[i].LineComment + n.Content[i+1].LineComment
+									if comments != "# c" {
+										t.Fatalf("comment on a = %q", comments)
+									}
+								}
+								if n.Content[i].Value == "b" && (n.Content[i].LineComment != "" || n.Content[i+1].LineComment != "") {
+									t.Fatal("comment moved to b")
+								}
+							}
+						}
+						for _, child := range n.Content {
+							check(child)
+						}
+					}
+					check(parsed.Node)
+					if !found {
+						t.Fatal("missing a")
+					}
+				} else if first.output != want {
 					t.Fatalf("first output:\n%s\nwant:\n%s", first.output, want)
 				}
 				formatString(first.output, &second)
