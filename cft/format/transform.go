@@ -53,10 +53,9 @@ func shortTag(funcName string) (tag string, parseOnly bool) {
 // Fix up yaml.Nodes on the way out of a template.
 // keepForm is true inside a short !GetStackOutput: AWS forbids short functions
 // there, so each function keeps the form the source used.
-func formatNode(n *yaml.Node, keepForm, functionArgument, flow bool) *yaml.Node {
+func formatNode(n *yaml.Node, keepForm, functionArgument bool) *yaml.Node {
 	n = node.Clone(n)
 	scalarTag := n.ShortTag()
-	scalarStyle := n.Style
 
 	// Is it a map?
 	if n.Kind == yaml.MappingNode {
@@ -125,9 +124,6 @@ func formatNode(n *yaml.Node, keepForm, functionArgument, flow bool) *yaml.Node 
 		}
 	}
 
-	flow = flow || NodeStyle == "flow" ||
-		((NodeStyle == "original" || NodeStyle == "quotescalars") && n.Style&yaml.FlowStyle != 0)
-
 	// Is it a scalar?
 	if n.Kind == yaml.ScalarNode {
 		// Is it a string
@@ -144,10 +140,10 @@ func formatNode(n *yaml.Node, keepForm, functionArgument, flow bool) *yaml.Node 
 	}
 
 	for i, child := range n.Content {
-		formatted := formatNode(child, keepForm, functionArgument, flow)
+		formatted := formatNode(child, keepForm, functionArgument)
 		// Empty null list items and anchored nulls need an explicit value.
 		if (n.Kind == yaml.SequenceNode || formatted.Anchor != "") && formatted.Kind == yaml.ScalarNode && formatted.Tag == "!!null" && formatted.Value == "" && formatted.LineComment != "" {
-			if functionArgument || flow {
+			if functionArgument {
 				// pkg reads scalar text in function arguments, including nulls.
 				formatted.Style = yaml.TaggedStyle | yaml.DoubleQuotedStyle
 			} else {
@@ -293,13 +289,6 @@ func formatNode(n *yaml.Node, keepForm, functionArgument, flow bool) *yaml.Node 
 		n.Style = yaml.DoubleQuotedStyle
 	}
 
-	// yaml.v3 emits an empty null as an empty string inside a flow collection.
-	// Keep explicit empty nulls quoted if sorting later removes the flow style.
-	if n.Kind == yaml.ScalarNode && n.Tag == "!!null" && n.Value == "" &&
-		(flow || NodeStyle == "quotescalars" && scalarStyle&(yaml.DoubleQuotedStyle|yaml.SingleQuotedStyle) != 0) {
-		n.Style = yaml.TaggedStyle | yaml.DoubleQuotedStyle
-	}
-
 	return n
 }
 
@@ -309,5 +298,17 @@ func isAmbiguousScalar(val string) bool {
 		return true
 	default:
 		return false
+	}
+}
+
+// quoteFlowNulls runs after sorting, when collection styles are final.
+// yaml.v3 otherwise emits an empty null as an empty string in flow collections.
+func quoteFlowNulls(n *yaml.Node, flow bool) {
+	flow = flow || (n.Kind == yaml.MappingNode || n.Kind == yaml.SequenceNode) && n.Style&yaml.FlowStyle != 0
+	if flow && n.Kind == yaml.ScalarNode && n.Tag == "!!null" && n.Value == "" {
+		n.Style = yaml.TaggedStyle | yaml.DoubleQuotedStyle
+	}
+	for _, child := range n.Content {
+		quoteFlowNulls(child, flow)
 	}
 }

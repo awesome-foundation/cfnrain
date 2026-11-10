@@ -88,7 +88,11 @@ func String(input string) (*cft.Template, error) {
 				rest := strings.TrimLeft(tail, " \t")
 				// A node can start with a tag, an anchor, or both.
 				for strings.HasPrefix(rest, "!") || strings.HasPrefix(rest, "&") {
-					end := strings.IndexAny(rest, " \t")
+					delimiters := " \t"
+					if strings.HasPrefix(rest, "&") {
+						delimiters += ",[]{}"
+					}
+					end := strings.IndexAny(rest, delimiters)
 					if end < 0 {
 						break
 					}
@@ -113,10 +117,11 @@ func String(input string) (*cft.Template, error) {
 	}
 	explicitNulls(&n)
 	if len(rewritten) > 0 {
-		if err := yaml.Unmarshal([]byte(strings.Join(lines, "\n")), &n); err != nil {
-			return &cft.Template{}, fmt.Errorf("invalid YAML: %s", err)
+		var repaired yaml.Node
+		if err := yaml.Unmarshal([]byte(strings.Join(lines, "\n")), &repaired); err != nil {
+			return Node(&n)
 		}
-		// The rewrite changes scalar text only, so traversal order stays the same.
+		// Restore empty values, then check that the repair changed only comments.
 		index = 0
 		var restoreNulls func(*yaml.Node)
 		restoreNulls = func(n *yaml.Node) {
@@ -128,10 +133,28 @@ func String(input string) (*cft.Template, error) {
 				restoreNulls(child)
 			}
 		}
-		restoreNulls(&n)
+		restoreNulls(&repaired)
+		if sameParsedValues(&n, &repaired) {
+			n = repaired
+		}
 	}
 
 	return Node(&n)
+}
+
+// sameParsedValues checks structure and scalar text before accepting a comment repair.
+// Alias names identify their targets without following potentially recursive pointers.
+func sameParsedValues(a, b *yaml.Node) bool {
+	if a.Kind != b.Kind || a.Tag != b.Tag || a.Value != b.Value ||
+		a.Anchor != b.Anchor || len(a.Content) != len(b.Content) {
+		return false
+	}
+	for i := range a.Content {
+		if !sameParsedValues(a.Content[i], b.Content[i]) {
+			return false
+		}
+	}
+	return true
 }
 
 // Node returns a cft.Template parse from a *yaml.Node
