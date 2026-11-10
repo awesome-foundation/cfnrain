@@ -31,21 +31,24 @@ func scopeModuleAnchors(root *yaml.Node) {
 func bindRepeatedAnchors(root *yaml.Node) {
 	counts := make(map[string]int)
 	recursive := make(map[string]bool)
-	active := make(map[string]int)
+	active := make(map[*yaml.Node]bool)
+	latest := make(map[string]*yaml.Node)
 	var collect func(*yaml.Node)
 	collect = func(n *yaml.Node) {
 		if n.Anchor != "" {
 			counts[n.Anchor]++
-			active[n.Anchor]++
+			active[n] = true
+			// A completed nested definition still shadows an outer definition.
+			latest[n.Anchor] = n
 		}
-		if n.Kind == yaml.AliasNode && active[n.Value] > 0 {
+		if n.Kind == yaml.AliasNode && active[latest[n.Value]] {
 			recursive[n.Value] = true
 		}
 		for _, child := range n.Content {
 			collect(child)
 		}
 		if n.Anchor != "" {
-			active[n.Anchor]--
+			delete(active, n)
 		}
 	}
 	collect(root)

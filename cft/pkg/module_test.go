@@ -382,7 +382,7 @@ func TestRecursiveModuleDefaults(t *testing.T) {
 }
 
 func TestRepeatedParentAnchors(t *testing.T) {
-	for _, name := range []string{"repeated-parent-anchor", "repeated-parent-anchor-nested"} {
+	for _, name := range []string{"repeated-parent-anchor", "repeated-parent-anchor-nested", "repeated-parent-anchor-shadow"} {
 		t.Run(name, func(t *testing.T) { runTest(name, t) })
 	}
 }
