@@ -47,6 +47,8 @@ YAML output preserves merge keys (`<<: *anchor`). JSON output rejects merge keys
 
 With no file names, `fmt` reads standard input.
 
+JSON output preserves empty function arguments as `""`. A bare short-form function tag with no value also becomes `""`, including tags from `pkg` output. This does not change `~` or `null` arguments.
+
 Format every template in place:
 
 ```sh

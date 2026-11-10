@@ -14,6 +14,18 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// intrinsicErrorString hides the string tag added to empty short-form arguments.
+func intrinsicErrorString(n *yaml.Node) string {
+	if n.Kind == yaml.MappingNode && len(n.Content) == 2 {
+		arg := n.Content[1]
+		if arg.Kind == yaml.ScalarNode && arg.Value == "" && arg.Tag == "!!str" && arg.Style&yaml.TaggedStyle != 0 {
+			n = node.Clone(n)
+			n.Content[1].Tag = ""
+		}
+	}
+	return node.YamlStr(n)
+}
+
 // FnJoin converts to a scalar if the join can be fully resolved
 func FnJoin(n *yaml.Node) error {
 
@@ -32,7 +44,7 @@ func FnJoin(n *yaml.Node) error {
 		}
 		seq := vn.Content[1]
 		if seq.Kind != yaml.SequenceNode {
-			err = fmt.Errorf("should be a Sequence: %s", node.YamlStr(vn))
+			err = fmt.Errorf("should be a Sequence: %s", intrinsicErrorString(vn))
 			v.Stop()
 			return
 		}
@@ -123,7 +135,7 @@ func FnSelect(n *yaml.Node) error {
 		sel := vn.Content[1]
 		if len(sel.Content) != 2 {
 			err = fmt.Errorf("expected Fn::Select to have 2 elements: %s",
-				node.YamlStr(vn))
+				intrinsicErrorString(vn))
 			v.Stop()
 			return
 		}
