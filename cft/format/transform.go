@@ -175,6 +175,15 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 			last.FootComment = joinComments([]string{last.FootComment, formatted.FootComment})
 			formatted.FootComment = ""
 		}
+		// yaml.v3 can attach comments on a bare empty short-form argument to the
+		// next node. Quote the argument so head and line comments stay with it.
+		if formatted.Kind == yaml.ScalarNode && formatted.Value == "" && strings.HasPrefix(formatted.Tag, "!") && !strings.HasPrefix(formatted.Tag, "!!") &&
+			(formatted.HeadComment != "" || formatted.LineComment != "") {
+			formatted.Style = yaml.DoubleQuotedStyle
+			if NodeStyle == "singlequoted" {
+				formatted.Style = yaml.SingleQuotedStyle
+			}
+		}
 		n.Content[i] = formatted
 	}
 

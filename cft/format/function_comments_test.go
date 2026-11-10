@@ -2,6 +2,7 @@ package format_test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/awesome-foundation/cfnrain/cft"
@@ -237,5 +238,43 @@ func checkCommentRoundTrip(t *testing.T, template *cft.Template, actual string) 
 	}
 	if d := cmp.Diff(actual, format.String(again, format.Options{})); d != "" {
 		t.Errorf("second format: %s", d)
+	}
+}
+
+func TestScalarFunctionComments(t *testing.T) {
+	for _, function := range []struct{ name, input, expected string }{
+		{"empty GetAZs", `Fn::GetAZs: ""`, `!GetAZs ""`},
+		{"single quoted GetAZs", "Fn::GetAZs: ''", `!GetAZs ""`},
+		{"short GetAZs", `!GetAZs ""`, `!GetAZs ""`},
+		{"empty Base64", `Fn::Base64: ""`, `!Base64 ""`},
+		{"Base64", "Fn::Base64: x", "!Base64 x"},
+		{"Ref", "!Ref AWS::Region", "!Ref AWS::Region"},
+		{"ImportValue", "Fn::ImportValue: x", "!ImportValue x"},
+	} {
+		for _, context := range []struct{ name, input, expected string }{
+			{"list line comment", "    Value:\n      - %s # c\n      - next\n", "    Value:\n      - %s # c\n      - next\n"},
+			{"last item", "    Value:\n      - previous\n      - %s # c\n", "    Value:\n      - previous\n      - %s # c\n"},
+			{"list head comment", "    Value:\n      # head\n      - %s\n      - next\n", "    Value:\n\n      # head\n      - %s\n      - next\n"},
+			{"mapping head comment", "    Value:\n      # head\n      %s\n    Export:\n      Name: n\n", "\n    # head\n    Value: %s\n    Export:\n      Name: n\n"},
+			{"mapping value", "    Value:\n      %s # c\n    Export:\n      Name: n\n", "    Value: %s # c\n    Export:\n      Name: n\n"},
+		} {
+			t.Run(function.name+"/"+context.name, func(t *testing.T) {
+				input := "Outputs:\n  Example:\n" + fmt.Sprintf(context.input, function.input)
+				argument := function.expected
+				if context.name == "mapping head comment" {
+					argument = strings.TrimSuffix(argument, ` ""`)
+				}
+				expected := "Outputs:\n  Example:\n" + fmt.Sprintf(context.expected, argument)
+				template, err := parse.String(input)
+				if err != nil {
+					t.Fatal(err)
+				}
+				actual := format.String(template, format.Options{})
+				if d := cmp.Diff(expected, actual); d != "" {
+					t.Errorf("first format: %s", d)
+				}
+				checkCommentRoundTrip(t, template, actual)
+			})
+		}
 	}
 }
