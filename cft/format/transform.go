@@ -156,9 +156,24 @@ func formatNode(n *yaml.Node, keepForm bool) *yaml.Node {
 			formatted.HeadComment = ""
 			formatted.FootComment = ""
 		} else if n.Kind == yaml.SequenceNode && child.Kind == yaml.MappingNode && formatted.Kind == yaml.SequenceNode {
-			// A sequence item has no property key to hold this comment.
-			// Retain the previous loss rather than attach it to an unrelated node.
-			formatted.LineComment = ""
+			// yaml.v3 reads a head comment on a tagged sequence as a comment
+			// on its first argument. Use that position on the first format too.
+			if len(formatted.Content) > 0 {
+				first := formatted.Content[0]
+				first.HeadComment = joinComments([]string{formatted.HeadComment, formatted.LineComment, first.HeadComment})
+				formatted.HeadComment = ""
+				formatted.LineComment = ""
+			}
+		}
+		if n.Kind == yaml.SequenceNode && formatted.Kind == yaml.SequenceNode && formatted.FootComment != "" && len(formatted.Content) > 0 {
+			// yaml.v3 delays a nested sequence's foot comment until the next item.
+			// Put it after the final argument so it stays inside this sequence.
+			last := formatted.Content[len(formatted.Content)-1]
+			for last.Kind == yaml.SequenceNode && len(last.Content) > 0 {
+				last = last.Content[len(last.Content)-1]
+			}
+			last.FootComment = joinComments([]string{last.FootComment, formatted.FootComment})
+			formatted.FootComment = ""
 		}
 		n.Content[i] = formatted
 	}

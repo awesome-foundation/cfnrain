@@ -2,7 +2,6 @@ package format_test
 
 import (
 	"fmt"
-	"strings"
 	"testing"
 
 	"github.com/awesome-foundation/cfnrain/cft"
@@ -80,20 +79,105 @@ func TestShortFunctionKeyComments(t *testing.T) {
 	}
 }
 
-func TestSequenceFunctionLineCommentsInLists(t *testing.T) {
-	for _, input := range []string{
-		"Resources:\n  Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      Tags:\n        - Fn::Join: # join in list\n            - '-'\n            - [a, b]\n        - Key: k\n          Value: v\n",
-		"Resources:\n  Bucket:\n    Type: AWS::S3::Bucket\n    Properties:\n      BucketName:\n        Fn::Select:\n          - 0\n          - Fn::Split: # beside split\n              - ','\n              - a,b\n      Other: z\n",
+func TestSequenceFunctionCommentsInLists(t *testing.T) {
+	for _, tt := range []struct{ name, input, expected string }{
+		{
+			name: "join with line and foot comments",
+			input: `Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - Fn::Join: # c
+            - '-'
+            - [a, b]
+          # foot of join item
+        - Key: k
+          Value: v
+`,
+			expected: `Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - !Join
+
+          # c
+          - '-'
+          - - a
+            - b
+
+            # foot of join item
+        - Key: k
+          Value: v
+`,
+		},
+		{
+			name: "split inside select",
+			input: `Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        Fn::Select:
+          - 0
+          - Fn::Split: # beside split
+              - ','
+              - a,b
+      Other: z
+`,
+			expected: `Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Select
+        - 0
+        - !Split
+
+          # beside split
+          - ','
+          - a,b
+      Other: z
+`,
+		},
+		{
+			name: "without comments",
+			input: `Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - Fn::Join:
+            - '-'
+            - [a, b]
+        - Key: k
+          Value: v
+`,
+			expected: `Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      Tags:
+        - !Join
+          - '-'
+          - - a
+            - b
+        - Key: k
+          Value: v
+`,
+		},
 	} {
-		template, err := parse.String(input)
-		if err != nil {
-			t.Fatal(err)
-		}
-		actual := format.String(template, format.Options{})
-		if strings.Contains(actual, "#") {
-			t.Errorf("sequence line comment moved to another node:\n%s", actual)
-		}
-		checkCommentRoundTrip(t, template, actual)
+		t.Run(tt.name, func(t *testing.T) {
+			template, err := parse.String(tt.input)
+			if err != nil {
+				t.Fatal(err)
+			}
+			actual := format.String(template, format.Options{})
+			if d := cmp.Diff(tt.expected, actual); d != "" {
+				t.Errorf("first format: %s", d)
+			}
+			checkCommentRoundTrip(t, template, actual)
+		})
 	}
 }
 
