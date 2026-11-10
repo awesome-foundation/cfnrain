@@ -16,6 +16,7 @@ import (
 	"github.com/awesome-foundation/cfnrain/internal/aws"
 	"github.com/awesome-foundation/cfnrain/internal/aws/cfn"
 	"github.com/awesome-foundation/cfnrain/internal/aws/iam"
+	"github.com/awesome-foundation/cfnrain/internal/cmd"
 	"github.com/awesome-foundation/cfnrain/internal/cmd/deploy"
 	"github.com/awesome-foundation/cfnrain/internal/config"
 	"github.com/awesome-foundation/cfnrain/internal/console"
@@ -328,10 +329,12 @@ func Predict(source *cft.Template, stackName string, stack types.Stack, stackExi
 // Cmd is the forecast command's entrypoint
 var Cmd = &cobra.Command{
 	Use:   "forecast --experimental <template> [stackName]",
-	Short: "Predict deployment failures",
+	Short: "Predict deployment failures (deprecated)",
 	Long: `Outputs warnings about potential deployment failures due to constraints in 
 the account or misconfigurations in the template related to dependencies in 
 the account.
+
+This command is deprecated and will be removed in cfnrain 2.0.
 
 NOTE: This is an experimental feature!
 
@@ -344,6 +347,7 @@ template has been checked to make sure it has a valid syntax.
 This command checks for some common issues across all resources, and 
 resource-specific checks. See the README for more details.
 `,
+	PreRun:                cmd.WarnDeprecated("cfnrain forecast", true),
 	Args:                  cobra.RangeArgs(1, 2),
 	DisableFlagsInUseLine: true,
 	Run: func(cmd *cobra.Command, args []string) {

@@ -3,6 +3,7 @@ package cc
 import (
 	"github.com/awesome-foundation/cfnrain/cft"
 	"github.com/awesome-foundation/cfnrain/internal/aws/s3"
+	"github.com/awesome-foundation/cfnrain/internal/cmd"
 	"github.com/awesome-foundation/cfnrain/internal/config"
 	"github.com/awesome-foundation/cfnrain/plugins/deployconfig"
 	"github.com/spf13/cobra"
@@ -24,12 +25,16 @@ var templateConfig *deployconfig.DeployConfig
 
 var Cmd = &cobra.Command{
 	Use:   "cc <command>",
-	Short: "Interact with templates using Cloud Control API instead of CloudFormation",
+	Short: "Interact with templates using Cloud Control API instead of CloudFormation (deprecated)",
 	Long: `You must pass the --experimental (-x) flag to use this command, to acknowledge that it is experimental and likely to be unstable!
+This command is deprecated and will be removed in cfnrain 2.0.
 `,
+	PersistentPreRun: cmd.WarnDeprecated("cfnrain cc", true),
 }
 
 func addCommonParams(c *cobra.Command) {
+	c.Short += " (deprecated)"
+	c.Long += "\nThis command is deprecated and will be removed in cfnrain 2.0.\n"
 	c.Flags().StringVarP(&config.Profile, "profile", "p", "", "AWS profile name; read from the AWS CLI configuration file")
 	c.Flags().StringVarP(&config.Region, "region", "r", "", "AWS region to use")
 

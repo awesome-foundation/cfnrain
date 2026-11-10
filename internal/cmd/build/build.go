@@ -12,6 +12,7 @@ import (
 	"github.com/awesome-foundation/cfnrain/cft"
 	"github.com/awesome-foundation/cfnrain/cft/format"
 	"github.com/awesome-foundation/cfnrain/internal/aws/cfn"
+	"github.com/awesome-foundation/cfnrain/internal/cmd"
 	"github.com/awesome-foundation/cfnrain/internal/config"
 	"github.com/awesome-foundation/cfnrain/internal/console"
 	"github.com/awesome-foundation/cfnrain/internal/node"
@@ -400,8 +401,9 @@ func basicBuild(args []string) {
 // Cmd is the build command's entrypoint
 var Cmd = &cobra.Command{
 	Use:                   "build [<resource type>] or <prompt>",
-	Short:                 "Create CloudFormation templates",
-	Long:                  "The build command interacts with the CloudFormation registry to list types, output schema files, and build starter CloudFormation templates containing the named resource types.",
+	Short:                 "Create CloudFormation templates (deprecated)",
+	Long:                  "The build command interacts with the CloudFormation registry to list types, output schema files, and build starter CloudFormation templates containing the named resource types. This command is deprecated and will be removed in cfnrain 2.0.",
+	PreRun:                cmd.WarnDeprecated("cfnrain build", false),
 	DisableFlagsInUseLine: true,
 	Run: func(cmd *cobra.Command, args []string) {
 
