@@ -1,0 +1,13 @@
+Resources:
+  XFirst:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: xx
+
+  XSecond:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: xx
+

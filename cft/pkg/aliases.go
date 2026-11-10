@@ -53,7 +53,8 @@ func bindRepeatedAnchors(root *yaml.Node) {
 	}
 	collect(root)
 
-	preceding := make(map[string]string)
+	preceding := make(map[string]*yaml.Node)
+	bound := make(map[*yaml.Node]*yaml.Node)
 	visitor.NewVisitor(root).Visit(func(v *visitor.Visitor) {
 		n := v.GetYamlNode()
 		if name := n.Anchor; counts[name] > 1 && !recursive[name] {
@@ -62,14 +63,33 @@ func bindRepeatedAnchors(root *yaml.Node) {
 				unique = fmt.Sprintf("rain_binding_%d_%s", moduleAnchorScope.Add(1), name)
 			}
 			n.Anchor = unique
-			preceding[name] = unique
+			preceding[name] = n
 		}
 		if n.Kind == yaml.AliasNode {
-			if name := preceding[n.Value]; name != "" {
-				n.Value = name
+			if target := preceding[n.Value]; target != nil {
+				n.Value = target.Anchor
+				bound[n] = target
 			}
 		}
 	})
+
+	// Copy bound values before expansion can discard their definitions.
+	// Leave other aliases for resolveAliases and do not follow Alias pointers.
+	var copyBound func(*yaml.Node) *yaml.Node
+	copyBound = func(n *yaml.Node) *yaml.Node {
+		if target := bound[n]; target != nil {
+			n = target
+		}
+		result := *n
+		result.Content = make([]*yaml.Node, len(n.Content))
+		for i, child := range n.Content {
+			result.Content[i] = copyBound(child)
+		}
+		return &result
+	}
+	for alias, target := range bound {
+		*alias = *copyBound(target)
+	}
 }
 
 type aliasCycleError struct{ name string }
