@@ -2,6 +2,7 @@ package format_test
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/awesome-foundation/cfnrain/cft"
@@ -254,11 +255,16 @@ func TestScalarFunctionComments(t *testing.T) {
 			{"list line comment", "    Value:\n      - %s # c\n      - next\n", "    Value:\n      - %s # c\n      - next\n"},
 			{"last item", "    Value:\n      - previous\n      - %s # c\n", "    Value:\n      - previous\n      - %s # c\n"},
 			{"list head comment", "    Value:\n      # head\n      - %s\n      - next\n", "    Value:\n\n      # head\n      - %s\n      - next\n"},
+			{"mapping head comment", "    Value:\n      # head\n      %s\n    Export:\n      Name: n\n", "\n    # head\n    Value: %s\n    Export:\n      Name: n\n"},
 			{"mapping value", "    Value:\n      %s # c\n    Export:\n      Name: n\n", "    Value: %s # c\n    Export:\n      Name: n\n"},
 		} {
 			t.Run(function.name+"/"+context.name, func(t *testing.T) {
 				input := "Outputs:\n  Example:\n" + fmt.Sprintf(context.input, function.input)
-				expected := "Outputs:\n  Example:\n" + fmt.Sprintf(context.expected, function.expected)
+				argument := function.expected
+				if context.name == "mapping head comment" {
+					argument = strings.TrimSuffix(argument, ` ""`)
+				}
+				expected := "Outputs:\n  Example:\n" + fmt.Sprintf(context.expected, argument)
 				template, err := parse.String(input)
 				if err != nil {
 					t.Fatal(err)
