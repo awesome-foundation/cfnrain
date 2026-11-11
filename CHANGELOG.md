@@ -1,5 +1,57 @@
 # Changelog
 
+## [1.26.0-beta.1](https://github.com/awesome-foundation/cfnrain/compare/v1.25.5...v1.26.0-beta.1) (2026-11-11)
+
+
+### Features
+
+* **deploy:** add an opt-in --express flag for Express mode ([#77](https://github.com/awesome-foundation/cfnrain/issues/77)) ([652a459](https://github.com/awesome-foundation/cfnrain/commit/652a459e096342440d7114f1e2e0f80eb63a47c8))
+* **deploy:** show Early Validation details when a change set fails ([#76](https://github.com/awesome-foundation/cfnrain/issues/76)) ([6f89382](https://github.com/awesome-foundation/cfnrain/commit/6f893828886eec1abbc03a667068cacbadf60083))
+* deprecate the forecast, cc and build commands ([#300](https://github.com/awesome-foundation/cfnrain/issues/300)) ([7323f57](https://github.com/awesome-foundation/cfnrain/commit/7323f579d4d79b4632c622adf66427f286e049d9))
+* read a template from stdin when the file name is - ([#78](https://github.com/awesome-foundation/cfnrain/issues/78)) ([94d627d](https://github.com/awesome-foundation/cfnrain/commit/94d627dc286bef8e6da3fba6bacf86a239312d26))
+
+
+### Bug Fixes
+
+* **fmt:** accept the documented strict-boolean style ([#192](https://github.com/awesome-foundation/cfnrain/issues/192)) ([2b06fe7](https://github.com/awesome-foundation/cfnrain/commit/2b06fe7f4897816777b91baef1f928169026850d))
+* **fmt:** accept unchanged YAML NaN values ([#173](https://github.com/awesome-foundation/cfnrain/issues/173)) ([a441179](https://github.com/awesome-foundation/cfnrain/commit/a44117915ed4fd1cee57dda89cc1b21f006b57fb))
+* **fmt:** keep comments on empty null items ([#165](https://github.com/awesome-foundation/cfnrain/issues/165)) ([989100c](https://github.com/awesome-foundation/cfnrain/commit/989100c6b493962180f5fc0b16370d41490c1b21))
+* **fmt:** keep empty function arguments as strings in JSON output ([#140](https://github.com/awesome-foundation/cfnrain/issues/140)) ([947b67f](https://github.com/awesome-foundation/cfnrain/commit/947b67f6940f495a47aafa04409c8faec793560c))
+* **fmt:** keep source quotes on values YAML 1.1 reads as booleans ([#79](https://github.com/awesome-foundation/cfnrain/issues/79)) ([3638c9a](https://github.com/awesome-foundation/cfnrain/commit/3638c9a8cdbbf785f1b93433210f36eb8d92bb0a))
+* **fmt:** preserve aliases of anchored functions ([#152](https://github.com/awesome-foundation/cfnrain/issues/152)) ([433ee3a](https://github.com/awesome-foundation/cfnrain/commit/433ee3aa664b05570ae643bf75aea9863acbbfda))
+* **fmt:** preserve ambiguous string function arguments ([#168](https://github.com/awesome-foundation/cfnrain/issues/168)) ([9675582](https://github.com/awesome-foundation/cfnrain/commit/9675582c47fd95a2fa5d5e56cd48ca3d3be5c7eb))
+* **fmt:** preserve blank lines and tabs in multiline strings ([#191](https://github.com/awesome-foundation/cfnrain/issues/191)) ([77b3339](https://github.com/awesome-foundation/cfnrain/commit/77b333905f8f0f1154498ac444e7e3a618dcbaa6))
+* **fmt:** preserve comments after flow collections ([#160](https://github.com/awesome-foundation/cfnrain/issues/160)) ([317871f](https://github.com/awesome-foundation/cfnrain/commit/317871fe19862e8e44b73fdcc89a6eb69a73bfd0))
+* **fmt:** preserve comments on empty short-form arguments ([#150](https://github.com/awesome-foundation/cfnrain/issues/150)) ([77054c5](https://github.com/awesome-foundation/cfnrain/commit/77054c5c7e41870b5fb4af12b514e24c76156d50))
+* **fmt:** preserve comments on empty values ([#187](https://github.com/awesome-foundation/cfnrain/issues/187)) ([8eec06a](https://github.com/awesome-foundation/cfnrain/commit/8eec06a991e649dea5d74d6c4cd90deaa9cda3ad))
+* **fmt:** preserve comments on functions inside lists ([#143](https://github.com/awesome-foundation/cfnrain/issues/143)) ([23f0ace](https://github.com/awesome-foundation/cfnrain/commit/23f0ace7c3d2b2c2fda6f86847dcc4d5a0735b99))
+* **fmt:** preserve indented strings in folded style ([#199](https://github.com/awesome-foundation/cfnrain/issues/199)) ([1f1b7d8](https://github.com/awesome-foundation/cfnrain/commit/1f1b7d8589673618eb3c1d34458071eb68ffe5b7))
+* **fmt:** preserve inferred tags on nested function arguments ([#193](https://github.com/awesome-foundation/cfnrain/issues/193)) ([4d16079](https://github.com/awesome-foundation/cfnrain/commit/4d16079ca43a0f75a11bcfb369f10eb0bfaa2d3d))
+* **fmt:** preserve multiline strings in singlequoted style ([#171](https://github.com/awesome-foundation/cfnrain/issues/171)) ([be612fb](https://github.com/awesome-foundation/cfnrain/commit/be612fbe81679879b1a12e869e77172f5d1a7c09))
+* **fmt:** preserve scalar types in literal and folded styles ([#177](https://github.com/awesome-foundation/cfnrain/issues/177)) ([f272a6f](https://github.com/awesome-foundation/cfnrain/commit/f272a6f7f2550e3a5c0290f686e057fa53aff661))
+* **fmt:** preserve scalar types with quoted node styles ([#162](https://github.com/awesome-foundation/cfnrain/issues/162)) ([4679dd0](https://github.com/awesome-foundation/cfnrain/commit/4679dd0147e073c60f21a922abba3c688514a6ff))
+* **fmt:** preserve sorted flow mapping styles ([#197](https://github.com/awesome-foundation/cfnrain/issues/197)) ([2fd47d2](https://github.com/awesome-foundation/cfnrain/commit/2fd47d20cb0d15c538a5f7f34e9d21099f148165))
+* **fmt:** preserve sorted mapping styles and comments ([#169](https://github.com/awesome-foundation/cfnrain/issues/169)) ([61be281](https://github.com/awesome-foundation/cfnrain/commit/61be28118a5c1e80018a408a6b5165629aa008db))
+* **fmt:** preserve unsorted key comments in flow and tagged styles ([#198](https://github.com/awesome-foundation/cfnrain/issues/198)) ([ed27b63](https://github.com/awesome-foundation/cfnrain/commit/ed27b63278f4bbf87787cfadc3abc9185b94172c))
+* **fmt:** quote strings that start with a tab instead of writing a block ([#211](https://github.com/awesome-foundation/cfnrain/issues/211)) ([2760bef](https://github.com/awesome-foundation/cfnrain/commit/2760befb67f5d20e50993c0424a0983ce346db4e))
+* **fmt:** reject YAML alias cycles before formatting ([#204](https://github.com/awesome-foundation/cfnrain/issues/204)) ([77035db](https://github.com/awesome-foundation/cfnrain/commit/77035dbdc2880956c8a2a0051a41ea374c81f590))
+* **pkg:** finish YAML traversal before mutating matches ([#161](https://github.com/awesome-foundation/cfnrain/issues/161)) ([b0110f0](https://github.com/awesome-foundation/cfnrain/commit/b0110f03d82eade6e321c40a71cfb8238d22c83a))
+* **pkg:** include extension in upload cache key ([#145](https://github.com/awesome-foundation/cfnrain/issues/145)) ([e4846a7](https://github.com/awesome-foundation/cfnrain/commit/e4846a759c9f69d6f8d4d13128f1ae1c365e957c))
+* **pkg:** preserve alias cycles while cloning nodes ([#208](https://github.com/awesome-foundation/cfnrain/issues/208)) ([b071607](https://github.com/awesome-foundation/cfnrain/commit/b0716077cbf746d947dec4c73850128967fa646f))
+* **pkg:** preserve anchors when intrinsic functions resolve ([#163](https://github.com/awesome-foundation/cfnrain/issues/163)) ([fb5cd2b](https://github.com/awesome-foundation/cfnrain/commit/fb5cd2bf3fa2ff263c227eb5c783f79c07149437))
+* **pkg:** preserve empty Fn::Sub functions ([#153](https://github.com/awesome-foundation/cfnrain/issues/153)) ([977b029](https://github.com/awesome-foundation/cfnrain/commit/977b0294e6b1eb1ad41ce13d0f7e3e4185b8d483))
+* **pkg:** preserve escaped Fn::Sub variables in modules ([#142](https://github.com/awesome-foundation/cfnrain/issues/142)) ([268c9ac](https://github.com/awesome-foundation/cfnrain/commit/268c9ac62babb2cbeaa91815ae34ec041bd18c32))
+* **pkg:** preserve parent anchor bindings across module expansion ([#181](https://github.com/awesome-foundation/cfnrain/issues/181)) ([2b631ca](https://github.com/awesome-foundation/cfnrain/commit/2b631ca092a66dbedbd06daf4b94b56a12fc3e6f))
+* **pkg:** preserve parent scope in module parameter expressions ([#176](https://github.com/awesome-foundation/cfnrain/issues/176)) ([135d41c](https://github.com/awesome-foundation/cfnrain/commit/135d41c84f6219b1571e4be18b66f4df6f6ca32a))
+* **pkg:** preserve sequence-form Sub module outputs ([#151](https://github.com/awesome-foundation/cfnrain/issues/151)) ([0fb3f9a](https://github.com/awesome-foundation/cfnrain/commit/0fb3f9a2164a5fcf5248e495a5b977c841604192))
+* **pkg:** replace constants in sequence-form Sub ([#141](https://github.com/awesome-foundation/cfnrain/issues/141)) ([90895ce](https://github.com/awesome-foundation/cfnrain/commit/90895ce19f7565fe4b34ef2a670735c6badb1c9e))
+* **stackset:** correct the instance key in the sample config ([#238](https://github.com/awesome-foundation/cfnrain/issues/238)) ([2840e50](https://github.com/awesome-foundation/cfnrain/commit/2840e508343a5ecc8ed12ecd5eaafe62adc367a4))
+
+
+### Miscellaneous Chores
+
+* release 1.26.0-beta.1 ([#306](https://github.com/awesome-foundation/cfnrain/issues/306)) ([161df88](https://github.com/awesome-foundation/cfnrain/commit/161df880a5faeb5bae2069471940163192f0b163))
+
 ## [1.25.5](https://github.com/awesome-foundation/cfnrain/compare/v1.25.4...v1.25.5) (2026-11-09)
 
 This release fixes bugs in `deploy`, `rm`, `pkg`, `fmt`, `merge` and `build`. Most of them came from Rain v1.24.4. Some commands now stop with an error where they used to fail silently or produce bad output. Read **Behavior changes** before you upgrade CI pipelines.
