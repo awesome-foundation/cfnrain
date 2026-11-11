@@ -1,15 +1,18 @@
 package fmt
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 
 	rainpkl "github.com/awesome-foundation/cfnrain/pkl"
 
 	"github.com/awesome-foundation/cfnrain/cft/format"
 	"github.com/awesome-foundation/cfnrain/cft/visitor"
+	"github.com/awesome-foundation/cfnrain/internal/cmd"
 	"github.com/awesome-foundation/cfnrain/internal/config"
 	"github.com/awesome-foundation/cfnrain/internal/console"
 	"github.com/awesome-foundation/cfnrain/internal/node"
@@ -145,6 +148,10 @@ func formatFile(filename string) result {
 		return res
 	}
 
+	if filename == "-" {
+		return formatReader("<stdin>", os.Stdin)
+	}
+
 	r, err := os.Open(filename)
 	if err != nil {
 		return result{
@@ -158,10 +165,16 @@ func formatFile(filename string) result {
 
 // Cmd is the fmt command's entrypoint
 var Cmd = &cobra.Command{
-	Use:                   "fmt <filename>...",
-	Aliases:               []string{"format"},
-	Short:                 "Format CloudFormation templates",
-	Long:                  "Reads CloudFormation templates from filename arguments (or stdin if no filenames are supplied) and formats them",
+	Use:     "fmt <filename>...",
+	Aliases: []string{"format"},
+	Short:   "Format CloudFormation templates",
+	Long:    "Reads CloudFormation templates from filename arguments (or stdin if no filenames are supplied) and formats them. A filename of \"-\" also reads stdin.",
+	Args: cobra.MatchAll(cmd.StdinOnce, func(_ *cobra.Command, args []string) error {
+		if writeFlag && slices.Contains(args, "-") {
+			return errors.New("--write cannot write back to stdin")
+		}
+		return nil
+	}),
 	DisableFlagsInUseLine: true,
 	Run: func(cmd *cobra.Command, args []string) {
 		var results []result

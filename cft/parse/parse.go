@@ -46,6 +46,16 @@ func File(fileName string) (*cft.Template, error) {
 	return t, nil
 }
 
+// FileOrReader returns a cft.Template parsed from r if fileName is "-",
+// and from the file named fileName otherwise
+func FileOrReader(fileName string, r io.Reader) (*cft.Template, error) {
+	if fileName == "-" {
+		return Reader(r)
+	}
+
+	return File(fileName)
+}
+
 // Map returns a cft.Template parsed from a map[string]interface{}
 func Map(input map[string]interface{}) (*cft.Template, error) {
 	var node yaml.Node
