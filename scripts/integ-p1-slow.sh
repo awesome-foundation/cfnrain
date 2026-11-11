@@ -40,10 +40,10 @@ YAML
   grep -q 'CREATE_COMPLETE' "$WORK_DIR/watch-create.log" || fail 'watch create status'
   assert_status "$nested_stack" CREATE_COMPLETE
   cp test/templates/integ-handle-two.yaml "$WORK_DIR/child.yaml"
-  run_case "nested-preview-command" capture ./cfnrain deploy "$WORK_DIR/parent.yaml" "$nested_stack" nested-update --no-exec -y --s3-prefix "$upload_prefix" > "$WORK_DIR/nested-preview.log"
+  run_case "nested-preview-command" capture ./cfnrain deploy "$WORK_DIR/parent.yaml" "$nested_stack" success-nested-update --no-exec -y --s3-prefix "$upload_prefix" > "$WORK_DIR/nested-preview.log"
   grep -q 'SecondHandle' "$WORK_DIR/nested-preview.log" || fail 'nested change set details'
   p1_start_watch update "$nested_stack" 240
-  run_case "nested-detach-command" capture ./cfnrain deploy --changeset "$nested_stack" nested-update -d > "$WORK_DIR/nested-detach.log"
+  run_case "nested-detach-command" capture ./cfnrain deploy --changeset "$nested_stack" success-nested-update -d > "$WORK_DIR/nested-detach.log"
   p1_finish_watch
   grep -q 'UPDATE_COMPLETE' "$WORK_DIR/p1-watch-update.log" || fail 'watch update status'
   assert_status "$nested_stack" UPDATE_COMPLETE
