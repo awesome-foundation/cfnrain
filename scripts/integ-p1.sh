@@ -28,7 +28,7 @@ p1_empty_lab_bucket() {
 p1_cleanup_lab() {
   local stacks name owner code=0 result=0
   # No main-account manifest, rain-bucket lookup, or bucket listing on this path.
-  stacks=$(list_test_stacks) || return 1
+  stacks=$(list_test_stacks) || { stacks=; result=1; }
   while read -r name; do
     [[ "$name" =~ ^success-[a-zA-Z0-9-]+-p1-(managed|retained|service)$ ]] || continue
     delete_stack "$name" || result=1

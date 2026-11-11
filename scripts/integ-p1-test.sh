@@ -52,6 +52,15 @@ p1_empty_lab_bucket "$MOCK_OWNER"
 p1_bootstrap_cleanup
 if grep -Eq 'list-buckets|delete-|ssm ' "$WORK_DIR/calls"; then exit 1; fi
 
+# A CloudFormation outage must not suppress independent bootstrap cleanup.
+(
+  list_test_stacks() { return 1; }
+  delete_stack() { exit 1; }
+  p1_bootstrap_cleanup() { touch "$WORK_DIR/bootstrap-cleanup-attempted"; }
+  if p1_cleanup_lab; then exit 1; fi
+  [[ -f "$WORK_DIR/bootstrap-cleanup-attempted" ]]
+)
+
 # A usage error must never satisfy an expected deployment failure.
 p1_expect_error "$WORK_DIR/expected.log" 'expected failure' bash -c 'echo expected failure >&2; exit 1'
 if (p1_expect_error "$WORK_DIR/usage.log" 'expected failure' bash -c 'echo unknown shorthand flag >&2; exit 1') > /dev/null 2>&1; then exit 1; fi
