@@ -78,3 +78,29 @@ jobs:
       - name: Check that docs/ names every command
         if: needs.changes.outputs.mode == 'docs'
         run: go test ./internal/cmd/rain -run TestEveryCommandIsDocumented
+
+  emulator:
+    name: Emulator tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Run emulator tests
+        run: scripts/integ-emulator.sh
+      - name: Save emulator output
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: emulator-output
+          path: emulator-logs/
+          retention-days: 7
