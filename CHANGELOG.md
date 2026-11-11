@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.26.0-beta.2](https://github.com/awesome-foundation/cfnrain/compare/v1.26.0-beta.1...v1.26.0-beta.2) (2026-11-11)
+
+
+### Bug Fixes
+
+* **fmt:** keep commented explicit flow keys in the original style ([#305](https://github.com/awesome-foundation/cfnrain/issues/305)) ([2da36ef](https://github.com/awesome-foundation/cfnrain/commit/2da36efd29b2dd5a28a291311d554fe8099297d0))
+
+
+### Miscellaneous Chores
+
+* release 1.26.0-beta.2 ([#310](https://github.com/awesome-foundation/cfnrain/issues/310)) ([b8efc86](https://github.com/awesome-foundation/cfnrain/commit/b8efc8613931e5acf1caa04adf1a059913852426))
+
 ## [1.26.0-beta.1](https://github.com/awesome-foundation/cfnrain/compare/v1.25.5...v1.26.0-beta.1) (2026-11-11)
 
 
