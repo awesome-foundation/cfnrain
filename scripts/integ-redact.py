@@ -2,6 +2,7 @@
 """Redact integration diagnostics before console output or artifact upload."""
 import os
 import re
+import signal
 import sys
 from urllib.parse import unquote
 
@@ -27,5 +28,7 @@ def redact(text, template=False):
 
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
     for line in sys.stdin:
         print(redact(line, template="--template" in sys.argv), end="", flush=True)

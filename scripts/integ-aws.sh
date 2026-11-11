@@ -4,8 +4,7 @@
 set -eEuo pipefail
 # Redact every console path, including AWS CLI errors and cleanup failures.
 if [[ "${INTEG_REDACTING:-}" != 1 ]]; then
-  INTEG_REDACTING=1 "$0" "$@" 2>&1 | python3 scripts/integ-redact.py
-  exit $?
+  exec python3 scripts/integ-run-redacted.py "$0" "$@"
 fi
 source scripts/integ-warnings.sh
 
@@ -432,15 +431,40 @@ for mode in express normal; do
   [[ "$mode" != express ]] || flags+=(--express)
   stack="${STACK_PREFIX}$mode"
   name="$INTEG_BUCKET_NAME"
-  run_case "a1-$mode-preview" 0 ./cfnrain deploy test/templates/integ-p0/bucket.yaml "$stack" create-preview -y --no-exec "${flags[@]}" --params "BucketName=$name"
-  actual_mode=$(aws cloudformation describe-change-set --stack-name "$stack" --change-set-name create-preview --query DeploymentConfig.Mode --output text)
-  printf '%s\n' "$actual_mode" > "$WORK_DIR/a1-$mode-mode.log"
-  if [[ "$mode" == express ]]; then
-    assert_eq "$actual_mode" EXPRESS 'A1 change set mode'
-  else
-    [[ "$actual_mode" != EXPRESS ]] || fail 'A1 control unexpectedly Express'
-  fi
-  run_case "a1-$mode-create" 0 ./cfnrain deploy --changeset "$stack" create-preview -y
+  # S3 can briefly reject reuse even after CloudFormation confirms deletion.
+  # Retry only that specific failure, never permission or validation failures.
+  reuse_deadline=$((SECONDS + 300))
+  for attempt in 1 2 3; do
+    (( SECONDS < reuse_deadline )) || fail 'A1 bucket reuse deadline exceeded'
+    run_case "a1-$mode-preview" 0 ./cfnrain deploy test/templates/integ-p0/bucket.yaml "$stack" create-preview -y --no-exec "${flags[@]}" --params "BucketName=$name"
+    actual_mode=$(aws cloudformation describe-change-set --stack-name "$stack" --change-set-name create-preview --query DeploymentConfig.Mode --output text)
+    printf '%s\n' "$actual_mode" > "$WORK_DIR/a1-$mode-mode.log"
+    if [[ "$mode" == express ]]; then
+      assert_eq "$actual_mode" EXPRESS 'A1 change set mode'
+    else
+      [[ "$actual_mode" != EXPRESS ]] || fail 'A1 control unexpectedly Express'
+    fi
+    create_limit=$((reuse_deadline - SECONDS))
+    (( create_limit <= 2100 - SECONDS )) || create_limit=$((2100 - SECONDS))
+    (( create_limit > 0 )) || fail 'A1 bucket reuse deadline exceeded'
+    (( create_limit <= 180 )) || create_limit=180
+    create_start=$SECONDS
+    create_result=0
+    create_log="$WORK_DIR/a1-$mode-create-$attempt"
+    timeout "$create_limit" ./cfnrain deploy --changeset "$stack" create-preview -y > "$create_log-stdout.log" 2> "$create_log-stderr.log" || create_result=$?
+    printf 'exit=%s duration=%s\n' "$create_result" "$((SECONDS-create_start))" > "$create_log-result.log"
+    (( create_result != 0 )) || break
+    # shellcheck disable=SC2016
+    aws cloudformation describe-stack-events --stack-name "$stack" \
+      --query 'StackEvents[?ResourceType==`AWS::S3::Bucket` && ResourceStatus==`CREATE_FAILED`].ResourceStatusReason' \
+      --output text > "$create_log-events.log"
+    if [[ "$create_result" != 1 ]] || ! grep -Eiq 'OperationAborted|conflicting conditional operation' "$create_log-events.log"; then
+      fail "A1 $mode create failed with exit $create_result"
+    fi
+    (( attempt < 3 && SECONDS < reuse_deadline )) || fail 'A1 bucket name remained unavailable'
+    delete_stack "$stack"
+    sleep 2 # Backoff after a confirmed transient S3 refusal.
+  done
   assert_status "$stack" CREATE_COMPLETE
   [[ "$mode" != express ]] || wait_bucket_tag "$name" first
   aws s3api head-bucket --bucket "$name"
@@ -452,12 +476,12 @@ for mode in express normal; do
   if [[ "$mode" == normal ]]; then
     # A2: the normal control owns the bucket. Early Validation must reject a conflict.
     for validation_mode in normal express; do
-    validation_flags=()
-    [[ "$validation_mode" != express ]] || validation_flags+=(--express)
-    run_case "a2-$validation_mode-conflict" 1 ./cfnrain deploy test/templates/integ-p0/bucket.yaml "${STACK_PREFIX}conflict" conflict -y "${validation_flags[@]}" --params "BucketName=$INTEG_BUCKET_NAME"
-    assert_eq "$(aws cloudformation describe-change-set --stack-name "${STACK_PREFIX}conflict" --change-set-name conflict --query Status --output text)" FAILED 'A2 failed change set'
-    aws cloudformation describe-events --stack-name "${STACK_PREFIX}conflict" --change-set-name conflict > "$WORK_DIR/a2-$validation_mode-events.log"
-    python3 - "$WORK_DIR" "$validation_mode" <<'PYTHON'
+      validation_flags=()
+      [[ "$validation_mode" != express ]] || validation_flags+=(--express)
+      run_case "a2-$validation_mode-conflict" 1 ./cfnrain deploy test/templates/integ-p0/bucket.yaml "${STACK_PREFIX}conflict" conflict -y "${validation_flags[@]}" --params "BucketName=$INTEG_BUCKET_NAME"
+      assert_eq "$(aws cloudformation describe-change-set --stack-name "${STACK_PREFIX}conflict" --change-set-name conflict --query Status --output text)" FAILED 'A2 failed change set'
+      aws cloudformation describe-events --stack-name "${STACK_PREFIX}conflict" --change-set-name conflict > "$WORK_DIR/a2-$validation_mode-events.log"
+      python3 - "$WORK_DIR" "$validation_mode" <<'PYTHON'
 import json, pathlib, sys
 p = pathlib.Path(sys.argv[1])
 events = json.loads((p/f'a2-{sys.argv[2]}-events.log').read_text())['OperationEvents']
@@ -468,9 +492,9 @@ for event in failures:
     for field in ('LogicalResourceId', 'ResourceType', 'ValidationName', 'ValidationStatusReason'):
         assert event.get(field) and event[field] in text, (field, 'missing from CLI details')
 PYTHON
-    assert_eq "$(aws s3api get-bucket-tagging --bucket "$INTEG_BUCKET_NAME" --query "TagSet[?Key=='Revision'].Value | [0]" --output text)" second 'A2 owner unchanged'
+      assert_eq "$(aws s3api get-bucket-tagging --bucket "$INTEG_BUCKET_NAME" --query "TagSet[?Key=='Revision'].Value | [0]" --output text)" second 'A2 owner unchanged'
 
-    delete_stack "${STACK_PREFIX}conflict"
+      delete_stack "${STACK_PREFIX}conflict"
     done
 
     # A7: forecast reads a cheap bucket fixture and keeps its warning on stderr.

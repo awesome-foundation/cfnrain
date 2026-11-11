@@ -6,6 +6,7 @@ set -eoux pipefail
 
 ./scripts/test.sh
 python3 scripts/integ-redact-test.py
+python3 scripts/integ-signals-test.py
 
 # A7: preserve success and error exit codes, with warnings only on stderr.
 source scripts/integ-warnings.sh
@@ -36,13 +37,16 @@ done
 ./cfnrain fmt - < test/templates/integ-p0/original.yaml > "$warning_dir/original.yaml"
 ./cfnrain pkg --experimental test/templates/integ-p0/modules.yaml > "$warning_dir/modules.yaml"
 ./cfnrain fmt test/templates/integ-p0/original.yaml --node-style original > "$warning_dir/original-style.yaml"
-for command in 'fmt --write -' 'merge - -' 'diff - -' 'deploy --express --changeset unused unused'; do
+for command in 'fmt --write -' 'merge - -' 'diff - -'; do
   result=0
   # Intentional splitting exercises these fixed CLI argument lists.
   # shellcheck disable=SC2086
   ./cfnrain $command < test/templates/integ-handle.yaml >/dev/null 2>&1 || result=$?
   [[ "$result" == 1 ]]
 done
+
+# A1: the stubbed handler cannot call AWS if flag validation regresses.
+go test ./internal/cmd/deploy -run '^TestExpressChangeSetConflict$' -count=1
 
 # A3: exercise the complete merge pipeline before any AWS invocation.
 ./cfnrain fmt - < test/templates/integ-handle.yaml > "$warning_dir/first.yaml"
