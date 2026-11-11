@@ -28,7 +28,11 @@ p1_empty_lab_bucket() {
 p1_cleanup_lab() {
   local stacks name owner code=0 result=0
   # No main-account manifest, rain-bucket lookup, or bucket listing on this path.
-  stacks=$(list_test_stacks) || { stacks=; result=1; }
+  if ! stacks=$(list_test_stacks); then
+    # Without stack state, the test bucket may still be in use.
+    p1_bootstrap_cleanup || return 1
+    return 1
+  fi
   while read -r name; do
     [[ "$name" =~ ^success-[a-zA-Z0-9-]+-p1-(managed|retained|service)$ ]] || continue
     delete_stack "$name" || result=1
@@ -106,7 +110,7 @@ p1_removal() {
   # B4: both fixtures reuse the one permitted lab bucket, one stack at a time.
   for mode in managed retained; do
     stack="${STACK_PREFIX}p1-$mode"
-    p1_run ./cfnrain deploy "test/templates/integ-p1-$mode.yaml" "$stack" -y --params "BucketName=$INTEG_BUCKET_NAME" > "$WORK_DIR/p1-$mode-create.log" 2>&1
+    p1_run ./cfnrain deploy "test/templates/integ-p1-$mode.yaml" "$stack" -y --experimental --params "BucketName=$INTEG_BUCKET_NAME" > "$WORK_DIR/p1-$mode-create.log" 2>&1
     printf 'P1 removal fixture\n' > "$WORK_DIR/p1-object.txt"
     aws s3api put-object --bucket "$INTEG_BUCKET_NAME" --key fixture.txt --body "$WORK_DIR/p1-object.txt" >/dev/null
     p1_run ./cfnrain rm "$stack" -y --experimental > "$WORK_DIR/p1-$mode-rm.log" 2>&1
@@ -214,9 +218,9 @@ p1_service_role() {
   fi
   local stack="${STACK_PREFIX}p1-service" arn
   P1_CASE=B1-role
-  p1_run ./cfnrain deploy test/templates/integ-p1-managed.yaml "$stack" -y --params "BucketName=$INTEG_BUCKET_NAME" --role-arn "$INTEG_SERVICE_ROLE_ARN" > "$WORK_DIR/p1-role-create.log" 2>&1
+  p1_run ./cfnrain deploy test/templates/integ-p1-managed.yaml "$stack" -y --experimental --params "BucketName=$INTEG_BUCKET_NAME" --role-arn "$INTEG_SERVICE_ROLE_ARN" > "$WORK_DIR/p1-role-create.log" 2>&1
   assert_status "$stack" CREATE_COMPLETE
-  p1_run ./cfnrain deploy test/templates/integ-p1-managed.yaml "$stack" -y --tags Stage=role-update --role-arn "$INTEG_SERVICE_ROLE_ARN" > "$WORK_DIR/p1-role-update.log" 2>&1
+  p1_run ./cfnrain deploy test/templates/integ-p1-managed.yaml "$stack" -y --experimental --tags Stage=role-update --role-arn "$INTEG_SERVICE_ROLE_ARN" > "$WORK_DIR/p1-role-update.log" 2>&1
   assert_status "$stack" UPDATE_COMPLETE
   [[ "$(aws cloudformation describe-stacks --stack-name "$stack" --query 'Stacks[0].RoleARN' --output text)" == "$INTEG_SERVICE_ROLE_ARN" ]] || fail 'B1 service role mismatch'
   arn=$(aws cloudformation describe-stacks --stack-name "$stack" --query 'Stacks[0].StackId' --output text)

@@ -52,13 +52,17 @@ p1_empty_lab_bucket "$MOCK_OWNER"
 p1_bootstrap_cleanup
 if grep -Eq 'list-buckets|delete-|ssm ' "$WORK_DIR/calls"; then exit 1; fi
 
-# A CloudFormation outage must not suppress independent bootstrap cleanup.
+# A listing outage preserves an owned bucket but still attempts bootstrap cleanup.
 (
+  MOCK_ABSENT=false
+  MOCK_VERSION=None
+  : > "$WORK_DIR/calls"
   list_test_stacks() { return 1; }
   delete_stack() { exit 1; }
   p1_bootstrap_cleanup() { touch "$WORK_DIR/bootstrap-cleanup-attempted"; }
   if p1_cleanup_lab; then exit 1; fi
   [[ -f "$WORK_DIR/bootstrap-cleanup-attempted" ]]
+  if grep -q 'delete-' "$WORK_DIR/calls"; then exit 1; fi
 )
 
 # A usage error must never satisfy an expected deployment failure.
@@ -127,4 +131,5 @@ if grep -Eq 'ssm|list-buckets' "$MOCK_CALL_FILE"; then exit 1; fi
   grep -q '\[ACCOUNT\]' "$WORK_DIR/public-error"
   if grep -q 123456789012 "$WORK_DIR/public-error"; then exit 1; fi
 )
+python3 scripts/integ-p1-cli-test.py
 echo 'P1 offline regression checks passed'
