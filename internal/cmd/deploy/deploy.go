@@ -35,6 +35,7 @@ var noexec bool
 var changeset bool
 var experimental bool
 var includeNested bool
+var express bool
 
 // Cmd is the deploy command's entrypoint
 var Cmd = &cobra.Command{
@@ -42,6 +43,8 @@ var Cmd = &cobra.Command{
 	Short: "Deploy a CloudFormation stack or changeset from a local template",
 	Long: `Creates or updates a CloudFormation stack named <stack> from the template file <template>. 
 You can also create and execute changesets with this command.
+Use --express for CloudFormation Express mode. The operation completes after resource
+configuration, before resources are fully ready. Rollback stays enabled unless you use --keep.
 If you don't specify a stack name, cfnrain will use the template filename minus its extension.
 
 If a template needs to be packaged before it can be deployed, cfnrain will package the template first.
@@ -182,6 +185,9 @@ To list and delete changesets, use the ls and rm commands.
 				ChangeSetName: changeSetName,
 				RoleArn:       roleArn,
 				IncludeNested: includeNested,
+				Express:       express,
+				// Express mode disables rollback by default, so keep cfnrain's rule: roll back unless --keep
+				DisableRollback: keep,
 			}
 			config.Debugf("ChangeSetContext: %+v", ctx)
 			changeSetName, createErr = cfn.CreateChangeSet(&ctx)
@@ -365,5 +371,8 @@ func init() {
 	Cmd.Flags().StringVar(&format.NodeStyle, "node-style", "original", format.NodeStyleDocs)
 	Cmd.Flags().BoolVar(&experimental, "experimental", false, "Acknowledge that you want to deploy with an experimental feature")
 	Cmd.Flags().BoolVar(&includeNested, "nested-change-set", true, "Whether or not to include nested stacks in the change set")
+	Cmd.Flags().BoolVar(&express, "express", false, "Use CloudFormation Express mode")
+	// The deployment mode is fixed when the change set is created, so it cannot apply to an existing change set
+	Cmd.MarkFlagsMutuallyExclusive("express", "changeset")
 	Cmd.Flags().BoolVar(&cftpkg.NoAnalytics, "no-analytics", false, "No effect, kept for compatibility. cfnrain does not write analytics to Metadata")
 }
