@@ -16,6 +16,17 @@ permissions:
   contents: read
 
 jobs:
+  changeset-names:
+    name: Integration change set names
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - run: python3 scripts/integ-changeset-test.py
+
   # Picks how much of the test job a pull request needs:
   #   skip  only files that the Go build and tests do not read
   #   docs  also docs/, which only TestEveryCommandIsDocumented reads

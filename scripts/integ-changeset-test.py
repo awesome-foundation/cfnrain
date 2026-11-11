@@ -5,6 +5,8 @@ import re
 import shlex
 import sys
 
+# Unsupported indirect forms: "$bin" deploy, command arrays, --cli-input-json,
+# and names populated by read. Keep integration change set commands explicit.
 scripts = Path(__file__).resolve().parent
 paths = [Path(p) for p in sys.argv[1:]] or sorted(scripts.glob("integ*.sh"))
 variable = re.compile(r"^\$(?:\{(\w+)\}|(\w+))")
@@ -15,9 +17,10 @@ valued = set("--params --tags --s3-prefix --node-style --role-arn --config --reg
 def names(line):
     # Only explicit continuations are joined by the caller. Never consume the
     # first word of the next independent command as a positional argument.
-    for nested in re.findall(r"\$\((aws\s+[^()]*)\)", line):
+    substitution = r"\$\(([^()]*)\)"
+    for nested in re.findall(substitution, line):
         yield from names(nested)
-    line = re.sub(r"\$\((aws\s+[^()]*)\)", "command-output", line)
+    line = re.sub(substitution, "command-output", line)
     words = shlex.split(line, comments=True)
     for i, word in enumerate(words):
         if word.startswith("--change-set-name="):
