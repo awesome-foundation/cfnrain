@@ -88,7 +88,7 @@ jobs:
 
       - run: ./scripts/integ-offline.sh
 
-  # The tests that deploy real stacks. The only job with AWS credentials.
+  # Fast deployment and packaging cases use the original restricted account.
   aws:
     name: AWS tests
     if: >-
@@ -123,7 +123,7 @@ jobs:
           go-version-file: go.mod
           cache: false
 
-      # Only Go tools, from the checksum database, and one checksummed binary.
+      # Go tools, one checksummed binary, and system Python standard library only.
       # No Python packages in the job that has credentials.
       - name: Install test tools
         env:
@@ -152,6 +152,7 @@ jobs:
         id: aws-tests
         timeout-minutes: 45
         env:
+          INTEG_REDACT_ROLE: ${{ vars.AWS_INTEG_ROLE_ARN }}
           INTEG_BUCKET_NAME: ${{ vars.INTEG_BUCKET_NAME }}
           INTEG_OUT: integ-out
           INTEG_RUN_TOKEN: ${{ github.run_id }}-${{ github.run_attempt }}
@@ -163,6 +164,7 @@ jobs:
       - name: Clean up integration stacks
         if: always() && steps.aws-tests.outcome != 'skipped'
         env:
+          INTEG_REDACT_ROLE: ${{ vars.AWS_INTEG_ROLE_ARN }}
           INTEG_BUCKET_NAME: ${{ vars.INTEG_BUCKET_NAME }}
           INTEG_RUN_TOKEN: ${{ github.run_id }}-${{ github.run_attempt }}
         run: ./scripts/integ-aws.sh --cleanup
@@ -171,7 +173,10 @@ jobs:
         if: always()
         with:
           name: packaged-templates
-          path: integ-out/
+          path: |
+            integ-out/*.yaml
+            integ-out/*.txt
+            integ-out/logs/
           retention-days: 7
 
   # A queued main push can run between these jobs. Both use the same lock,
@@ -227,6 +232,7 @@ jobs:
         id: aws-tests
         timeout-minutes: 35
         env:
+          INTEG_REDACT_ROLE: ${{ vars.AWS_INTEG_ROLE_ARN }}
           INTEG_BUCKET_NAME: ${{ vars.INTEG_BUCKET_NAME }}
           INTEG_OUT: integ-out
           INTEG_RUN_TOKEN: ${{ github.run_id }}-${{ github.run_attempt }}
@@ -238,6 +244,7 @@ jobs:
       - name: Clean up integration stacks
         if: always() && steps.aws-tests.outcome != 'skipped'
         env:
+          INTEG_REDACT_ROLE: ${{ vars.AWS_INTEG_ROLE_ARN }}
           INTEG_BUCKET_NAME: ${{ vars.INTEG_BUCKET_NAME }}
           INTEG_RUN_TOKEN: ${{ github.run_id }}-${{ github.run_attempt }}
         run: ./scripts/integ-aws.sh --cleanup
@@ -246,10 +253,12 @@ jobs:
         if: always()
         with:
           name: slow-p1-evidence
-          path: integ-out/p1/
+          path: |
+            integ-out/*.txt
+            integ-out/logs/
           retention-days: 7
 
-  # B1/B4 require a separate account. Never attach service roles in the main account.
+  # Bucket removal and service-role cases require the separately approved lab.
   p1-isolated:
     name: Optional isolated P1 cases
     if: github.event_name == 'workflow_dispatch' && inputs.lab
@@ -263,6 +272,7 @@ jobs:
       cancel-in-progress: false
     timeout-minutes: 35
     env:
+      INTEG_REDACT_ROLE: ${{ vars.AWS_INTEG_ROLE_ARN }}
       AWS_INTEG_ROLE_ARN: ${{ vars.AWS_INTEG_ROLE_ARN }}
       INTEG_BUCKET_NAME: ${{ vars.INTEG_BUCKET_NAME }}
       AWS_REGION: ${{ vars.AWS_INTEG_REGION }}
@@ -313,7 +323,9 @@ jobs:
         if: always() && steps.prerequisites.outputs.ready == 'true'
         with:
           name: isolated-p1-evidence
-          path: integ-out/p1/
+          path: |
+            integ-out/*.txt
+            integ-out/logs/
           retention-days: 7
 
   # Lints the templates that the AWS job packaged. Runs without credentials.

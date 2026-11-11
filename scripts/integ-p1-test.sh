@@ -1,6 +1,8 @@
 #!/bin/bash
 # Offline regression checks. Every AWS call uses a fake; no credentials are read.
 set -euo pipefail
+# shellcheck source=scripts/integ-cases.sh
+source scripts/integ-cases.sh
 # shellcheck source=scripts/integ-p1.sh
 source scripts/integ-p1.sh
 WORK_DIR=$(mktemp -d)
@@ -69,12 +71,14 @@ if grep -Eq 'list-buckets|delete-|ssm ' "$WORK_DIR/calls"; then exit 1; fi
 p1_expect_error "$WORK_DIR/expected.log" 'expected failure' bash -c 'echo expected failure >&2; exit 1'
 if (p1_expect_error "$WORK_DIR/usage.log" 'expected failure' bash -c 'echo unknown shorthand flag >&2; exit 1') > /dev/null 2>&1; then exit 1; fi
 
-P1_CASE=B2-failure
-if p1_run bash -c 'echo stdout; echo stderr >&2; exit 1' > /dev/null 2>&1; then exit 1; fi
-grep -q $'B2-failure\t.*\t1\t' "$WORK_DIR/p1-results.tsv"
-printf 'https://example.invalid/?signature=secret 123456789012 1234567890123 hidden\n' > "$WORK_DIR/p1-redaction.log"
-p1_save_evidence
-grep -q '\[URL\] \[ACCOUNT\] 1234567890123 \[NOECHO\]' "$INTEG_OUT/p1/p1-redaction.log"
+if run_case wrapper-failure capture bash -c 'echo stdout; echo stderr >&2; exit 1' > /dev/null 2>&1; then exit 1; fi
+grep -q 'exit=1 duration=' "$WORK_DIR/wrapper-failure-result.log"
+run_case expected-error 1 bash -c 'echo expected-stderr >&2; exit 1'
+grep -q expected-stderr "$WORK_DIR/expected-error-stderr.log"
+if (run_case unexpected-error 0 bash -c 'exit 1') >/dev/null 2>&1; then exit 1; fi
+printf 'https://example.invalid/?signature=secret arn:aws:sts::123456789012:assumed-role/private-role/session\n' > "$WORK_DIR/p1-redaction.log"
+preserve_logs
+grep -q '<url> arn:aws:sts::000000000000:role/redacted-role' "$INTEG_OUT/logs/p1-redaction.log"
 
 # TERM must kill the whole watcher group, not just its shell wrapper.
 mkdir "$WORK_DIR/watch-test"
@@ -123,13 +127,14 @@ grep -q '^cloudformation list-stacks ' "$MOCK_CALL_FILE"
 env -u INTEG_BOOTSTRAP_REGION PATH="$WORK_DIR/bin:$PATH" INTEG_BUCKET_NAME=fixture-bucket INTEG_OUT="$WORK_DIR/lab-out" bash scripts/integ-aws.sh --cleanup-lab
 if grep -Eq 'ssm|list-buckets' "$MOCK_CALL_FILE"; then exit 1; fi
 
-# Check raw AWS diagnostics cannot reach the caller through the real wrapper.
-(
-  source scripts/integ-p1.sh
-  export PATH="$WORK_DIR/bin:$PATH"
-  if aws sts get-caller-identity 2> "$WORK_DIR/public-error"; then exit 1; fi
-  grep -q '\[ACCOUNT\]' "$WORK_DIR/public-error"
-  if grep -q 123456789012 "$WORK_DIR/public-error"; then exit 1; fi
-)
+# The outer Python runner redacts AWS errors and waits for diagnostic output.
+cat > "$WORK_DIR/bin/aws" <<'AWS'
+#!/bin/bash
+echo 'AccessDenied arn:aws:sts::123456789012:assumed-role/private-role/session' >&2
+exit 1
+AWS
+if env -u INTEG_BUCKET_NAME -u INTEG_BOOTSTRAP_REGION PATH="$WORK_DIR/bin:$PATH" INTEG_OUT="$WORK_DIR/error-out" bash scripts/integ-aws.sh --cleanup > "$WORK_DIR/public-error" 2>&1; then exit 1; fi
+grep -q '000000000000:role/redacted-role' "$WORK_DIR/public-error"
+if grep -Eq '123456789012|private-role' "$WORK_DIR/public-error"; then exit 1; fi
 python3 scripts/integ-p1-cli-test.py
 echo 'P1 offline regression checks passed'

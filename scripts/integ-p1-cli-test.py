@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check the actual P1 command lines without executing their AWS operations."""
+"""Check the actual integration command lines without executing their AWS operations."""
 
 import itertools
 import json
