@@ -81,6 +81,35 @@ Do not add a unit test that needs AWS credentials. Tests that need AWS go in `sc
 - Keep one change in each pull request. Do not reformat code that your change does not touch.
 - Do not edit `CHANGELOG.md` or the version in `internal/config/version.go`. Release tooling owns them.
 
+## Release notes
+
+- Describe the net change since the last stable release.
+- Use Features and Bug Fixes with full PR links.
+- Group an area under its own subsection only when it has significant work (many changes). Keep an area with one or two changes as a plain line with a scope prefix, above the subsections.
+- Fold fixes for regressions introduced within this release into the original change line.
+- Cite each folded fix as “follow-up #N” with its PR link.
+- Check the last stable behavior before deciding to fold a fix.
+- Name each outside code contributor with their @login on the change line.
+- Include original authors of imported commits, even when a maintainer opened the local PR.
+- List under New contributors only people who opened or pushed to a pull request in cfnrain. Reused upstream rain PRs do not count.
+- Check earlier merged PRs and commit authors before claiming a first contribution.
+- Credit outside requesters on the change line with their @login and issue link.
+- For work carried over from aws-cloudformation/rain, link the upstream PR or issue.
+- Credit the original upstream author or requester instead of the person who imported the issue.
+- Say that each deprecated command will be removed, name the version, and link the decision discussion.
+- For forecast, cc and build, say they will be removed in cfnrain 2.0 and link https://github.com/awesome-foundation/cfnrain/discussions/20.
+- Publish beta tags as prereleases with `--prerelease --latest=false`.
+- For an approved beta, use `Release-As: 1.26.0-beta.1` in the squash message.
+- Put `Release-As` on the last line, after a blank line following the Built by / Reviewed by sign-off.
+- Set the intended version explicitly for each later beta and stable release.
+- For stable 1.26.0, use `Release-As: 1.26.0` on a `fix:` or `feat:` commit.
+- Check the release PR version before merging it.
+- After a beta, rewrite the stable release PR body and its new CHANGELOG section against the last stable release.
+- Make that approved rewrite immediately before merge because release-please can replace it after each push.
+- Repeat the rewrite if another push reaches main before merge.
+- This approved release rewrite is the exception to the general CHANGELOG editing rule.
+- See https://github.com/awesome-foundation/cfnrain/pull/304 for the beta procedure.
+
 ## Code style
 
 - Follow the code around your change. Match its names, error handling and comments.
