@@ -25,7 +25,6 @@ permissions: {}
 
 # No job restores or saves a cache. A manual run executes the given commit
 # under main's workflow, so a cache it saved could reach trusted workflows.
-cache-mode: none
 
 jobs:
   # The checks that need no AWS account. Runs without credentials.
@@ -102,7 +101,8 @@ jobs:
     concurrency:
       group: integ-aws
       cancel-in-progress: false
-    timeout-minutes: 45
+    # P0 adds roughly 20-35 minutes. Leave time for bounded cleanup.
+    timeout-minutes: 80
     steps:
       - name: Check the commit SHA
         run: '[[ "$TEST_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "not a full commit SHA: $TEST_SHA"; exit 1; }'
@@ -141,7 +141,7 @@ jobs:
           role-to-assume: ${{ vars.AWS_INTEG_ROLE_ARN }}
           aws-region: ${{ vars.AWS_INTEG_REGION }}
           role-session-name: cfnrain-integ-${{ github.run_id }}
-          role-duration-seconds: 3600
+          role-duration-seconds: 7200
 
       - name: Run the AWS tests
         id: aws-tests
@@ -161,7 +161,8 @@ jobs:
           INTEG_RUN_TOKEN: ${{ github.run_id }}-${{ github.run_attempt }}
         run: ./scripts/integ-aws.sh --cleanup
 
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: packaged-templates
           path: integ-out/

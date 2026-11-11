@@ -1,0 +1,15 @@
+# A1/A2: an empty bucket with independently observable tag updates.
+Parameters:
+  BucketName:
+    Type: String
+  Revision:
+    Type: String
+    Default: first
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+      Tags:
+        - Key: Revision
+          Value: !Ref Revision

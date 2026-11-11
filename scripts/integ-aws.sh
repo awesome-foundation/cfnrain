@@ -2,20 +2,90 @@
 # Integration checks against a real account. Only success* stacks and the
 # configured test bucket are created; AWS CLI is the assertion and cleanup oracle.
 set -eEuo pipefail
+source scripts/integ-warnings.sh
 
 : "${INTEG_BUCKET_NAME:?set INTEG_BUCKET_NAME to the test bucket name}"
 INTEG_OUT="${INTEG_OUT:-integ-out}"
 RUN_TOKEN="${INTEG_RUN_TOKEN:-${GITHUB_RUN_ID:-local-$(date +%s)-$$}-${GITHUB_RUN_ATTEMPT:-1}}"
+[[ "$RUN_TOKEN" =~ ^[a-zA-Z0-9-]+$ ]] || { echo 'invalid run token' >&2; exit 1; }
 STACK_PREFIX="success-${RUN_TOKEN}-"
 mkdir -p "$INTEG_OUT"
 WORK_DIR=$(mktemp -d)
+OBJECT_MANIFEST="$INTEG_OUT/objects-$RUN_TOKEN.txt"
+
+# Record ownership before upload. A remote copy permits the next run to sweep it.
+record_object() {
+  printf '%s\n' "$1" >> "$OBJECT_MANIFEST"
+  aws s3api put-object --bucket "$artifact_bucket" --key "integ-$RUN_TOKEN/manifest.txt" \
+    --body "$OBJECT_MANIFEST" >/dev/null
+}
+cleanup_objects() {
+  local manifest="$1" prefix="$2" key version result=0
+  [[ -f "$manifest" ]] || return 0
+  while IFS= read -r key; do
+    [[ "$key" == "$prefix/"* && "$key" != *$'\t'* && "$key" != *"'"* ]] || return 1
+    if [[ "$key" == "$prefix/manifest.txt" && "$result" != 0 ]]; then
+      continue
+    fi
+    # Delete all versions of these recorded, run-owned keys, including markers.
+    aws s3api list-object-versions --bucket "$artifact_bucket" --prefix "$key" \
+      --query "[Versions[?Key=='$key'].[VersionId],DeleteMarkers[?Key=='$key'].[VersionId]][]" \
+      --output text > "$WORK_DIR/versions.txt" || return 1
+    while read -r version; do
+      [[ -n "$version" ]] || continue
+      aws s3api delete-object --bucket "$artifact_bucket" --key "$key" --version-id "$version" >/dev/null || result=1
+    done < "$WORK_DIR/versions.txt"
+  done < <(sort -u "$manifest" | sed "\|^$prefix/manifest.txt$|d"; printf '%s/manifest.txt\n' "$prefix")
+  return "$result"
+}
+cleanup_owned_objects() {
+  [[ -f "$OBJECT_MANIFEST" ]] || return 0
+  artifact_bucket=$(aws ssm get-parameter --name rain-bucket --query Parameter.Value --output text) || return 1
+  cleanup_objects "$OBJECT_MANIFEST" "integ-$RUN_TOKEN"
+}
+snapshot() {
+  local name
+  for name in pipeline modules original express normal conflict; do
+    aws cloudformation describe-stacks --stack-name "$STACK_PREFIX$name" \
+      --query 'Stacks[].{Name:StackName,Status:StackStatus,Outputs:Outputs}' > "$WORK_DIR/$name-state.log" 2>/dev/null || true
+    aws cloudformation describe-stack-events --stack-name "$STACK_PREFIX$name" \
+      --query 'StackEvents[].{LogicalId:LogicalResourceId,Type:ResourceType,Status:ResourceStatus,Reason:ResourceStatusReason}' \
+      > "$WORK_DIR/$name-events.log" 2>/dev/null || true
+  done
+}
+preserve_logs() {
+  mkdir -p "$INTEG_OUT/logs"
+  git rev-parse HEAD > "$INTEG_OUT/logs/revision.txt"
+  # Exclude templates and presigned handle URLs. Redact identifiers in diagnostics.
+  python3 - "$WORK_DIR" "$INTEG_OUT/logs" "$INTEG_BUCKET_NAME" <<'PYTHON'
+import pathlib, re, sys
+for p in pathlib.Path(sys.argv[1]).glob('*.log'):
+    text = p.read_text(errors='replace').replace(sys.argv[3], '<test-bucket>')
+    text = re.sub(r'https?://[^\s\"<>]+', '<url>', text)
+    text = re.sub(r'\b\d{12}\b', '<account>', text)
+    (pathlib.Path(sys.argv[2]) / p.name).write_text(text)
+PYTHON
+}
+# Each P0 invocation preserves its streams, status and duration.
+run_case() {
+  local id="$1" expected="$2" start=$SECONDS result=0
+  shift 2
+  timeout 600 "$@" > "$WORK_DIR/$id-stdout.log" 2> "$WORK_DIR/$id-stderr.log" || result=$?
+  printf 'exit=%s duration=%s\n' "$result" "$((SECONDS-start))" > "$WORK_DIR/$id-result.log"
+  assert_eq "$result" "$expected" "$id exit code"
+}
+stack_output() { aws cloudformation describe-stacks --stack-name "$1" --query "Stacks[0].Outputs[?OutputKey=='$2'].OutputValue | [0]" --output text; }
+
 
 print_recent_log() {
   local log
+  # Fixed internal filenames contain no whitespace.
+  # shellcheck disable=SC2012
   log=$(ls -t "$WORK_DIR"/*.log 2>/dev/null | head -n 1) || return 0
   if [[ -s "$log" ]]; then
     echo "Recent cfnrain output ($log):" >&2
-    tail -n 80 "$log" >&2
+    preserve_logs
+    tail -n 80 "$INTEG_OUT/logs/${log##*/}" >&2
   fi
 }
 fail() { echo "integration assertion failed: $*" >&2; print_recent_log; exit 1; }
@@ -25,7 +95,7 @@ on_error() {
   print_recent_log
   return "$result"
 }
-assert_eq() { [[ "$1" == "$2" ]] || fail "expected '$2', got '$1': $3"; }
+assert_eq() { [[ "$1" == "$2" ]] || fail "value mismatch: $3"; }
 stack_status() { aws cloudformation describe-stacks --stack-name "$1" --query 'Stacks[0].StackStatus' --output text; }
 stack_exists() {
   local output
@@ -54,6 +124,8 @@ stack_tag() { aws cloudformation describe-stacks --stack-name "$1" --query "Stac
 
 # The list includes deleted stacks for 90 days. Only act on live root stacks.
 list_test_stacks() {
+  # JMESPath literals must reach the AWS CLI unchanged.
+  # shellcheck disable=SC2016
   aws cloudformation list-stacks --query 'StackSummaries[?starts_with(StackName, `success-`) && StackStatus!=`DELETE_COMPLETE` && ParentId==`null`].[StackName]' --output text
 }
 delete_stack() {
@@ -91,7 +163,7 @@ cleanup_prefix() {
   while read -r name; do
     [[ "$name" == "$prefix"* ]] || continue
     case "${name#"$prefix"}" in
-      bucket|failure|keep|changeset|unnamed|protected|large|nested) ;;
+      bucket|failure|keep|changeset|unnamed|protected|large|nested|pipeline|modules|original|express|normal|conflict|repro67) ;;
       *) continue ;;
     esac
     delete_stack "$name" || result=1
@@ -102,16 +174,29 @@ sweep_stale() {
   local name stacks result=0
   stacks=$(list_test_stacks) || { echo 'unable to list stacks for stale cleanup' >&2; return 1; }
   while read -r name; do
-    [[ "$name" =~ ^success-[0-9]+-[0-9]+-(bucket|failure|keep|changeset|unnamed|protected|large|nested)$ ]] || continue
+    [[ "$name" =~ ^success-[0-9]+-[0-9]+-(bucket|failure|keep|changeset|unnamed|protected|large|nested|pipeline|modules|original|express|normal|conflict|repro67)$ ]] || continue
     [[ "$name" == "$STACK_PREFIX"* ]] && continue
     echo "Removing stale integration stack $name"
     delete_stack "$name" || result=1
   done <<< "$stacks"
+  # Only manifests in the reserved CI namespace authorize object deletion.
+  artifact_bucket=$(aws ssm get-parameter --name rain-bucket --query Parameter.Value --output text) || return 1
+  local key
+  aws s3api list-objects-v2 --bucket "$artifact_bucket" --prefix integ- --query 'Contents[].Key' --output text | tr '\t' '\n' > "$WORK_DIR/manifests.txt" || return 1
+  while read -r key; do
+    [[ "$key" =~ ^integ-[0-9]+-[0-9]+/manifest.txt$ ]] || continue
+    [[ "$key" == "integ-$RUN_TOKEN/manifest.txt" ]] && continue
+    aws s3api get-object --bucket "$artifact_bucket" --key "$key" "$WORK_DIR/stale.txt" >/dev/null || return 1
+    cleanup_objects "$WORK_DIR/stale.txt" "${key%/*}" || result=1
+  done < "$WORK_DIR/manifests.txt"
   return "$result"
 }
 if [[ "${1:-}" == --cleanup ]]; then
   result=0
+  [[ -d "$INTEG_OUT/logs" ]] || snapshot
   cleanup_prefix "$STACK_PREFIX" || result=1
+  cleanup_owned_objects || result=1
+  preserve_logs
   rm -rf "$WORK_DIR"
   exit "$result"
 fi
@@ -121,7 +206,10 @@ on_exit() {
   if [[ -n "${WATCH_PID:-}" ]]; then
     kill "$WATCH_PID" 2>/dev/null || true
   fi
+  snapshot
   cleanup_prefix "$STACK_PREFIX" || result=1
+  cleanup_owned_objects || result=1
+  preserve_logs
   rm -rf "$WORK_DIR"
   exit "$result"
 }
@@ -136,24 +224,10 @@ fi
 go build ./cmd/cfnrain
 ./cfnrain ls >/dev/null
 
-# Issue #67: an unexecuted create change set leaves a stack in REVIEW_IN_PROGRESS.
-# Preserve a failed deploy, rm, or deletion check while cleaning up this stack.
-cleanup_repro_67_on_failure() {
-  local status=$?
-  trap - EXIT
-  if ! aws cloudformation delete-stack --stack-name success-repro-67; then
-    echo "Could not request deletion of success-repro-67; checking if it is already absent" >&2
-  fi
-  if ! aws cloudformation wait stack-delete-complete --stack-name success-repro-67; then
-    echo "Could not confirm deletion of success-repro-67" >&2
-  fi
-  exit "$status"
-}
-trap cleanup_repro_67_on_failure EXIT
-./cfnrain deploy --no-exec test/repro/67/template.yaml success-repro-67 -y
-./cfnrain rm -y success-repro-67
-aws cloudformation wait stack-delete-complete --stack-name success-repro-67
-trap on_exit EXIT
+# Issue #67: use the normal cleanup owner for an unexecuted preview.
+./cfnrain deploy --no-exec test/repro/67/template.yaml "${STACK_PREFIX}repro67" -y
+./cfnrain rm -y "${STACK_PREFIX}repro67"
+assert_absent "${STACK_PREFIX}repro67"
 
 ./cfnrain ls
 
@@ -222,8 +296,7 @@ assert_eq "$(aws cloudformation describe-stacks --stack-name "$keep_stack" --que
 ./cfnrain rm "$keep_stack" -y >/dev/null
 assert_absent "$keep_stack"
 
-# 3. Change-set preview and execute on an existing stack. New-stack preview
-# cleanup remains excluded until #67 and #95 are fixed.
+# 3. Change-set preview and execute on an existing stack.
 change_stack="${STACK_PREFIX}changeset"
 ./cfnrain deploy test/templates/integ-handle.yaml "$change_stack" -y >/dev/null
 ./cfnrain deploy test/templates/integ-handle-two.yaml "$change_stack" add-handle --no-exec -y > "$WORK_DIR/preview.log"
@@ -247,6 +320,8 @@ account=$(aws sts get-caller-identity --query Account --output text)
 hash=$(sha256sum cft/pkg/tmpl/s3.txt | cut -d' ' -f1)
 assert_eq "$(yq -r '.Resources.Test.Properties.TheS3URI' "$WORK_DIR/s3.yaml")" "s3://$artifact_bucket/$hash" 'S3 URI and SHA-256 key'
 aws s3api head-object --bucket "$artifact_bucket" --key "$hash" >/dev/null
+record_object "integ-$RUN_TOKEN/manifest.txt"
+record_object "integ-$RUN_TOKEN/$hash"
 ./cfnrain pkg cft/pkg/tmpl/s3-template.yaml --s3-prefix "integ-$RUN_TOKEN" > "$WORK_DIR/s3-prefix.yaml"
 assert_eq "$(yq -r '.Resources.Test.Properties.TheS3URI' "$WORK_DIR/s3-prefix.yaml")" "s3://$artifact_bucket/integ-$RUN_TOKEN/$hash" 'S3 prefix'
 aws s3api head-object --bucket "$artifact_bucket" --key "integ-$RUN_TOKEN/$hash" >/dev/null
@@ -267,7 +342,43 @@ assert_eq "$http_url" "https://${artifact_bucket}.s3.${region}.amazonaws.com/${h
 aws s3api head-object --bucket "$artifact_bucket" --key "${http_url##*/}" >/dev/null
 ./cfnrain pkg cft/pkg/tmpl/s3-extension-template.yaml > "$WORK_DIR/s3-extension.yaml"
 [[ "$(yq -r '.Resources.Test.Properties.TheS3URI' "$WORK_DIR/s3-extension.yaml")" == *.txt ]] || fail 'S3 extension'
+# A4: each invocation shares one upload cache across all four references.
+record_object "integ-$RUN_TOKEN/manifest.txt"
+printf 'P0 upload cache %s\n' "$RUN_TOKEN" > "$WORK_DIR/cache.txt"
+cache_hash=$(sha256sum "$WORK_DIR/cache.txt" | cut -d' ' -f1)
+for extension in '' .json .txt; do
+  record_object "integ-$RUN_TOKEN/cache/$cache_hash$extension"
+done
+for directive in S3 S3Http; do
+  for order in forward reverse; do
+    {
+      printf 'Resources:\n  Test:\n    Type: A::B::C\n    Properties:\n'
+      extensions=('' json txt json)
+      [[ "$order" != reverse ]] || extensions=(json txt json '')
+      for i in "${!extensions[@]}"; do
+        printf '      Value%s: !Rain::%s\n        Path: cache.txt\n' "$i" "$directive"
+        [[ -z "${extensions[$i]}" ]] || printf '        Extension: %s\n' "${extensions[$i]}"
+      done
+    } > "$WORK_DIR/cache.yaml"
+    run_case "a4-$directive-$order" 0 ./cfnrain pkg "$WORK_DIR/cache.yaml" --s3-prefix "integ-$RUN_TOKEN/cache" --s3-bucket "$artifact_bucket" --s3-owner "$account"
+    for i in "${!extensions[@]}"; do
+      suffix="${extensions[$i]:+.}${extensions[$i]}"
+      key="integ-$RUN_TOKEN/cache/$cache_hash$suffix"
+      url=$(yq -r ".Resources.Test.Properties.Value$i" "$WORK_DIR/a4-$directive-$order-stdout.log")
+      if [[ "$directive" == S3 ]]; then
+        assert_eq "$url" "s3://$artifact_bucket/$key" 'A4 S3 key'
+      else
+        assert_eq "$url" "https://$artifact_bucket.s3.$region.amazonaws.com/$key" 'A4 HTTPS key'
+      fi
+      aws s3api head-object --bucket "$artifact_bucket" --key "$key" >/dev/null
+      aws s3api get-object --bucket "$artifact_bucket" --key "$key" "$WORK_DIR/cache-result.txt" >/dev/null
+      cmp "$WORK_DIR/cache.txt" "$WORK_DIR/cache-result.txt"
+    done
+  done
+done
+
 module_key="integ-$RUN_TOKEN/module.yaml"
+record_object "$module_key"
 aws s3api put-object --bucket "$artifact_bucket" --key "$module_key" --body test/templates/integ-handle.yaml >/dev/null
 cat > "$WORK_DIR/remote-module.yaml" <<YAML
 Modules:
@@ -276,6 +387,113 @@ Modules:
 YAML
 ./cfnrain pkg -x "$WORK_DIR/remote-module.yaml" > "$WORK_DIR/remote-module-packaged.yaml"
 assert_eq "$(yq -r '.Resources.RemoteHandle.Type' "$WORK_DIR/remote-module-packaged.yaml")" AWS::CloudFormation::WaitConditionHandle 'S3 module source'
+
+# A3: explicit stdin output must reach CloudFormation.
+run_case a3-fmt 0 ./cfnrain fmt - < test/templates/integ-handle.yaml
+cp "$WORK_DIR/a3-fmt-stdout.log" "$WORK_DIR/formatted.yaml"
+./cfnrain fmt test/templates/integ-handle.yaml > "$WORK_DIR/file-formatted.yaml"
+cmp "$WORK_DIR/formatted.yaml" "$WORK_DIR/file-formatted.yaml"
+run_case a3-merge 0 ./cfnrain merge "$WORK_DIR/formatted.yaml" - < test/templates/integ-handle-two.yaml
+cp "$WORK_DIR/a3-merge-stdout.log" "$WORK_DIR/merged.yaml"
+./cfnrain merge "$WORK_DIR/formatted.yaml" test/templates/integ-handle-two.yaml > "$WORK_DIR/file-merged.yaml"
+cmp "$WORK_DIR/merged.yaml" "$WORK_DIR/file-merged.yaml"
+run_case a3-diff 0 ./cfnrain diff "$WORK_DIR/formatted.yaml" - < "$WORK_DIR/merged.yaml"
+grep -q SecondHandle "$WORK_DIR/a3-diff-stdout.log" || fail 'A3 diff missing resource'
+run_case a3-deploy 0 ./cfnrain deploy "$WORK_DIR/merged.yaml" "${STACK_PREFIX}pipeline" -y
+for logical in Handle SecondHandle; do
+  assert_eq "$(aws cloudformation describe-stack-resource --stack-name "${STACK_PREFIX}pipeline" --logical-resource-id "$logical" --query StackResourceDetail.ResourceStatus --output text)" CREATE_COMPLETE 'A3 resource'
+done
+
+./cfnrain cat "${STACK_PREFIX}pipeline" > "$WORK_DIR/pipeline-cat.yaml"
+yq -o=json '.Resources' "$WORK_DIR/pipeline-cat.yaml" > "$WORK_DIR/actual-resources.json"
+yq -o=json '.Resources' "$WORK_DIR/merged.yaml" > "$WORK_DIR/expected-resources.json"
+cmp "$WORK_DIR/actual-resources.json" "$WORK_DIR/expected-resources.json"
+
+# A5: assert AWS-evaluated outputs, including parent binding after an update.
+for parent in parent-value updated-value; do
+  run_case "a5-$parent" 0 ./cfnrain deploy test/templates/integ-p0/modules.yaml "${STACK_PREFIX}modules" -x -y --params "Parent=$parent"
+  status=CREATE_COMPLETE
+  [[ "$parent" != updated-value ]] || status=UPDATE_COMPLETE
+  assert_status "${STACK_PREFIX}modules" "$status"
+  assert_eq "$(stack_output "${STACK_PREFIX}modules" Constant)" constant-local '#141'
+  # shellcheck disable=SC2016
+  assert_eq "$(stack_output "${STACK_PREFIX}modules" Escaped)" '${Literal}' '#142'
+  handle=$(aws cloudformation describe-stack-resource --stack-name "${STACK_PREFIX}modules" --logical-resource-id ChildHandle --query StackResourceDetail.PhysicalResourceId --output text)
+  assert_eq "$(stack_output "${STACK_PREFIX}modules" Sequence)" "$handle-suffix" '#151'
+  assert_eq "$(stack_output "${STACK_PREFIX}modules" Empty)" prefix '#153'
+  assert_eq "$(stack_output "${STACK_PREFIX}modules" ParentValue)" "$parent-child" '#176 supplied'
+  assert_eq "$(stack_output "${STACK_PREFIX}modules" ParentSub)" "$parent-sub" '#176 Sub'
+  assert_eq "$(stack_output "${STACK_PREFIX}modules" DefaultValue)" fallback-default '#176 default'
+  assert_eq "$(stack_output "${STACK_PREFIX}modules" Anchor)" xx '#181'
+done
+
+# A6: original input and formatted input must deploy the same values.
+run_case a6-fmt 0 ./cfnrain fmt test/templates/integ-p0/original.yaml --node-style original
+cp "$WORK_DIR/a6-fmt-stdout.log" "$WORK_DIR/original.yaml"
+grep -q 'explicit key comment' "$WORK_DIR/original.yaml" || fail 'A6 comment missing'
+run_case a6-create 0 ./cfnrain deploy test/templates/integ-p0/original.yaml "${STACK_PREFIX}original" -y --node-style original
+run_case a6-noop 0 ./cfnrain deploy "$WORK_DIR/original.yaml" "${STACK_PREFIX}original" -y --node-style original
+grep -q 'Deploy was skipped' "$WORK_DIR/a6-noop-stdout.log" || fail 'A6 semantic no-op'
+assert_eq "$(stack_output "${STACK_PREFIX}original" QuotedOn)" ON 'A6 quoted ON'
+assert_eq "$(stack_output "${STACK_PREFIX}original" QuotedOff)" OFF 'A6 quoted OFF'
+assert_eq "$(stack_output "${STACK_PREFIX}original" Empty)" prefix 'A6 empty intrinsic'
+assert_eq "$(stack_output "${STACK_PREFIX}original" Alias)" anchored 'A6 alias'
+# A sentinel preserves trailing newlines through command substitution.
+assert_eq "$(stack_output "${STACK_PREFIX}original" Multiline; printf .)" $'first\tcolumn\nsecond\n\n.' 'A6 multiline'
+
+# A1: named previews expose the deployment mode to an independent AWS assertion.
+for mode in express normal; do
+  flags=()
+  [[ "$mode" != express ]] || flags+=(--express)
+  stack="${STACK_PREFIX}$mode"
+  name="${STACK_PREFIX}$mode"
+  run_case "a1-$mode-preview" 0 ./cfnrain deploy test/templates/integ-p0/bucket.yaml "$stack" create-preview -y --no-exec "${flags[@]}" --params "BucketName=$name"
+  actual_mode=$(aws cloudformation describe-change-set --stack-name "$stack" --change-set-name create-preview --query DeploymentConfig.Mode --output text)
+  printf '%s\n' "$actual_mode" > "$WORK_DIR/a1-$mode-mode.log"
+  if [[ "$mode" == express ]]; then
+    assert_eq "$actual_mode" EXPRESS 'A1 change set mode'
+  else
+    [[ "$actual_mode" != EXPRESS ]] || fail 'A1 control unexpectedly Express'
+  fi
+  run_case "a1-$mode-create" 0 ./cfnrain deploy --changeset "$stack" create-preview -y
+  assert_status "$stack" CREATE_COMPLETE
+  aws s3api head-bucket --bucket "$name"
+  assert_eq "$(aws s3api get-bucket-tagging --bucket "$name" --query "TagSet[?Key=='Revision'].Value | [0]" --output text)" first 'A1 create tag'
+  run_case "a1-$mode-update" 0 ./cfnrain deploy test/templates/integ-p0/bucket.yaml "$stack" -y "${flags[@]}" --params "BucketName=$name,Revision=second"
+  assert_status "$stack" UPDATE_COMPLETE
+  assert_eq "$(aws s3api get-bucket-tagging --bucket "$name" --query "TagSet[?Key=='Revision'].Value | [0]" --output text)" second 'A1 update tag'
+done
+
+# A2: the normal control owns the bucket. Early Validation must reject a conflict.
+run_case a2-conflict 1 ./cfnrain deploy test/templates/integ-p0/bucket.yaml "${STACK_PREFIX}conflict" conflict -y --params "BucketName=${STACK_PREFIX}normal"
+assert_eq "$(aws cloudformation describe-change-set --stack-name "${STACK_PREFIX}conflict" --change-set-name conflict --query Status --output text)" FAILED 'A2 failed change set'
+aws cloudformation describe-events --stack-name "${STACK_PREFIX}conflict" --change-set-name conflict > "$WORK_DIR/a2-events.log"
+python3 - "$WORK_DIR" <<'PYTHON'
+import json, pathlib, sys
+p = pathlib.Path(sys.argv[1])
+events = json.loads((p/'a2-events.log').read_text())['OperationEvents']
+text = (p/'a2-conflict-stdout.log').read_text() + (p/'a2-conflict-stderr.log').read_text()
+failures = [e for e in events if e.get('ValidationStatus') == 'FAILED']
+assert failures, 'A2 blocked: region returned no Early Validation failures'
+for event in failures:
+    for field in ('LogicalResourceId', 'ResourceType', 'ValidationName', 'ValidationStatusReason'):
+        assert event.get(field) and event[field] in text, (field, 'missing from CLI details')
+PYTHON
+assert_eq "$(aws s3api get-bucket-tagging --bucket "${STACK_PREFIX}normal" --query "TagSet[?Key=='Revision'].Value | [0]" --output text)" second 'A2 owner unchanged'
+
+# A7: forecast reads a cheap bucket fixture and keeps its warning on stderr.
+run_case a7-forecast 0 ./cfnrain forecast test/templates/integ-p0/bucket.yaml "${STACK_PREFIX}normal" -x --params "BucketName=${STACK_PREFIX}normal,Revision=second"
+assert_warning "$WORK_DIR/a7-forecast-stdout.log" "$WORK_DIR/a7-forecast-stderr.log"
+
+# A7: cc state reads only this run's recorded S3 state object. No cc resource is created.
+cc_key="integ-$RUN_TOKEN/deployments/${STACK_PREFIX}cc.yaml"
+record_object "$cc_key"
+aws s3api put-object --bucket "$artifact_bucket" --key "$cc_key" --body test/templates/integ-handle.yaml >/dev/null
+run_case a7-cc-state 0 ./cfnrain cc state "${STACK_PREFIX}cc" -x --s3-prefix "integ-$RUN_TOKEN"
+assert_warning "$WORK_DIR/a7-cc-state-stdout.log" "$WORK_DIR/a7-cc-state-stderr.log"
+./cfnrain fmt "$WORK_DIR/a7-cc-state-stdout.log" > "$WORK_DIR/cc-state.yaml"
+./cfnrain fmt test/templates/integ-handle.yaml > "$WORK_DIR/cc-expected.yaml"
+cmp "$WORK_DIR/cc-state.yaml" "$WORK_DIR/cc-expected.yaml"
 
 # 8. The unnamed stack path uses the filename and returns the deployed template.
 unnamed_stack="${STACK_PREFIX}unnamed"

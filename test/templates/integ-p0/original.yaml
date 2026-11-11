@@ -1,0 +1,21 @@
+# A6: #305 explicit flow keys plus deployed scalar values.
+Metadata: {
+? M # explicit key comment
+: {x: y}
+}
+Resources:
+  Handle:
+    Type: AWS::CloudFormation::WaitConditionHandle
+Outputs:
+  QuotedOn:
+    Value: 'ON'
+  QuotedOff:
+    Value: 'OFF'
+  Empty:
+    Value: !Join ['', [prefix, !Sub '']]
+  Anchor:
+    Value: &value 'anchored'
+  Alias:
+    Value: *value
+  Multiline:
+    Value: "first\tcolumn\nsecond\n"
