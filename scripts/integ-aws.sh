@@ -9,7 +9,10 @@ fi
 source scripts/integ-warnings.sh
 source scripts/integ-upload-fixture.sh
 
-: "${INTEG_BUCKET_NAME:?set INTEG_BUCKET_NAME to the test bucket name}"
+MODE="${1:-fast}"
+if [[ "$MODE" == fast || "$MODE" == --p1-isolated || "$MODE" == --cleanup-lab ]]; then
+  : "${INTEG_BUCKET_NAME:?set INTEG_BUCKET_NAME to the test bucket name}"
+fi
 INTEG_OUT="${INTEG_OUT:-integ-out}"
 RUN_TOKEN="${INTEG_RUN_TOKEN:-${GITHUB_RUN_ID:-local-$(date +%s)-$$}-${GITHUB_RUN_ATTEMPT:-1}}"
 [[ "$RUN_TOKEN" =~ ^[a-zA-Z0-9-]+$ ]] || { echo 'invalid run token' >&2; exit 1; }
@@ -18,45 +21,25 @@ mkdir -p "$INTEG_OUT"
 WORK_DIR=$(mktemp -d)
 OBJECT_MANIFEST="$INTEG_OUT/objects-$RUN_TOKEN.txt"
 
-# Artifact objects expire through the existing seven-day bucket lifecycle.
-# Keep an inventory for diagnosis. The role deliberately cannot delete objects.
-record_object() { printf '%s\n' "$1" >> "$OBJECT_MANIFEST"; }
+# shellcheck source=scripts/integ-cases.sh
+source scripts/integ-cases.sh
+# shellcheck source=scripts/integ-p1.sh
+source scripts/integ-p1.sh
+
 snapshot() {
-  local name
-  for name in pipeline modules original express normal conflict; do
+  local name names
+  case "$MODE" in
+    --p1-isolated|--cleanup-lab) names='p1-managed p1-retained p1-service' ;;
+    --slow) names='p1-preview-execute p1-preview-abandon p1-update-rollback p1-update-keep large nested' ;;
+    *) names='pipeline modules original express normal conflict' ;;
+  esac
+  for name in $names; do
     aws cloudformation describe-stacks --stack-name "$STACK_PREFIX$name" \
       --query 'Stacks[].{Name:StackName,Status:StackStatus,Outputs:Outputs}' > "$WORK_DIR/$name-state.log" 2>/dev/null || true
     aws cloudformation describe-stack-events --stack-name "$STACK_PREFIX$name" \
       --query 'StackEvents[].{LogicalId:LogicalResourceId,Type:ResourceType,Status:ResourceStatus,Reason:ResourceStatusReason}' \
       > "$WORK_DIR/$name-events.log" 2>/dev/null || true
   done
-}
-preserve_logs() {
-  mkdir -p "$INTEG_OUT/logs"
-  git rev-parse HEAD > "$INTEG_OUT/logs/revision.txt"
-  # Exclude templates and presigned handle URLs. Redact identifiers in diagnostics.
-  local log
-  for log in "$WORK_DIR"/*.log; do
-    [[ -f "$log" ]] || continue
-    python3 scripts/integ-redact.py < "$log" > "$INTEG_OUT/logs/${log##*/}"
-  done
-}
-# Each P0 invocation preserves its streams, status and duration.
-run_case() {
-  local id="$1" expected="$2" start=$SECONDS result=0 stream remaining=$((2100 - SECONDS))
-  shift 2
-  (( remaining > 0 )) || fail "P0 time budget exhausted before $id; remaining cases did not run"
-  (( remaining <= 600 )) || remaining=600
-  timeout "$remaining" "$@" > "$WORK_DIR/$id-stdout.log" 2> "$WORK_DIR/$id-stderr.log" || result=$?
-  printf 'exit=%s duration=%s\n' "$result" "$((SECONDS-start))" > "$WORK_DIR/$id-result.log"
-  if [[ "$result" != "$expected" ]]; then
-    preserve_logs
-    for stream in stdout stderr; do
-      echo "$id $stream:" >&2
-      tail -n 80 "$INTEG_OUT/logs/$id-$stream.log" >&2
-    done
-  fi
-  assert_eq "$result" "$expected" "$id exit code"
 }
 # Express completion can precede bucket and tag readiness.
 wait_bucket_tag() {
@@ -146,6 +129,9 @@ delete_stack() {
       *) break ;;
     esac
   done
+  if [[ "$MODE" == --p1-isolated || "$MODE" == --cleanup-lab ]]; then
+    p1_empty_lab_bucket "$name" || return 1
+  fi
   protected=$(aws cloudformation describe-stacks --stack-name "$name" --query 'Stacks[0].EnableTerminationProtection' --output text) || return 1
   if [[ "$protected" == True ]]; then
     aws cloudformation update-termination-protection --stack-name "$name" --no-enable-termination-protection >/dev/null || return 1
@@ -160,7 +146,7 @@ cleanup_prefix() {
   while read -r name; do
     [[ "$name" == "$prefix"* ]] || continue
     case "${name#"$prefix"}" in
-      bucket|failure|keep|changeset|unnamed|protected|large|nested|pipeline|modules|original|express|normal|conflict|repro67) ;;
+      bucket|failure|keep|changeset|unnamed|protected|large|nested|pipeline|modules|original|express|normal|conflict|repro67|p1-preview-execute|p1-preview-abandon|p1-update-rollback|p1-update-keep) ;;
       *) continue ;;
     esac
     delete_stack "$name" || result=1
@@ -175,17 +161,24 @@ sweep_stale() {
       delete_stack "$name" || result=1
       continue
     fi
-    [[ "$name" =~ ^success-[0-9]+-[0-9]+-(bucket|failure|keep|changeset|unnamed|protected|large|nested|pipeline|modules|original|express|normal|conflict|repro67)$ ]] || continue
+    [[ "$name" =~ ^success-[0-9]+-[0-9]+-(bucket|failure|keep|changeset|unnamed|protected|large|nested|pipeline|modules|original|express|normal|conflict|repro67|p1-preview-execute|p1-preview-abandon|p1-update-rollback|p1-update-keep)$ ]] || continue
     [[ "$name" == "$STACK_PREFIX"* ]] && continue
     echo "Removing stale integration stack $name"
     delete_stack "$name" || result=1
   done <<< "$stacks"
   return "$result"
 }
-if [[ "${1:-}" == --cleanup ]]; then
+cleanup_current() {
+  if [[ "$MODE" == --p1-isolated || "$MODE" == --cleanup-lab ]]; then
+    p1_cleanup_lab
+  else
+    cleanup_prefix "$STACK_PREFIX"
+  fi
+}
+if [[ "$MODE" == --cleanup || "$MODE" == --cleanup-lab ]]; then
   result=0
-  [[ -d "$INTEG_OUT/logs" ]] || snapshot
-  cleanup_prefix "$STACK_PREFIX" || result=1
+  if [[ "$MODE" == --cleanup && -n "${INTEG_BUCKET_NAME:-}" && ! -d "$INTEG_OUT/logs" ]]; then snapshot; fi
+  cleanup_current || result=1
   preserve_logs
   rm -rf "$WORK_DIR"
   exit "$result"
@@ -193,11 +186,10 @@ fi
 on_exit() {
   local result=$?
   trap - EXIT
-  if [[ -n "${WATCH_PID:-}" ]]; then
-    kill "$WATCH_PID" 2>/dev/null || true
-  fi
+  p1_stop_watch
   if (( result != 0 && result != 130 && result != 143 )); then snapshot; fi
-  cleanup_prefix "$STACK_PREFIX" || result=1
+  p1_record_uploads || result=1
+  cleanup_current || result=1
   preserve_logs
   rm -rf "$WORK_DIR"
   exit "$result"
@@ -206,6 +198,26 @@ trap on_exit EXIT
 trap 'on_error "$LINENO" "$BASH_COMMAND"' ERR
 trap 'exit 130' INT
 trap 'exit 143' TERM
+if [[ "$MODE" == --p1-isolated ]]; then
+  go build ./cmd/cfnrain
+  # Lab setup provisions the primary artifacts. Never create them implicitly.
+  aws ssm get-parameter --name rain-bucket --query Parameter.Value --output text > "$WORK_DIR/p1-primary-bucket"
+  aws s3api head-bucket --bucket "$(cat "$WORK_DIR/p1-primary-bucket")" > /dev/null
+  p1_cleanup_lab
+  p1_bootstrap
+  p1_service_role
+  p1_removal
+  exit 0
+fi
+# shellcheck source=scripts/integ-p1-slow.sh
+source scripts/integ-p1-slow.sh
+if [[ "$MODE" == --slow ]]; then
+  go build ./cmd/cfnrain
+  sweep_stale
+  p1_slow
+  exit 0
+fi
+[[ "$MODE" == fast ]] || fail 'unknown integration mode'
 if [[ "${GITHUB_ACTIONS:-}" == true ]]; then
   sweep_stale || echo 'stale stack sweep incomplete; continuing' >&2
 fi
@@ -220,19 +232,19 @@ assert_absent "${STACK_PREFIX}repro67"
 
 ./cfnrain ls
 
-# 1. Create, no-op, previous values, tags, config, and environment parameters.
+# Create, no-op, previous values, tags, config, and environment parameters.
 bucket_stack="${STACK_PREFIX}bucket"
 RAIN_DEFAULT_TAG_Team=integ ./cfnrain deploy test/templates/integ-bucket.yaml "$bucket_stack" -y \
-  --params "BucketName=$INTEG_BUCKET_NAME,Env=prod,Secret=hidden" --tags Stage=initial > "$WORK_DIR/bucket-create.log"
+  --params "BucketName=$INTEG_BUCKET_NAME,Env=prod,Secret=hidden" --tags Stage=initial > "$WORK_DIR/bucket-create.log" 2>&1
 assert_status "$bucket_stack" CREATE_COMPLETE
 assert_eq "$(stack_param "$bucket_stack" Env)" prod 'create Env'
 assert_eq "$(stack_tag "$bucket_stack" Team)" integ 'default tag'
 assert_eq "$(stack_tag "$bucket_stack" Stage)" initial 'initial tag'
 RAIN_DEFAULT_TAG_Team=integ ./cfnrain deploy test/templates/integ-bucket.yaml "$bucket_stack" -y \
-  --params "BucketName=$INTEG_BUCKET_NAME,Env=prod,Secret=hidden" --tags Stage=initial > "$WORK_DIR/noop.log"
+  --params "BucketName=$INTEG_BUCKET_NAME,Env=prod,Secret=hidden" --tags Stage=initial > "$WORK_DIR/noop.log" 2>&1
 grep -q 'Deploy was skipped' "$WORK_DIR/noop.log" || fail 'no-op deploy message'
 RAIN_DEFAULT_TAG_Team=integ ./cfnrain deploy test/templates/integ-bucket.yaml "$bucket_stack" -y \
-  --tags Stage=second > "$WORK_DIR/bucket-update.log"
+  --tags Stage=second > "$WORK_DIR/bucket-update.log" 2>&1
 grep -q 'Successfully updated' "$WORK_DIR/bucket-update.log" || fail 'update message'
 assert_eq "$(stack_param "$bucket_stack" Env)" prod 'previous Env'
 assert_eq "$(stack_param "$bucket_stack" BucketName)" "$INTEG_BUCKET_NAME" 'previous bucket name'
@@ -244,14 +256,14 @@ Tags:
   Team: config-team
 YAML
 RAIN_DEFAULT_TAG_Team=integ RAIN_VAR_Env=prod RAIN_VAR_Note=from-env ./cfnrain deploy test/templates/integ-bucket.yaml "$bucket_stack" -y \
-  -c "$WORK_DIR/config.yaml" > "$WORK_DIR/config-update.log"
+  -c "$WORK_DIR/config.yaml" > "$WORK_DIR/config-update.log" 2>&1
 assert_status "$bucket_stack" UPDATE_COMPLETE
 assert_eq "$(stack_param "$bucket_stack" Env)" dev 'config parameter precedence'
 assert_eq "$(stack_param "$bucket_stack" Note)" from-env 'environment parameter'
 assert_eq "$(stack_tag "$bucket_stack" Stage)" config 'config tag'
 assert_eq "$(stack_tag "$bucket_stack" Team)" config-team 'config tag precedence'
 assert_eq "$(aws s3api get-bucket-tagging --bucket "$INTEG_BUCKET_NAME" --query "TagSet[?Key=='Team'].Value | [0]" --output text)" config-team 'bucket tag propagation'
-./cfnrain cat -c "$bucket_stack" > "$WORK_DIR/deployed-config.yaml"
+./cfnrain cat -c "$bucket_stack" > "$WORK_DIR/deployed-config.yaml" 2>&1
 assert_eq "$(yq -r '.Parameters.Note' "$WORK_DIR/deployed-config.yaml")" from-env 'cat config parameter'
 assert_eq "$(yq -r '.Tags.Stage' "$WORK_DIR/deployed-config.yaml")" config 'cat config tag'
 ./cfnrain logs "$bucket_stack" --length 5 >/dev/null
@@ -259,9 +271,19 @@ assert_eq "$(yq -r '.Tags.Stage' "$WORK_DIR/deployed-config.yaml")" config 'cat 
 ./cfnrain logs "$bucket_stack" --chart >/dev/null
 ./cfnrain cat "$bucket_stack" > "$WORK_DIR/bucket-cat.yaml"
 assert_eq "$(yq -r '.Resources.Bucket.Type' "$WORK_DIR/bucket-cat.yaml")" AWS::S3::Bucket 'cat template'
-./cfnrain ls "$bucket_stack" > "$WORK_DIR/bucket-ls.log"
+./cfnrain ls "$bucket_stack" > "$WORK_DIR/bucket-ls.log" 2>&1
 grep -q "$bucket_stack" "$WORK_DIR/bucket-ls.log" || fail 'ls summary'
 grep -q 'UPDATE_COMPLETE' "$WORK_DIR/bucket-ls.log" || fail 'ls updated status'
+# Explicit CLI values override config and environment values.
+RAIN_VAR_Env=dev ./cfnrain deploy test/templates/integ-bucket.yaml "$bucket_stack" -y \
+  -c "$WORK_DIR/config.yaml" --params Env=prod --tags Stage=cli > "$WORK_DIR/p1-precedence.log" 2>&1
+assert_eq "$(stack_param "$bucket_stack" Env)" prod 'CLI parameter precedence'
+assert_eq "$(stack_tag "$bucket_stack" Stage)" cli 'CLI tag precedence'
+# The sentinel is test data, never a credential. Check normal output and readback.
+if grep -Fq hidden "$WORK_DIR/bucket-create.log" "$WORK_DIR/noop.log" "$WORK_DIR/deployed-config.yaml" "$WORK_DIR/bucket-ls.log" "$WORK_DIR/config-update.log" "$WORK_DIR/bucket-update.log" "$WORK_DIR/p1-precedence.log"; then
+  fail 'B1 NoEcho value appeared in normal output'
+fi
+echo 'SKIPPED: B1 service role runs in the optional isolated P1 job'
 ./cfnrain rm "$bucket_stack" -y >/dev/null
 assert_absent "$bucket_stack"
 
@@ -292,6 +314,7 @@ change_stack="${STACK_PREFIX}changeset"
 assert_eq "$(aws cloudformation describe-change-set --stack-name "$change_stack" --change-set-name add-handle --query Status --output text)" CREATE_COMPLETE 'change set status'
 ./cfnrain ls -c "$change_stack" add-handle > "$WORK_DIR/changeset-ls.log"
 grep -q 'SecondHandle' "$WORK_DIR/changeset-ls.log" || fail 'change set listing'
+assert_eq "$(aws cloudformation list-stack-resources --stack-name "$change_stack" --query 'length(StackResourceSummaries)' --output text)" 1 'preview changed resources'
 ./cfnrain deploy --changeset "$change_stack" add-handle > "$WORK_DIR/changeset-exec.log"
 assert_status "$change_stack" UPDATE_COMPLETE
 assert_eq "$(aws cloudformation describe-stack-resource --stack-name "$change_stack" --logical-resource-id SecondHandle --query 'StackResourceDetail.ResourceStatus' --output text)" CREATE_COMPLETE 'change set resource'
@@ -544,48 +567,9 @@ assert_eq "$(aws cloudformation describe-stacks --stack-name "$protected_stack" 
 ./cfnrain rm "$protected_stack" -y >/dev/null
 assert_absent "$protected_stack"
 
-# 5 and 7 take longer and run on the weekly schedule and release PRs.
+# Local callers can request both suites. CI uses a separate --slow job.
 if [[ "${INTEG_SLOW:-false}" == true ]]; then
-  large_stack="${STACK_PREFIX}large"
-  {
-    printf 'Description: Large integration template\nMetadata:\n  Padding: "'
-    head -c 52000 /dev/zero | tr '\0' x
-    printf '"\nResources:\n  Handle:\n    Type: AWS::CloudFormation::WaitConditionHandle\n'
-  } > "$WORK_DIR/large.yaml"
-  ./cfnrain deploy "$WORK_DIR/large.yaml" "$large_stack" -y >/dev/null
-  assert_status "$large_stack" CREATE_COMPLETE
-  ./cfnrain rm "$large_stack" -y >/dev/null
-  assert_absent "$large_stack"
-
-  nested_stack="${STACK_PREFIX}nested"
-  cp test/templates/integ-handle.yaml "$WORK_DIR/child.yaml"
-  cat > "$WORK_DIR/parent.yaml" <<'YAML'
-Description: Integration nested stack
-Resources:
-  Child:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: child.yaml
-YAML
-  ./cfnrain deploy "$WORK_DIR/parent.yaml" "$nested_stack" -y -d > "$WORK_DIR/detach.log"
-  grep -q 'Detaching' "$WORK_DIR/detach.log" || fail 'detach message'
-  timeout 240 ./cfnrain watch "$nested_stack" > "$WORK_DIR/watch-create.log"
-  grep -q 'CREATE_COMPLETE' "$WORK_DIR/watch-create.log" || fail 'watch create status'
-  assert_status "$nested_stack" CREATE_COMPLETE
-  cp test/templates/integ-handle-two.yaml "$WORK_DIR/child.yaml"
-  ./cfnrain deploy "$WORK_DIR/parent.yaml" "$nested_stack" nested-update --no-exec -y > "$WORK_DIR/nested-preview.log"
-  grep -q 'SecondHandle' "$WORK_DIR/nested-preview.log" || fail 'nested change set details'
-  timeout 240 ./cfnrain watch --wait "$nested_stack" > "$WORK_DIR/watch-update.log" &
-  WATCH_PID=$!
-  sleep 2
-  ./cfnrain deploy --changeset "$nested_stack" nested-update -d > "$WORK_DIR/nested-detach.log"
-  wait "$WATCH_PID"
-  WATCH_PID=
-  grep -q 'UPDATE_COMPLETE' "$WORK_DIR/watch-update.log" || fail 'watch update status'
-  assert_status "$nested_stack" UPDATE_COMPLETE
-  ./cfnrain logs "$nested_stack" --length 5 >/dev/null
-  ./cfnrain rm "$nested_stack" -y >/dev/null
-  assert_absent "$nested_stack"
+  p1_slow
 fi
 
 # The packaged modules and Pkl templates are linted in a credential-free job.

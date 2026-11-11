@@ -7,6 +7,7 @@ set -eoux pipefail
 ./scripts/test.sh
 python3 scripts/integ-redact-test.py
 python3 scripts/integ-signals-test.py
+./scripts/integ-p1-test.sh
 
 # A7: preserve success and error exit codes, with warnings only on stderr.
 source scripts/integ-warnings.sh
