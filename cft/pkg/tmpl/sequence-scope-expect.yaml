@@ -1,0 +1,56 @@
+Resources:
+  MBucket:
+    Type: AWS::S3::Bucket
+  MExample:
+    Type: Custom::Example
+    Properties:
+      Collision: !Sub
+        - '${RainValueM_Bucket_1}-${RainValueM_Bucket_1}-${MBucket}'
+        - MBucket: wrong
+          RainValueM_Bucket: reserved
+          RainValueM_Bucket_1: !Ref MBucket
+      Attribute: !Sub
+        - '${RainValueM_Bucket_Arn}-${MBucket.Arn}'
+        - MBucket.Arn: wrong
+          RainValueM_Bucket_Arn: !GetAtt MBucket.Arn
+      Literal: !Sub '${HOME}-${HOME}'
+Outputs:
+  Collision:
+    Value: !Sub
+      - '${RainValueM_Bucket}-${MBucket}'
+      - MBucket: wrong
+        RainValueM_Bucket: !Ref MBucket
+  NestedCollision:
+    Value: !Sub
+      - '${RainOutputM_Collision}-outer'
+      - RainOutputM_Collision: !Sub
+          - '${RainValueM_Bucket}-${MBucket}'
+          - MBucket: wrong
+            RainValueM_Bucket: !Ref MBucket
+  Literal:
+    Value: !Sub '${HOME}-suffix'
+  NestedLiteral:
+    Value: !Sub '${HOME}-suffix-outer'
+  LiteralMap:
+    Value: !Sub
+      - '${RainValueM_Literal_1}-${X}'
+      - X: suffix
+        HOME: wrong
+        RainValueM_Literal: reserved
+        RainValueM_Literal_1: '${HOME}'
+  ScalarCollision:
+    Value: !Sub
+      - '${RainOutputM_Sc_1}-${RainOutputM_Sc_1}-${MBucket}'
+      - MBucket: parent
+        RainOutputM_Sc: reserved
+        RainOutputM_Sc_1: !Sub '${MBucket}'
+  RefCollision:
+    Value: !Sub
+      - '${RainOutputM_Pl}-${MBucket}'
+      - MBucket: parent
+        RainOutputM_Pl: !Ref MBucket
+  AttributeCollision:
+    Value: !Sub
+      - '${RainOutputM_Attr}-${MBucket.Arn}'
+      - MBucket.Arn: parent
+        RainOutputM_Attr: !GetAtt MBucket.Arn

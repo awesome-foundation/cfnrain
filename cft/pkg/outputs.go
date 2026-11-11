@@ -35,11 +35,15 @@ func (module *Module) ProcessOutputs() error {
 		return nil
 	}
 
-	// Resolve output values first
+	// Resolve output values first. Keep errors for outputs the parent uses.
+	outputErrors := make(map[string]error)
 	for i := 0; i < len(module.OutputsNode.Content); i += 2 {
 		outputNode := module.OutputsNode.Content[i+1]
-		if err := module.Resolve(outputNode); errors.Is(err, errRecursiveDefault) {
-			return err
+		if err := module.Resolve(outputNode); err != nil {
+			if errors.Is(err, errRecursiveDefault) {
+				return err
+			}
+			outputErrors[module.OutputsNode.Content[i].Value] = fmt.Errorf("module output %s.%s: %w", module.Config.Name, module.OutputsNode.Content[i].Value, err)
 		}
 	}
 
@@ -51,8 +55,14 @@ func (module *Module) ProcessOutputs() error {
 	}
 	t.ModuleOutputs[module.Config.Name] = module.OutputsNode
 
-	// Iterate over module outputs
-	for outputName, outputVal := range module.Outputs() {
+	// Process outputs in document order so generated maps have stable order.
+	outputs := module.Outputs()
+	for i := 0; i < len(module.OutputsNode.Content); i += 2 {
+		outputName := module.OutputsNode.Content[i].Value
+		outputVal := outputs[outputName]
+		if outputErrors[outputName] != nil {
+			outputVal = outputErrors[outputName]
+		}
 
 		var err error
 
@@ -60,6 +70,10 @@ func (module *Module) ProcessOutputs() error {
 		// this output. Refs can't point to module outputs since you need
 		// ModuleName.OutputName
 		vf := func(v *visitor.Visitor) {
+			if err != nil {
+				v.Stop()
+				return
+			}
 			n := v.GetYamlNode()
 			if n.Kind != yaml.MappingNode || len(n.Content) != 2 {
 				return
@@ -132,10 +146,6 @@ func (module *Module) GetArrayIndexFromString(s string) (int, error) {
 // Returns nil if it's not a match.
 func (module *Module) CheckOutputGetAtt(s string, outputName string, outputVal any) (*yaml.Node, error) {
 	tokens := strings.Split(s, ".")
-	outputValue, err := encodeOutputValue(outputName, outputVal)
-	if err != nil {
-		return nil, err
-	}
 	if len(tokens) != 2 {
 		return nil, nil
 	}
@@ -159,7 +169,7 @@ func (module *Module) CheckOutputGetAtt(s string, outputName string, outputVal a
 					return nil, err
 				}
 				if idx == mappedConfig.MapIndex {
-					return outputValue, nil
+					return encodeOutputValue(outputName, outputVal)
 				}
 			}
 		}
@@ -172,7 +182,7 @@ func (module *Module) CheckOutputGetAtt(s string, outputName string, outputVal a
 	if tokens[1] != outputName {
 		return nil, nil
 	}
-	return outputValue, nil
+	return encodeOutputValue(outputName, outputVal)
 }
 
 // Convert an output value back to a Node.
@@ -180,6 +190,9 @@ func (module *Module) CheckOutputGetAtt(s string, outputName string, outputVal a
 // This also has the benefit of doing a deep copy to avoid
 // accidentally referring to the same object repeatedly.
 func encodeOutputValue(outputName string, outputVal any) (*yaml.Node, error) {
+	if err, ok := outputVal.(error); ok {
+		return nil, err
+	}
 	var outputNode yaml.Node
 	outputValMap, ok := outputVal.(map[string]any)
 	// TODO - It could be a plain string.. though this would be rare
@@ -227,7 +240,17 @@ func (module *Module) OutputGetAtt(outputName string, outputVal any, n *yaml.Nod
 // The reference needs to be like a GetAtt.
 // For example, !Sub ${A.B} refers to module A, output B.
 func (module *Module) OutputSub(outputName string, outputVal any, n *yaml.Node) error {
-	s := n.Content[1].Value
+	prop := n.Content[1]
+	var variables *yaml.Node
+	if prop.Kind == yaml.SequenceNode {
+		if len(prop.Content) != 2 || prop.Content[0].Kind != yaml.ScalarNode || prop.Content[1].Kind != yaml.MappingNode {
+			return fmt.Errorf("invalid sequence-form Sub at line %d, column %d: expected a string and a variable map", prop.Line, prop.Column)
+		}
+		variables = prop.Content[1]
+		prop = prop.Content[0]
+	}
+	s := prop.Value
+	boundName := ""
 	words, err := parse.ParseSub(s, true)
 	if err != nil {
 		return err
@@ -242,6 +265,13 @@ func (module *Module) OutputSub(outputName string, outputVal any, n *yaml.Node) 
 		case parse.REF:
 			sub += "${" + word.W + "}"
 		case parse.GETATT:
+			if variables != nil {
+				_, value, _ := s11n.GetMapValue(variables, word.W)
+				if value != nil {
+					sub += "${" + word.W + "}"
+					continue
+				}
+			}
 			outputValue, err := module.CheckOutputGetAtt(word.W, outputName, outputVal)
 			if err != nil {
 				return err
@@ -250,23 +280,47 @@ func (module *Module) OutputSub(outputName string, outputVal any, n *yaml.Node) 
 				sub += "${" + word.W + "}"
 			} else {
 				if outputValue.Kind == yaml.MappingNode {
-					// Prepend the module name
 					v := outputValue.Content[1]
+					replacement := ""
+					bind := false
 					switch outputValue.Content[0].Value {
 					case string(cft.Sub):
-						sub += v.Value
+						bind = v.Kind == yaml.SequenceNode
+						replacement = v.Value
 					case string(cft.GetAtt):
-						ss := node.SequenceToStrings(v)
-						joined := strings.Join(ss, ".")
-						sub += "${" + joined + "}"
+						replacement = "${" + strings.Join(node.SequenceToStrings(v), ".") + "}"
 					case string(cft.Ref):
-						sub += "${" + v.Value + "}"
+						replacement = "${" + v.Value + "}"
+					default:
+						bind = variables != nil
+					}
+					if bind || subMapCaptures(replacement, variables) {
+						if boundName == "" {
+							boundName = subVariableName("RainOutput"+module.Config.Name+"_"+outputName, n, outputValue, variables)
+							if variables == nil {
+								variables = node.MakeMapping()
+							}
+							variables.Content = append(variables.Content, node.MakeScalar(boundName), outputValue)
+						}
+						sub += "${" + boundName + "}"
+					} else {
+						sub += replacement
 					}
 				} else if outputValue.Kind == yaml.ScalarNode {
 					sub += outputValue.Value
+				} else if outputValue.Kind == yaml.SequenceNode && variables != nil {
+					return fmt.Errorf("module output %s.%s is a list and cannot be interpolated into a Sub string", module.Config.Name, outputName)
 				}
 			}
 		}
+	}
+
+	if variables != nil {
+		prop.Value = sub
+		if n.Content[1].Kind != yaml.SequenceNode {
+			n.Content[1] = &yaml.Node{Kind: yaml.SequenceNode, Tag: "!!seq", Content: []*yaml.Node{prop, variables}}
+		}
+		return nil
 	}
 
 	var subNode *yaml.Node
@@ -281,6 +335,50 @@ func (module *Module) OutputSub(outputName string, outputVal any, n *yaml.Node) 
 		*n = *subNode
 	}
 	return nil
+}
+
+// Check whether the destination map would capture an inserted reference.
+func subMapCaptures(s string, variables *yaml.Node) bool {
+	if variables == nil {
+		return false
+	}
+	for i := 0; i < len(variables.Content); i += 2 {
+		if strings.Contains(s, "${"+variables.Content[i].Value+"}") {
+			return true
+		}
+	}
+	return false
+}
+
+// Reserve names from both scopes, including references without explicit map entries.
+func subVariableName(base string, nodes ...*yaml.Node) string {
+	base = strings.Map(func(r rune) rune {
+		if r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' {
+			return r
+		}
+		return '_'
+	}, base)
+	for suffix := 0; ; suffix++ {
+		name := base
+		if suffix > 0 {
+			name += "_" + strconv.Itoa(suffix)
+		}
+		used := false
+		for _, n := range nodes {
+			if n == nil {
+				continue
+			}
+			visitor.NewVisitor(n).Visit(func(v *visitor.Visitor) {
+				value := v.GetYamlNode().Value
+				if value == name || strings.Contains(value, "${"+name+"}") {
+					used = true
+				}
+			})
+		}
+		if !used {
+			return name
+		}
+	}
 }
 
 // After processing normal outputs, go back and look for array references

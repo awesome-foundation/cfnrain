@@ -1,0 +1,25 @@
+Parameters:
+  Literal:
+    Type: String
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+  Example:
+    Type: Custom::Example
+    Properties:
+      Collision: !Sub ['${Bucket}-${Bucket}-${MBucket}', {MBucket: wrong, RainValueM_Bucket: reserved}]
+      Attribute: !Sub ['${Bucket.Arn}-${MBucket.Arn}', {'MBucket.Arn': wrong}]
+      Literal: !Sub '${Literal}-${Literal}'
+Outputs:
+  Collision:
+    Value: !Sub ['${Bucket}-${MBucket}', {MBucket: wrong}]
+  Literal:
+    Value: !Sub '${Literal}-suffix'
+  LiteralMap:
+    Value: !Sub ['${Literal}-${X}', {X: suffix, HOME: wrong, RainValueM_Literal: reserved}]
+  Sc:
+    Value: !Sub '${Bucket}'
+  Pl:
+    Value: !Ref Bucket
+  Attr:
+    Value: !GetAtt Bucket.Arn

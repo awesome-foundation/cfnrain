@@ -24,6 +24,10 @@ func (module *Module) Resolve(n *yaml.Node) error {
 
 	var err error
 	vf := func(v *visitor.Visitor) {
+		if err != nil {
+			v.Stop()
+			return
+		}
 		vn := v.GetYamlNode()
 
 		if vn == module.Config.Node {
@@ -172,8 +176,15 @@ func (module *Module) resolveParam(params *yaml.Node, n *yaml.Node, parentProps 
 				}
 			}
 
-			// If we didn't find a parent template prop or a default, fail
+			// An omitted value can refer to a parameter declared by the parent.
 			if parentVal == nil {
+				if module.ParentTemplate != nil {
+					parentParams, _ := module.ParentTemplate.GetSection(cft.Parameters)
+					_, parentParam, _ := s11n.GetMapValue(parentParams, prop.Value)
+					if parentParam != nil {
+						return true, nil
+					}
+				}
 				return false, fmt.Errorf("did not find %v in parent template Properties",
 					prop.Value)
 			}
@@ -195,12 +206,24 @@ func (module *Module) resolveParam(params *yaml.Node, n *yaml.Node, parentProps 
 func (module *Module) ResolveSub(n *yaml.Node) error {
 
 	prop := n.Content[1]
+	var variables *yaml.Node
+	if prop.Kind == yaml.SequenceNode {
+		if len(prop.Content) != 2 || prop.Content[0].Kind != yaml.ScalarNode || prop.Content[1].Kind != yaml.MappingNode {
+			return fmt.Errorf("invalid sequence-form Sub in module %s", module.Config.Name)
+		}
+		variables = prop.Content[1]
+		if err := module.Resolve(variables); err != nil {
+			return err
+		}
+		prop = prop.Content[0]
+	}
 	words, err := parse.ParseSub(prop.Value, true)
 	if err != nil {
 		return err
 	}
 
 	sub := ""
+	bindings := make(map[string]string)
 	for _, word := range words {
 		switch word.T {
 		case parse.STR:
@@ -210,6 +233,13 @@ func (module *Module) ResolveSub(n *yaml.Node) error {
 		case parse.REF:
 			fallthrough
 		case parse.GETATT:
+			if variables != nil {
+				_, value, _ := s11n.GetMapValue(variables, word.W)
+				if value != nil {
+					sub += "${" + word.W + "}"
+					continue
+				}
+			}
 			var resolved string
 
 			// Create a fake node that we can send to Resolve
@@ -223,7 +253,7 @@ func (module *Module) ResolveSub(n *yaml.Node) error {
 				}
 				fakeNode = node.MakeGetAtt(left, right)
 			}
-			if err := module.Resolve(fakeNode); errors.Is(err, errRecursiveDefault) {
+			if err := module.Resolve(fakeNode); err != nil {
 				return err
 			}
 			switch fakeNode.Kind {
@@ -238,12 +268,25 @@ func (module *Module) ResolveSub(n *yaml.Node) error {
 					ss := node.SequenceToStrings(fakeNode.Content[1])
 					resolved = fmt.Sprintf("${%s}", strings.Join(ss, "."))
 				case node.Sub:
+					if fakeNode.Content[1].Kind == yaml.SequenceNode {
+						return fmt.Errorf("module %s parameter %s uses sequence-form Sub and cannot be interpolated into a Sub string", module.Config.Name, word.W)
+					}
 					resolved = fakeNode.Content[1].Value
 				default:
 					return fmt.Errorf("expected Sub reference to be Ref, Sub, or GetAtt: %s", word.W)
 				}
 			default:
 				return fmt.Errorf("invalid Sub reference Kind: %s", word.W)
+			}
+
+			if subMapCaptures(resolved, variables) {
+				name := bindings[word.W]
+				if name == "" {
+					name = subVariableName("RainValue"+module.Config.Name+"_"+word.W, n, fakeNode, variables)
+					variables.Content = append(variables.Content, node.MakeScalar(name), fakeNode)
+					bindings[word.W] = name
+				}
+				resolved = "${" + name + "}"
 			}
 
 			// If we didn't change the word, it is either an intrinsic like
@@ -254,6 +297,11 @@ func (module *Module) ResolveSub(n *yaml.Node) error {
 		default:
 			return fmt.Errorf("unexpected word type %v for %s", word.T, word.W)
 		}
+	}
+
+	if variables != nil {
+		prop.Value = sub
+		return nil
 	}
 
 	// Keep Sub for empty arguments, unresolved variables, and escaped variables.
