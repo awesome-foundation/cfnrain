@@ -1,6 +1,6 @@
 # A5: #141, #142, #151, #153, #176 and #181.
 Parameters:
-  Parent:
+  Name:
     Type: String
 Rain:
   Constants:
@@ -9,20 +9,17 @@ Modules:
   Child:
     Source: module.yaml
     Properties:
-      Name: !Join ['-', [!Ref Parent, child]]
-      Bound: !Sub '${Parent}-sub'
+      Name: !Join ['-', [!Ref Name, child]]
+      Bound: !Sub '${Name}-sub'
 Resources:
   AnchorModule:
     Type: !Rain::Module anchor-module.yaml
     Properties:
       Name: &same xx
-  ParentParameter:
-    Type: AWS::SSM::Parameter
-    Properties:
-      Type: String
-      Value: *same
   Handle:
     Type: AWS::CloudFormation::WaitConditionHandle
+    Metadata:
+      ParentValue: !Ref Name
 Outputs:
   Constant:
     Value: !Sub ['${Rain::Word}-${Local}', {Local: local}]
@@ -39,4 +36,4 @@ Outputs:
   DefaultValue:
     Value: !GetAtt Child.DefaultValue
   Anchor:
-    Value: !GetAtt ParentParameter.Value
+    Value: *same

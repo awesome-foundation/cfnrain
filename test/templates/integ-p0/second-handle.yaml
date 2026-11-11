@@ -1,0 +1,4 @@
+# A3: a merge fragment must not repeat the first template's Handle.
+Resources:
+  SecondHandle:
+    Type: AWS::CloudFormation::WaitConditionHandle
