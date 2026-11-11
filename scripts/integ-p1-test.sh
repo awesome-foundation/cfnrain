@@ -67,6 +67,46 @@ if grep -Eq 'list-buckets|delete-|ssm ' "$WORK_DIR/calls"; then exit 1; fi
   if grep -q 'delete-' "$WORK_DIR/calls"; then exit 1; fi
 )
 
+# A failed stack deletion preserves the bucket and still cleans bootstrap resources.
+(
+  MOCK_ABSENT=false
+  MOCK_VERSION=None
+  : > "$WORK_DIR/calls"
+  list_test_stacks() { echo "$MOCK_OWNER"; }
+  delete_stack() { touch "$WORK_DIR/stack-delete-attempted"; return 1; }
+  p1_bootstrap_cleanup() { touch "$WORK_DIR/bootstrap-after-delete-failure"; }
+  if p1_cleanup_lab; then exit 1; fi
+  [[ -f "$WORK_DIR/stack-delete-attempted" && -f "$WORK_DIR/bootstrap-after-delete-failure" ]]
+  if grep -q 'delete-' "$WORK_DIR/calls"; then exit 1; fi
+)
+
+# Each missing lab input must fail before credential setup can start.
+python3 - "$WORK_DIR" <<'PYTHON'
+import os
+from pathlib import Path
+import subprocess
+import sys
+import textwrap
+
+workflow = Path(".github/workflows/integ.yml").read_text()
+step = workflow.split("        id: prerequisites\n        run: |\n", 1)[1].split("      - name:", 1)[0]
+script = textwrap.dedent(step)
+required = ("AWS_INTEG_ROLE_ARN", "AWS_REGION", "INTEG_BUCKET_NAME",
+            "INTEG_SERVICE_ROLE_ARN", "INTEG_BOOTSTRAP_REGION")
+output = Path(sys.argv[1]) / "prerequisites-output"
+for missing in (None, *required):
+    output.write_text("")
+    env = dict(os.environ, GITHUB_OUTPUT=str(output), **dict.fromkeys(required, "fixture"))
+    if missing:
+        env[missing] = ""
+    result = subprocess.run(["bash", "-eu", "-c", script], env=env,
+                            capture_output=True, text=True, timeout=10)
+    assert result.returncode == (1 if missing else 0), (missing, result.stderr)
+    assert output.read_text() == ("ready=false\n" if missing else "ready=true\n"), missing
+    if missing:
+        assert "SKIPPED: isolated cases need" in result.stdout, missing
+PYTHON
+
 # A usage error must never satisfy an expected deployment failure.
 p1_expect_error "$WORK_DIR/expected.log" 'expected failure' bash -c 'echo expected failure >&2; exit 1'
 if (p1_expect_error "$WORK_DIR/usage.log" 'expected failure' bash -c 'echo unknown shorthand flag >&2; exit 1') > /dev/null 2>&1; then exit 1; fi

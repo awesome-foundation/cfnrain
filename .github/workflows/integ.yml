@@ -283,9 +283,10 @@ jobs:
       - name: Check isolated prerequisites
         id: prerequisites
         run: |
-          if [[ -z "$AWS_INTEG_ROLE_ARN" || -z "$AWS_REGION" || -z "$INTEG_BUCKET_NAME" ]]; then
-            echo 'SKIPPED: B1 service role and B4 first-use bootstrap need AWS_INTEG_ROLE_ARN and AWS_INTEG_REGION and INTEG_BUCKET_NAME'
+          if [[ -z "$AWS_INTEG_ROLE_ARN" || -z "$AWS_REGION" || -z "$INTEG_BUCKET_NAME" || -z "$INTEG_SERVICE_ROLE_ARN" || -z "$INTEG_BOOTSTRAP_REGION" ]]; then
+            echo 'SKIPPED: isolated cases need AWS_INTEG_ROLE_ARN, AWS_INTEG_REGION, INTEG_BUCKET_NAME, INTEG_SERVICE_ROLE_ARN, and INTEG_BOOTSTRAP_REGION'
             echo 'ready=false' >> "$GITHUB_OUTPUT"
+            exit 1
           else
             echo 'ready=true' >> "$GITHUB_OUTPUT"
           fi

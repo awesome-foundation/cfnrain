@@ -37,6 +37,11 @@ p1_cleanup_lab() {
     [[ "$name" =~ ^success-[a-zA-Z0-9-]+-p1-(managed|retained|service)$ ]] || continue
     delete_stack "$name" || result=1
   done <<< "$stacks"
+  if (( result != 0 )); then
+    # A stack may still reference the bucket after a failed deletion.
+    p1_bootstrap_cleanup || return 1
+    return 1
+  fi
   owner=$(p1_lab_bucket_owner) || code=$?
   if [[ "$code" == 0 ]]; then
     p1_empty_lab_bucket "$owner" && aws s3api delete-bucket --bucket "$INTEG_BUCKET_NAME" || result=1
