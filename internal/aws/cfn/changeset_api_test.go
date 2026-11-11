@@ -16,11 +16,12 @@ func TestCreateChangeSetValidationDetails(t *testing.T) {
 	const event = `<member><EventType>VALIDATION_ERROR</EventType><LogicalResourceId>TestBucket</LogicalResourceId><ResourceType>AWS::S3::Bucket</ResourceType><ValidationName>NAME_CONFLICT_VALIDATION</ValidationName><ValidationStatus>FAILED</ValidationStatus><ValidationFailureMode>FAIL</ValidationFailureMode><ValidationStatusReason>Resource already exists.</ValidationStatusReason></member>`
 	const detail = "changeset creation failed with validation errors:\n  - Resource: TestBucket (AWS::S3::Bucket), Validation: NAME_CONFLICT_VALIDATION, Reason: Resource already exists."
 	for _, tc := range []struct {
-		name, reason, first, second, want    string
-		denied, missingID, repeated, success bool
-		calls                                int
+		name, reason, first, second, want             string
+		denied, missingID, repeated, success, express bool
+		calls                                         int
 	}{
 		{name: "validation", reason: original, first: event, want: original + "\n" + detail, calls: 1},
+		{name: "express validation", express: true, reason: original, first: event, want: original + "\n" + detail, calls: 1},
 		{name: "pagination", reason: original, second: event, want: original + "\n" + detail, calls: 2},
 		{name: "mixed hook failure", reason: "Hook CustomHook failed.", first: event, want: "Hook CustomHook failed.\n" + detail, calls: 1},
 		{name: "repeated token", reason: original, second: event, repeated: true, want: original, calls: 2},
@@ -43,6 +44,13 @@ func TestCreateChangeSetValidationDetails(t *testing.T) {
 				case "ListStacks":
 					fmt.Fprint(w, `<ListStacksResponse><ListStacksResult><StackSummaries/></ListStacksResult></ListStacksResponse>`)
 				case "CreateChangeSet":
+					wantMode := ""
+					if tc.express {
+						wantMode = "EXPRESS"
+					}
+					if got := r.Form.Get("DeploymentConfig.Mode"); got != wantMode {
+						t.Errorf("DeploymentConfig.Mode = %q, want %q", got, wantMode)
+					}
 					fmt.Fprint(w, `<CreateChangeSetResponse><CreateChangeSetResult><Id>test-change-set-id</Id></CreateChangeSetResult></CreateChangeSetResponse>`)
 				case "DescribeChangeSet":
 					id := "<ChangeSetId>test-change-set-id</ChangeSetId>"
@@ -102,7 +110,7 @@ func TestCreateChangeSetValidationDetails(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			name, err := cfn.CreateChangeSet(&cfn.ChangeSetContext{Template: template, StackName: "test-stack", ChangeSetName: "test-change-set"})
+			name, err := cfn.CreateChangeSet(&cfn.ChangeSetContext{Template: template, Express: tc.express, StackName: "test-stack", ChangeSetName: "test-change-set"})
 			t.Logf("CreateChangeSet error:\n%v", err)
 			got := ""
 			if err != nil {
