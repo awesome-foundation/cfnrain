@@ -1,4 +1,4 @@
-# A6: #305 explicit flow keys plus deployed scalar values.
+# A6: #305 explicit flow keys plus scalar values.
 Metadata: {
 ? M # explicit key comment
 : {x: y}
