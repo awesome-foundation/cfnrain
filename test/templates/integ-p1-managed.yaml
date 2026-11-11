@@ -1,0 +1,15 @@
+Description: B4 nonempty bucket removal
+Parameters:
+  BucketName:
+    Type: String
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Metadata:
+      Rain:
+        EmptyOnDelete: true
+    Properties:
+      BucketName: !Ref BucketName
+      Tags:
+        - Key: cfnrain-integ-owner
+          Value: !Ref BucketName

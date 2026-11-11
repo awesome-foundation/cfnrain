@@ -102,8 +102,8 @@ jobs:
     concurrency:
       group: integ-aws
       cancel-in-progress: false
-    # P0 adds about 12-18 minutes, within the one-hour credential lifetime.
-    timeout-minutes: 45
+    # P1 failed updates and nested rollback add up to 20 minutes.
+    timeout-minutes: 75
     steps:
       - name: Check the commit SHA
         run: '[[ "$TEST_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "not a full commit SHA: $TEST_SHA"; exit 1; }'
@@ -119,7 +119,7 @@ jobs:
           go-version-file: go.mod
           cache: false
 
-      # Go tools, one checksummed binary, and system Python standard library only.
+      # Only Go tools, from the checksum database, and one checksummed binary.
       # No Python packages in the job that has credentials.
       - name: Install test tools
         env:
@@ -142,12 +142,11 @@ jobs:
           role-to-assume: ${{ vars.AWS_INTEG_ROLE_ARN }}
           aws-region: ${{ vars.AWS_INTEG_REGION }}
           role-session-name: cfnrain-integ-${{ github.run_id }}
-          role-duration-seconds: 3600
+          role-duration-seconds: 5400
 
       - name: Run the AWS tests
         id: aws-tests
         env:
-          INTEG_REDACT_ROLE: ${{ vars.AWS_INTEG_ROLE_ARN }}
           INTEG_BUCKET_NAME: ${{ vars.INTEG_BUCKET_NAME }}
           INTEG_OUT: integ-out
           INTEG_RUN_TOKEN: ${{ github.run_id }}-${{ github.run_attempt }}
@@ -159,26 +158,85 @@ jobs:
       - name: Clean up integration stacks
         if: always() && steps.aws-tests.outcome != 'skipped'
         env:
-          INTEG_REDACT_ROLE: ${{ vars.AWS_INTEG_ROLE_ARN }}
           INTEG_BUCKET_NAME: ${{ vars.INTEG_BUCKET_NAME }}
           INTEG_RUN_TOKEN: ${{ github.run_id }}-${{ github.run_attempt }}
         run: ./scripts/integ-aws.sh --cleanup
 
-      - if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
         with:
           name: packaged-templates
-          path: |
-            integ-out/*.yaml
-            integ-out/*.txt
+          path: integ-out/
           retention-days: 7
 
-      - name: Upload redacted integration diagnostics
-        if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+  # B1/B4 require a separate account. Never attach service roles in the main account.
+  p1-isolated:
+    name: Optional isolated P1 cases
+    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'schedule' && 'aws-integration' || 'aws-integration-review' }}
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: integ-p1-isolated
+      cancel-in-progress: false
+    timeout-minutes: 25
+    env:
+      PRIMARY_ROLE_ARN: ${{ vars.AWS_INTEG_ROLE_ARN }}
+      INTEG_P1_ROLE_ARN: ${{ vars.INTEG_P1_ROLE_ARN }}
+      AWS_REGION: ${{ vars.INTEG_P1_REGION }}
+      INTEG_SERVICE_ROLE_ARN: ${{ vars.INTEG_SERVICE_ROLE_ARN }}
+      INTEG_BOOTSTRAP_REGION: ${{ vars.INTEG_BOOTSTRAP_REGION }}
+      INTEG_RUN_TOKEN: ${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - name: Check isolated prerequisites
+        id: prerequisites
+        run: |
+          if [[ -z "$INTEG_P1_ROLE_ARN" || -z "$AWS_REGION" ]]; then
+            echo 'SKIPPED: B1 service role and B4 first-use bootstrap need INTEG_P1_ROLE_ARN and INTEG_P1_REGION'
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+          else
+            if [[ "$(cut -d: -f5 <<< "$INTEG_P1_ROLE_ARN")" == "$(cut -d: -f5 <<< "$PRIMARY_ROLE_ARN")" ]]; then
+              echo 'Isolated P1 credentials must use a different account'
+              exit 1
+            fi
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Check the commit SHA
+        if: steps.prerequisites.outputs.ready == 'true'
+        run: '[[ "$TEST_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 1'
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: steps.prerequisites.outputs.ready == 'true'
         with:
-          name: integration-diagnostics
-          path: integ-out/logs/
+          ref: ${{ env.TEST_SHA }}
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: steps.prerequisites.outputs.ready == 'true'
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Configure isolated AWS credentials
+        if: steps.prerequisites.outputs.ready == 'true'
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ env.INTEG_P1_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: cfnrain-p1-${{ github.run_id }}
+          role-duration-seconds: 3600
+      - name: Run isolated P1 cases
+        id: isolated-tests
+        if: steps.prerequisites.outputs.ready == 'true'
+        run: ./scripts/integ-aws.sh --p1-isolated
+      - name: Clean up isolated P1 cases
+        if: always() && steps.isolated-tests.outcome != 'skipped' && steps.isolated-tests.outcome != ''
+        run: ./scripts/integ-aws.sh --cleanup
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always() && steps.prerequisites.outputs.ready == 'true'
+        with:
+          name: isolated-p1-evidence
+          path: integ-out/p1/
           retention-days: 7
 
   # Lints the templates that the AWS job packaged. Runs without credentials.
