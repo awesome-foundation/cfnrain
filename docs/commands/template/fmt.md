@@ -47,6 +47,8 @@ A function whose argument has a YAML anchor keeps its long form, so aliases stil
 
 YAML output preserves merge keys (`<<: *anchor`). JSON output rejects merge keys with an error naming `<<`; expand the merged mapping before using `--json`. A quoted `"<<"` key is an ordinary key and can be written as JSON.
 
+The default node style keeps source quotes on string keys and values that YAML 1.1 can read as booleans. These include `y`, `yes`, `n`, `no`, `on`, `off`, `true`, and `false`, in any letter case. Single quotes stay single quotes. Bare values keep their previous form. Other strings use the normal quoting rules. Scalar arguments of short function tags, such as `!Sub "ON"`, can still lose their quotes. JSON strings also keep quotes under this rule when `fmt` writes YAML.
+
 The `singlequoted`, `doublequoted`, and `quotescalars` node styles quote strings. They also quote string keys such as `Integer`. Numbers, booleans, and nulls stay plain and keep their types. Strings such as `'0'`, `'1.0'`, and `'true'` stay quoted strings. The `singlequoted` style uses double quotes for strings with line breaks to preserve their exact text. The `quotescalars` style changes only scalars. Lists and mappings keep the flow or block style that the other formatting rules choose.
 
 The `flow` node style uses flow mappings even when `fmt` sorts their keys. The `quotescalars` style preserves flow mappings during sorting.
