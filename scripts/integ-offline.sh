@@ -12,6 +12,19 @@ python3 scripts/integ-signals-test.py
 source scripts/integ-warnings.sh
 warning_dir=$(mktemp -d)
 trap 'rm -rf "$warning_dir"' EXIT
+# A4: the shared fixture must reach file lookup before any AWS access.
+source scripts/integ-upload-fixture.sh
+for format in URI Http; do
+  for order in forward reverse; do
+    extensions=('' json txt json)
+    [[ "$order" != reverse ]] || extensions=(json txt json '')
+    write_upload_fixture "$format" "${extensions[@]}" > "$warning_dir/cache.yaml"
+    result=0
+    ./cfnrain pkg "$warning_dir/cache.yaml" > "$warning_dir/cache.out" 2> "$warning_dir/cache.err" || result=$?
+    [[ "$result" == 1 ]]
+    grep -Fq "stat $warning_dir/cache.txt: no such file or directory" "$warning_dir/cache.err"
+  done
+done
 ./cfnrain build AWS::S3::Bucket > "$warning_dir/build.yaml" 2> "$warning_dir/build.err"
 assert_warning "$warning_dir/build.yaml" "$warning_dir/build.err"
 ./cfnrain fmt "$warning_dir/build.yaml" >/dev/null

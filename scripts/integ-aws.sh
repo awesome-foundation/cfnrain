@@ -7,6 +7,7 @@ if [[ "${INTEG_REDACTING:-}" != 1 ]]; then
   exec python3 scripts/integ-run-redacted.py "$0" "$@"
 fi
 source scripts/integ-warnings.sh
+source scripts/integ-upload-fixture.sh
 
 : "${INTEG_BUCKET_NAME:?set INTEG_BUCKET_NAME to the test bucket name}"
 INTEG_OUT="${INTEG_OUT:-integ-out}"
@@ -42,12 +43,19 @@ preserve_logs() {
 }
 # Each P0 invocation preserves its streams, status and duration.
 run_case() {
-  local id="$1" expected="$2" start=$SECONDS result=0 remaining=$((2100 - SECONDS))
+  local id="$1" expected="$2" start=$SECONDS result=0 stream remaining=$((2100 - SECONDS))
   shift 2
   (( remaining > 0 )) || fail "P0 time budget exhausted before $id; remaining cases did not run"
   (( remaining <= 600 )) || remaining=600
   timeout "$remaining" "$@" > "$WORK_DIR/$id-stdout.log" 2> "$WORK_DIR/$id-stderr.log" || result=$?
   printf 'exit=%s duration=%s\n' "$result" "$((SECONDS-start))" > "$WORK_DIR/$id-result.log"
+  if [[ "$result" != "$expected" ]]; then
+    preserve_logs
+    for stream in stdout stderr; do
+      echo "$id $stream:" >&2
+      tail -n 80 "$INTEG_OUT/logs/$id-$stream.log" >&2
+    done
+  fi
   assert_eq "$result" "$expected" "$id exit code"
 }
 # Express completion can precede bucket and tag readiness.
@@ -330,15 +338,12 @@ for extension in '' .json .txt; do
 done
 for directive in S3 S3Http; do
   for order in forward reverse; do
-    {
-      printf 'Resources:\n  Test:\n    Type: A::B::C\n    Properties:\n'
-      extensions=('' json txt json)
-      [[ "$order" != reverse ]] || extensions=(json txt json '')
-      for i in "${!extensions[@]}"; do
-        printf '      Value%s: !Rain::%s\n        Path: cache.txt\n' "$i" "$directive"
-        [[ -z "${extensions[$i]}" ]] || printf '        Extension: %s\n' "${extensions[$i]}"
-      done
-    } > "$WORK_DIR/cache.yaml"
+    extensions=('' json txt json)
+    [[ "$order" != reverse ]] || extensions=(json txt json '')
+    format=URI
+    [[ "$directive" != S3Http ]] || format=Http
+    # S3Http accepts a scalar. Extension options require S3 with Format: Http.
+    write_upload_fixture "$format" "${extensions[@]}" > "$WORK_DIR/cache.yaml"
     run_case "a4-$directive-$order" 0 ./cfnrain pkg "$WORK_DIR/cache.yaml" --s3-prefix "integ-$RUN_TOKEN/cache" --s3-bucket "$artifact_bucket" --s3-owner "$account"
     for i in "${!extensions[@]}"; do
       suffix="${extensions[$i]:+.}${extensions[$i]}"
