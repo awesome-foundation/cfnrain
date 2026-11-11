@@ -7,6 +7,7 @@ if [[ "${INTEG_REDACTING:-}" != 1 ]]; then
   exec python3 scripts/integ-run-redacted.py "$0" "$@"
 fi
 source scripts/integ-warnings.sh
+source scripts/integ-upload-fixture.sh
 
 MODE="${1:-fast}"
 if [[ "$MODE" == fast || "$MODE" == --p1-isolated || "$MODE" == --cleanup-lab ]]; then
@@ -360,15 +361,12 @@ for extension in '' .json .txt; do
 done
 for directive in S3 S3Http; do
   for order in forward reverse; do
-    {
-      printf 'Resources:\n  Test:\n    Type: A::B::C\n    Properties:\n'
-      extensions=('' json txt json)
-      [[ "$order" != reverse ]] || extensions=(json txt json '')
-      for i in "${!extensions[@]}"; do
-        printf '      Value%s: !Rain::%s\n        Path: cache.txt\n' "$i" "$directive"
-        [[ -z "${extensions[$i]}" ]] || printf '        Extension: %s\n' "${extensions[$i]}"
-      done
-    } > "$WORK_DIR/cache.yaml"
+    extensions=('' json txt json)
+    [[ "$order" != reverse ]] || extensions=(json txt json '')
+    format=URI
+    [[ "$directive" != S3Http ]] || format=Http
+    # S3Http accepts a scalar. Extension options require S3 with Format: Http.
+    write_upload_fixture "$format" "${extensions[@]}" > "$WORK_DIR/cache.yaml"
     run_case "a4-$directive-$order" 0 ./cfnrain pkg "$WORK_DIR/cache.yaml" --s3-prefix "integ-$RUN_TOKEN/cache" --s3-bucket "$artifact_bucket" --s3-owner "$account"
     for i in "${!extensions[@]}"; do
       suffix="${extensions[$i]:+.}${extensions[$i]}"

@@ -15,7 +15,7 @@ preserve_logs() {
 }
 # Preserve streams, status, and duration for each named invocation.
 run_case() {
-  local id="$1" expected="$2" start=$SECONDS result=0 remaining=$((2100 - SECONDS))
+  local id="$1" expected="$2" start=$SECONDS result=0 stream remaining=$((2100 - SECONDS))
   shift 2
   (( remaining > 0 )) || fail "case time budget exhausted before $id; remaining cases did not run"
   (( remaining <= 600 )) || remaining=600
@@ -25,6 +25,13 @@ run_case() {
     cat "$WORK_DIR/$id-stdout.log"
     cat "$WORK_DIR/$id-stderr.log" >&2
     return "$result"
+  fi
+  if [[ "$result" != "$expected" ]]; then
+    preserve_logs
+    for stream in stdout stderr; do
+      echo "$id $stream:" >&2
+      tail -n 80 "$INTEG_OUT/logs/$id-$stream.log" >&2
+    done
   fi
   assert_eq "$result" "$expected" "$id exit code"
 }
