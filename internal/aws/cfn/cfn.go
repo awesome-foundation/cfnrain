@@ -286,6 +286,61 @@ func GetStackEvents(stackName string) ([]types.StackEvent, error) {
 	return events, nil
 }
 
+// GetChangeSetEvents returns all events associated with the named changeset
+func GetChangeSetEvents(changeSetId string) ([]types.OperationEvent, error) {
+	events := make([]types.OperationEvent, 0)
+
+	var token *string
+	seenTokens := make(map[string]bool)
+
+	for {
+		res, err := getClient().DescribeEvents(context.Background(), &cloudformation.DescribeEventsInput{
+			NextToken:     token,
+			ChangeSetName: &changeSetId,
+		})
+
+		if err != nil {
+			return events, err
+		}
+
+		events = append(events, res.OperationEvents...)
+
+		if ptr.ToString(res.NextToken) == "" {
+			break
+		}
+
+		if seenTokens[*res.NextToken] {
+			return events, fmt.Errorf("DescribeEvents returned a repeated pagination token")
+		}
+		seenTokens[*res.NextToken] = true
+		token = res.NextToken
+	}
+
+	return events, nil
+}
+
+// validationErrorFromEvents returns an error that lists the Early Validation
+// failures in events, or nil if there are none
+func validationErrorFromEvents(events []types.OperationEvent) error {
+	var validationErrors []string
+	for _, event := range events {
+		// Skipped checks and WARN-mode failures do not block the change set
+		if event.EventType == types.EventTypeValidationError &&
+			event.ValidationStatus != types.ValidationStatusSkipped &&
+			event.ValidationFailureMode != types.HookFailureModeWarn {
+			validationErrors = append(validationErrors, fmt.Sprintf("Resource: %s (%s), Validation: %s, Reason: %s",
+				ptr.ToString(event.LogicalResourceId),
+				ptr.ToString(event.ResourceType),
+				ptr.ToString(event.ValidationName),
+				ptr.ToString(event.ValidationStatusReason)))
+		}
+	}
+	if len(validationErrors) == 0 {
+		return nil
+	}
+	return fmt.Errorf("changeset creation failed with validation errors:\n  - %s", strings.Join(validationErrors, "\n  - "))
+}
+
 type ChangeSetContext struct {
 	Template  *cft.Template
 	Params    []types.Parameter
@@ -368,6 +423,15 @@ func CreateChangeSet(ctx *ChangeSetContext) (string, error) {
 		config.Debugf("ChangeSet status: %s", status)
 
 		if status == "FAILED" {
+			// Get validation errors if available
+			if res.ChangeSetId != nil {
+				events, eventsErr := GetChangeSetEvents(*res.ChangeSetId)
+				if eventsErr != nil {
+					config.Debugf("could not get changeset events: %v", eventsErr)
+				} else if vErr := validationErrorFromEvents(events); vErr != nil {
+					return changeSetName, fmt.Errorf("%s\n%w", ptr.ToString(res.StatusReason), vErr)
+				}
+			}
 			return changeSetName, errors.New(ptr.ToString(res.StatusReason))
 		}
 
