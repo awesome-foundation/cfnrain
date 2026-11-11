@@ -1,0 +1,9 @@
+Parameters:
+  Name:
+    Type: String
+Resources:
+  Handle:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Metadata:
+      Name: !Ref Name
+      Shadow: &same yy

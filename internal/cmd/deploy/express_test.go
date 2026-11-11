@@ -1,18 +1,21 @@
 package deploy_test
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/awesome-foundation/cfnrain/internal/aws/s3"
 	"github.com/awesome-foundation/cfnrain/internal/cmd"
 	"github.com/awesome-foundation/cfnrain/internal/cmd/deploy"
 	"github.com/awesome-foundation/cfnrain/internal/console/spinner"
+	"github.com/spf13/cobra"
 )
 
 func TestDeployExpressRequest(t *testing.T) {
@@ -86,5 +89,39 @@ func TestDeployExpressRequest(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+// TestExpressChangeSetConflict must fail before a deploy handler can call AWS.
+func TestExpressChangeSetConflict(t *testing.T) {
+	oldRun := deploy.Cmd.Run
+	defer func() {
+		deploy.Cmd.Run = oldRun
+		deploy.Cmd.SetArgs(nil)
+		deploy.Cmd.SetErr(nil)
+		deploy.Cmd.SetOut(nil)
+	}()
+	for _, name := range []string{"express", "changeset"} {
+		flag := deploy.Cmd.Flags().Lookup(name)
+		value, changed := flag.Value.String(), flag.Changed
+		t.Cleanup(func() {
+			_ = flag.Value.Set(value)
+			flag.Changed = changed
+		})
+	}
+	called := false
+	deploy.Cmd.Run = func(*cobra.Command, []string) { called = true }
+	var stderr, stdout bytes.Buffer
+	deploy.Cmd.SetErr(&stderr)
+	deploy.Cmd.SetOut(&stdout)
+	deploy.Cmd.SetArgs([]string{"--express", "--changeset", "unused", "unused"})
+	if code := cmd.Test(deploy.Cmd); code != 1 {
+		t.Fatalf("exit code = %d, want 1", code)
+	}
+	if called {
+		t.Fatal("deploy handler ran despite conflicting flags")
+	}
+	if !strings.Contains(stderr.String(), "flags in the group [express changeset]") {
+		t.Fatalf("missing flag-conflict error: %s", stderr.String())
 	}
 }

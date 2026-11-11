@@ -1,0 +1,5 @@
+# Keep GitHub's cache isolation key while actionlint updates its schema.
+paths:
+  .github/workflows/integ.yml:
+    ignore:
+      - 'unexpected key "cache-mode" for "workflow" section'

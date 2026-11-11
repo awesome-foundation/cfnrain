@@ -1,0 +1,29 @@
+Parameters:
+  Name:
+    Type: String
+  Bound:
+    Type: String
+  Other:
+    Type: String
+    Default: fallback
+  WithDefault:
+    Type: String
+    Default: !Join ['-', [!Ref Other, default]]
+Metadata:
+  Shadow: &same yy
+Resources:
+  Handle:
+    Type: AWS::CloudFormation::WaitConditionHandle
+Outputs:
+  Escaped:
+    Value: !Sub '${!Literal}'
+  Sequence:
+    Value: !Sub ['${Handle}-${Local}', {Local: suffix}]
+  Empty:
+    Value: !Join ['', [prefix, !Sub '']]
+  ParentValue:
+    Value: !Ref Name
+  ParentSub:
+    Value: !Ref Bound
+  DefaultValue:
+    Value: !Ref WithDefault

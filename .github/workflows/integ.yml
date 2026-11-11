@@ -102,6 +102,7 @@ jobs:
     concurrency:
       group: integ-aws
       cancel-in-progress: false
+    # P0 adds about 12-18 minutes, within the one-hour credential lifetime.
     timeout-minutes: 45
     steps:
       - name: Check the commit SHA
@@ -118,7 +119,7 @@ jobs:
           go-version-file: go.mod
           cache: false
 
-      # Only Go tools, from the checksum database, and one checksummed binary.
+      # Go tools, one checksummed binary, and system Python standard library only.
       # No Python packages in the job that has credentials.
       - name: Install test tools
         env:
@@ -146,6 +147,7 @@ jobs:
       - name: Run the AWS tests
         id: aws-tests
         env:
+          INTEG_REDACT_ROLE: ${{ vars.AWS_INTEG_ROLE_ARN }}
           INTEG_BUCKET_NAME: ${{ vars.INTEG_BUCKET_NAME }}
           INTEG_OUT: integ-out
           INTEG_RUN_TOKEN: ${{ github.run_id }}-${{ github.run_attempt }}
@@ -157,14 +159,19 @@ jobs:
       - name: Clean up integration stacks
         if: always() && steps.aws-tests.outcome != 'skipped'
         env:
+          INTEG_REDACT_ROLE: ${{ vars.AWS_INTEG_ROLE_ARN }}
           INTEG_BUCKET_NAME: ${{ vars.INTEG_BUCKET_NAME }}
           INTEG_RUN_TOKEN: ${{ github.run_id }}-${{ github.run_attempt }}
         run: ./scripts/integ-aws.sh --cleanup
 
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: packaged-templates
-          path: integ-out/
+          path: |
+            integ-out/*.yaml
+            integ-out/*.txt
+            integ-out/logs/
           retention-days: 7
 
   # Lints the templates that the AWS job packaged. Runs without credentials.

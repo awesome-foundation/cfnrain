@@ -1,0 +1,39 @@
+# A5: #141, #142, #151, #153, #176 and #181.
+Parameters:
+  Name:
+    Type: String
+Rain:
+  Constants:
+    Word: constant
+Modules:
+  Child:
+    Source: module.yaml
+    Properties:
+      Name: !Join ['-', [!Ref Name, child]]
+      Bound: !Sub '${Name}-sub'
+Resources:
+  AnchorModule:
+    Type: !Rain::Module anchor-module.yaml
+    Properties:
+      Name: &same xx
+  Handle:
+    Type: AWS::CloudFormation::WaitConditionHandle
+    Metadata:
+      ParentValue: !Ref Name
+Outputs:
+  Constant:
+    Value: !Sub ['${Rain::Word}-${Local}', {Local: local}]
+  Escaped:
+    Value: !GetAtt Child.Escaped
+  Sequence:
+    Value: !GetAtt Child.Sequence
+  Empty:
+    Value: !GetAtt Child.Empty
+  ParentValue:
+    Value: !GetAtt Child.ParentValue
+  ParentSub:
+    Value: !GetAtt Child.ParentSub
+  DefaultValue:
+    Value: !GetAtt Child.DefaultValue
+  Anchor:
+    Value: *same
