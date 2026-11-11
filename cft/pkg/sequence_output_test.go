@@ -157,3 +157,58 @@ func TestMissingModuleParameterParentScope(t *testing.T) {
 		}
 	}
 }
+
+func TestSequenceSubFunctionOutput(t *testing.T) {
+	for _, tc := range []struct {
+		name, value, resolved string
+	}{
+		{"Join", "!Join ['-', [a, !Ref Bucket]]", "!Join ['-', [a, !Ref MBucket]]"},
+		{"Select", "!Select [0, !GetAZs '']", "!Select [0, !GetAZs '']"},
+		{"If", "!Ref P", "!If [C, a, b]"},
+		{"List", "[a, b]", ""},
+	} {
+		for _, collision := range []bool{false, true} {
+			name := tc.name
+			if collision {
+				name += "/collision"
+			}
+			t.Run(name, func(t *testing.T) {
+				dir := t.TempDir()
+				module := "Parameters: {P: {Type: String}}\nResources:\n  Bucket: {Type: 'AWS::S3::Bucket'}\nOutputs:\n  " + tc.name + ": {Value: " + tc.value + "}\n"
+				if err := os.WriteFile(filepath.Join(dir, "module.yaml"), []byte(module), 0600); err != nil {
+					t.Fatal(err)
+				}
+				binding := "RainOutputM_" + tc.name
+				variables := "Y: y"
+				if collision {
+					variables += ", " + binding + ": existing"
+					binding += "_1"
+				}
+				conditions := "Conditions: {C: !Equals [a, b]}\n"
+				input := conditions + "Modules:\n  M:\n    Source: ./module.yaml\n    Properties: {P: !If [C, a, b]}\nOutputs:\n  Result:\n    Value: !Sub ['${M." + tc.name + "}-${Y}', {" + variables + "}]\n  ScalarControl:\n    Value: !Sub '${M." + tc.name + "}-x'\n"
+				tmpl, err := parse.String(input)
+				if err != nil {
+					t.Fatal(err)
+				}
+				got, err := pkg.Template(tmpl, dir, nil)
+				if tc.name == "List" {
+					if err == nil || !strings.Contains(err.Error(), "module output M.List is a list and cannot be interpolated into a Sub string") {
+						t.Fatalf("expected error naming list output M.List, got %v", err)
+					}
+					return
+				}
+				if err != nil {
+					t.Fatal(err)
+				}
+				expected, err := parse.String(conditions + "Resources:\n  MBucket: {Type: 'AWS::S3::Bucket'}\nOutputs:\n  Result:\n    Value: !Sub ['${" + binding + "}-${Y}', {" + variables + ", " + binding + ": " + tc.resolved + "}]\n  ScalarControl: {Value: '-x'}\n")
+				if err != nil {
+					t.Fatal(err)
+				}
+				want := format.String(expected, format.Options{})
+				if actual := format.String(got, format.Options{}); actual != want {
+					t.Fatalf("expected:\n%s\ngot:\n%s", want, actual)
+				}
+			})
+		}
+	}
+}

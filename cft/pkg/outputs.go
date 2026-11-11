@@ -291,6 +291,8 @@ func (module *Module) OutputSub(outputName string, outputVal any, n *yaml.Node) 
 						replacement = "${" + strings.Join(node.SequenceToStrings(v), ".") + "}"
 					case string(cft.Ref):
 						replacement = "${" + v.Value + "}"
+					default:
+						bind = variables != nil
 					}
 					if bind || subMapCaptures(replacement, variables) {
 						if boundName == "" {
@@ -306,6 +308,8 @@ func (module *Module) OutputSub(outputName string, outputVal any, n *yaml.Node) 
 					}
 				} else if outputValue.Kind == yaml.ScalarNode {
 					sub += outputValue.Value
+				} else if outputValue.Kind == yaml.SequenceNode && variables != nil {
+					return fmt.Errorf("module output %s.%s is a list and cannot be interpolated into a Sub string", module.Config.Name, outputName)
 				}
 			}
 		}
