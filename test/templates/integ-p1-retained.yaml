@@ -11,4 +11,4 @@ Resources:
       BucketName: !Ref BucketName
       Tags:
         - Key: cfnrain-integ-owner
-          Value: !Ref BucketName
+          Value: !Ref AWS::StackName

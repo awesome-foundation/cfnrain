@@ -10,6 +10,10 @@ on:
       sha:
         description: Full commit SHA to test (40 hex characters)
         required: true
+      lab:
+        description: Run the separate approval-required lab after its infrastructure is deployed
+        type: boolean
+        default: false
   # Pull requests from branches in this repository, after a maintainer adds the integ label
   pull_request:
     types: [labeled, synchronize]
@@ -102,8 +106,8 @@ jobs:
     concurrency:
       group: integ-aws
       cancel-in-progress: false
-    # P1 failed updates and nested rollback add up to 20 minutes.
-    timeout-minutes: 75
+    # Fresh one-hour credentials per job. Reserve time for cleanup.
+    timeout-minutes: 55
     steps:
       - name: Check the commit SHA
         run: '[[ "$TEST_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "not a full commit SHA: $TEST_SHA"; exit 1; }'
@@ -142,15 +146,16 @@ jobs:
           role-to-assume: ${{ vars.AWS_INTEG_ROLE_ARN }}
           aws-region: ${{ vars.AWS_INTEG_REGION }}
           role-session-name: cfnrain-integ-${{ github.run_id }}
-          role-duration-seconds: 5400
+          role-duration-seconds: 3600
 
       - name: Run the AWS tests
         id: aws-tests
+        timeout-minutes: 45
         env:
           INTEG_BUCKET_NAME: ${{ vars.INTEG_BUCKET_NAME }}
           INTEG_OUT: integ-out
           INTEG_RUN_TOKEN: ${{ github.run_id }}-${{ github.run_attempt }}
-          INTEG_SLOW: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || startsWith(github.event.pull_request.head.ref, 'release-please--') }}
+          INTEG_SLOW: false
         run: ./scripts/integ-aws.sh
 
       # The script also traps EXIT and TERM. This step covers a cancelled or
@@ -169,23 +174,98 @@ jobs:
           path: integ-out/
           retention-days: 7
 
+  # A queued main push can run between these jobs. Both use the same lock,
+  # fresh credentials, run-specific names, and their own cleanup.
+  aws-slow:
+    name: Slow AWS tests
+    needs: aws
+    if: >-
+      github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' ||
+      startsWith(github.event.pull_request.head.ref, 'release-please--')
+    runs-on: ubuntu-latest
+    # Code on main uses the trusted environment, which only main can enter.
+    # Everything else waits for a maintainer to approve the run.
+    environment: ${{ (github.event_name == 'push' || github.event_name == 'schedule') && 'aws-integration' || 'aws-integration-review' }}
+    permissions:
+      contents: read
+      id-token: write
+    # The test bucket has one fixed name, so only one AWS run at a time.
+    concurrency:
+      group: integ-aws
+      cancel-in-progress: false
+    # Fresh one-hour credentials per job. Reserve time for cleanup.
+    timeout-minutes: 50
+    steps:
+      - name: Check the commit SHA
+        run: '[[ "$TEST_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "not a full commit SHA: $TEST_SHA"; exit 1; }'
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.TEST_SHA }}
+          persist-credentials: false
+
+      # No cache: a cache can come from a run that had no review
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: false
+
+      - name: Install yq
+        env:
+          YQ_VERSION: v4.54.1
+        run: go install "github.com/mikefarah/yq/v4@${YQ_VERSION}"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_INTEG_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_INTEG_REGION }}
+          role-session-name: cfnrain-slow-${{ github.run_id }}
+          role-duration-seconds: 3600
+
+      - name: Run the slow AWS tests
+        id: aws-tests
+        timeout-minutes: 35
+        env:
+          INTEG_BUCKET_NAME: ${{ vars.INTEG_BUCKET_NAME }}
+          INTEG_OUT: integ-out
+          INTEG_RUN_TOKEN: ${{ github.run_id }}-${{ github.run_attempt }}
+          INTEG_SLOW: true
+        run: ./scripts/integ-aws.sh --slow
+
+      # The script also traps EXIT and TERM. This step covers a cancelled or
+      # timed-out test step if the runner still has time to run another step.
+      - name: Clean up integration stacks
+        if: always() && steps.aws-tests.outcome != 'skipped'
+        env:
+          INTEG_BUCKET_NAME: ${{ vars.INTEG_BUCKET_NAME }}
+          INTEG_RUN_TOKEN: ${{ github.run_id }}-${{ github.run_attempt }}
+        run: ./scripts/integ-aws.sh --cleanup
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: slow-p1-evidence
+          path: integ-out/p1/
+          retention-days: 7
+
   # B1/B4 require a separate account. Never attach service roles in the main account.
   p1-isolated:
     name: Optional isolated P1 cases
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+    if: github.event_name == 'workflow_dispatch' && inputs.lab
     runs-on: ubuntu-latest
-    environment: ${{ github.event_name == 'schedule' && 'aws-integration' || 'aws-integration-review' }}
+    environment: aws-integration-lab-review
     permissions:
       contents: read
       id-token: write
     concurrency:
       group: integ-p1-isolated
       cancel-in-progress: false
-    timeout-minutes: 25
+    timeout-minutes: 35
     env:
-      PRIMARY_ROLE_ARN: ${{ vars.AWS_INTEG_ROLE_ARN }}
-      INTEG_P1_ROLE_ARN: ${{ vars.INTEG_P1_ROLE_ARN }}
-      AWS_REGION: ${{ vars.INTEG_P1_REGION }}
+      AWS_INTEG_ROLE_ARN: ${{ vars.AWS_INTEG_ROLE_ARN }}
+      INTEG_BUCKET_NAME: ${{ vars.INTEG_BUCKET_NAME }}
+      AWS_REGION: ${{ vars.AWS_INTEG_REGION }}
       INTEG_SERVICE_ROLE_ARN: ${{ vars.INTEG_SERVICE_ROLE_ARN }}
       INTEG_BOOTSTRAP_REGION: ${{ vars.INTEG_BOOTSTRAP_REGION }}
       INTEG_RUN_TOKEN: ${{ github.run_id }}-${{ github.run_attempt }}
@@ -193,14 +273,10 @@ jobs:
       - name: Check isolated prerequisites
         id: prerequisites
         run: |
-          if [[ -z "$INTEG_P1_ROLE_ARN" || -z "$AWS_REGION" ]]; then
-            echo 'SKIPPED: B1 service role and B4 first-use bootstrap need INTEG_P1_ROLE_ARN and INTEG_P1_REGION'
+          if [[ -z "$AWS_INTEG_ROLE_ARN" || -z "$AWS_REGION" || -z "$INTEG_BUCKET_NAME" ]]; then
+            echo 'SKIPPED: B1 service role and B4 first-use bootstrap need AWS_INTEG_ROLE_ARN and AWS_INTEG_REGION and INTEG_BUCKET_NAME'
             echo 'ready=false' >> "$GITHUB_OUTPUT"
           else
-            if [[ "$(cut -d: -f5 <<< "$INTEG_P1_ROLE_ARN")" == "$(cut -d: -f5 <<< "$PRIMARY_ROLE_ARN")" ]]; then
-              echo 'Isolated P1 credentials must use a different account'
-              exit 1
-            fi
             echo 'ready=true' >> "$GITHUB_OUTPUT"
           fi
       - name: Check the commit SHA
@@ -220,17 +296,18 @@ jobs:
         if: steps.prerequisites.outputs.ready == 'true'
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
-          role-to-assume: ${{ env.INTEG_P1_ROLE_ARN }}
+          role-to-assume: ${{ env.AWS_INTEG_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
           role-session-name: cfnrain-p1-${{ github.run_id }}
           role-duration-seconds: 3600
       - name: Run isolated P1 cases
         id: isolated-tests
+        timeout-minutes: 20
         if: steps.prerequisites.outputs.ready == 'true'
         run: ./scripts/integ-aws.sh --p1-isolated
       - name: Clean up isolated P1 cases
         if: always() && steps.isolated-tests.outcome != 'skipped' && steps.isolated-tests.outcome != ''
-        run: ./scripts/integ-aws.sh --cleanup
+        run: ./scripts/integ-aws.sh --cleanup-lab
 
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && steps.prerequisites.outputs.ready == 'true'
