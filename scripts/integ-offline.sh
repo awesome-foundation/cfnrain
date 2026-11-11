@@ -50,6 +50,16 @@ done
 ./cfnrain fmt - < test/templates/integ-p0/original.yaml > "$warning_dir/original.yaml"
 ./cfnrain pkg --experimental test/templates/integ-p0/modules.yaml > "$warning_dir/modules.yaml"
 ./cfnrain fmt test/templates/integ-p0/original.yaml --node-style original > "$warning_dir/original-style.yaml"
+grep -q 'explicit key comment' "$warning_dir/original-style.yaml"
+./cfnrain fmt "$warning_dir/original-style.yaml" --json > "$warning_dir/original.json"
+python3 scripts/integ-original-check.py "$warning_dir/original.json"
+# #315: JSON conversion reads the packaged map, as deploy parameter handling does.
+./cfnrain pkg test/templates/integ-p0/original.yaml --node-style original > "$warning_dir/original-pkg.yaml"
+result=0
+./cfnrain fmt "$warning_dir/original-pkg.yaml" --json > "$warning_dir/original-pkg.out" 2> "$warning_dir/original-pkg.err" || result=$?
+[[ "$result" == 1 ]]
+grep -Fq 'error converting template to map: yaml: invalid map key:' "$warning_dir/original-pkg.err"
+
 for command in 'fmt --write -' 'merge - -' 'diff - -'; do
   result=0
   # Intentional splitting exercises these fixed CLI argument lists.

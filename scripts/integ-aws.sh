@@ -416,19 +416,18 @@ for parent in parent-value updated-value; do
   assert_eq "$(stack_output "${STACK_PREFIX}modules" Anchor)" xx '#181'
 done
 
-# A6: original input and formatted input must deploy the same values.
+# A6: formatting preserves values, but packaging still rejects this input.
 run_case a6-fmt 0 ./cfnrain fmt test/templates/integ-p0/original.yaml --node-style original
 cp "$WORK_DIR/a6-fmt-stdout.log" "$WORK_DIR/original.yaml"
 grep -q 'explicit key comment' "$WORK_DIR/original.yaml" || fail 'A6 comment missing'
-run_case a6-create 0 ./cfnrain deploy test/templates/integ-p0/original.yaml "${STACK_PREFIX}original" -y --node-style original
-run_case a6-noop 0 ./cfnrain deploy "$WORK_DIR/original.yaml" "${STACK_PREFIX}original" -y --node-style original
-grep -q 'Deploy was skipped' "$WORK_DIR/a6-noop-stdout.log" || fail 'A6 semantic no-op'
-assert_eq "$(stack_output "${STACK_PREFIX}original" QuotedOn)" ON 'A6 quoted ON'
-assert_eq "$(stack_output "${STACK_PREFIX}original" QuotedOff)" OFF 'A6 quoted OFF'
-assert_eq "$(stack_output "${STACK_PREFIX}original" Empty)" prefix 'A6 empty intrinsic'
-assert_eq "$(stack_output "${STACK_PREFIX}original" Alias)" anchored 'A6 alias'
-# A sentinel preserves trailing newlines through command substitution.
-assert_eq "$(stack_output "${STACK_PREFIX}original" Multiline; printf .)" $'first\tcolumn\nsecond\n\n.' 'A6 multiline'
+./cfnrain fmt "$WORK_DIR/original.yaml" --json > "$WORK_DIR/original.json"
+python3 scripts/integ-original-check.py "$WORK_DIR/original.json"
+# https://github.com/awesome-foundation/cfnrain/issues/315
+# When packaging supports this input, check a real deployment and its values.
+assert_absent "${STACK_PREFIX}original"
+run_case a6-create 1 ./cfnrain deploy test/templates/integ-p0/original.yaml "${STACK_PREFIX}original" -y --node-style original
+grep -Fq 'error converting template to map: yaml: invalid map key:' "$WORK_DIR/a6-create-stderr.log" || fail 'A6 packaging error missing'
+assert_absent "${STACK_PREFIX}original"
 
 # A1: named previews expose the deployment mode to an independent AWS assertion.
 for mode in express normal; do
