@@ -66,13 +66,15 @@ func TestSortedFlowEmptyValues(t *testing.T) {
 	}
 }
 
-func TestSortedQuotedFlowKeyComments(t *testing.T) {
+func TestSortedExplicitFlowKeyComments(t *testing.T) {
 	oldStyle := format.NodeStyle
 	t.Cleanup(func() { format.NodeStyle = oldStyle })
 	for _, input := range []string{
 		"{\n? Metadata # c\n: {x: y}\n}\n",
 		"Metadata: {\n? M # c\n: {x: y}\n}\n",
 	} {
-		t.Run(input, func(t *testing.T) { checkSortedMappingFormat(t, input, "quotescalars") })
+		for _, style := range []string{"quotescalars", "original"} {
+			t.Run(style+"/"+input, func(t *testing.T) { checkSortedMappingFormat(t, input, style) })
+		}
 	}
 }
