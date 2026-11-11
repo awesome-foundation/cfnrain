@@ -11,7 +11,7 @@ func TestStylesPreserveMultilineStrings(t *testing.T) {
 	oldStyle := format.NodeStyle
 	t.Cleanup(func() { format.NodeStyle = oldStyle })
 	for _, style := range []string{"", "tagged", "flow", "strict-booleans", "original", "singlequoted", "doublequoted", "quotescalars"} {
-		values := []string{"first\nsecond", "first\nsecond\n", "first\n  indented\nlast", "it's here\n# text\nend", "first\r\nsecond", "first\u0085second", "first second", "first second", "\tfirst\nsecond\n", "\tsingle"}
+		values := []string{"first\nsecond", "first\nsecond\n", "first\n  indented\nlast", "it's here\n# text\nend", "first\r\nsecond", "first\u0085second", "first\u2028second", "first\u2029second", "\tfirst\nsecond\n", "\tsingle"}
 		if style == "singlequoted" || style == "doublequoted" || style == "quotescalars" {
 			values = append(values, "\nfirst\n\nsecond\n\n")
 		}
