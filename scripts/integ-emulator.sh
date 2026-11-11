@@ -8,6 +8,10 @@ cd "$(dirname "$0")/.."
 logs=$(realpath -m "${EMULATOR_LOG_DIR:-emulator-logs}")
 mkdir -p "$logs"
 exec > >(tee "$logs/commands.log") 2>&1
+fail() {
+    echo "FAIL: $*" >&2
+    exit 1
+}
 scratch=$(mktemp -d)
 pid=
 cleanup() {
@@ -32,18 +36,19 @@ package=aws-emulator_${version}-1_amd64.deb
 base=https://downloads.aws.com/aws-emulator/packages/aws-emulator/LTS
 # Deliberately do not cache executable packages across CI jobs.
 for suffix in '' .sig; do
-    curl --fail --silent --show-error --location --max-time 180 "$base/$package$suffix" -o "$scratch/$package$suffix"
+    curl --fail --silent --show-error --location --connect-timeout 15 \
+        --retry 3 --retry-all-errors --retry-delay 5 --retry-max-time 240 --max-time 180 "$base/$package$suffix" -o "$scratch/$package$suffix"
 done
-curl --fail --silent --show-error --location --max-time 30 https://downloads.aws.com/keys/gpg/current.asc -o "$scratch/key.asc"
+printf '%s  %s\n' "$sha" "$scratch/$package" | sha256sum --check || fail 'Package SHA-256 mismatch.'
+# Source: https://downloads.aws.com/keys/gpg/current.asc (pinned for 1.0.322).
 mkdir -m 700 "$scratch/gnupg"
-gpg --homedir "$scratch/gnupg" --batch --import "$scratch/key.asc"
+gpg --homedir "$scratch/gnupg" --batch --import scripts/aws-emulator-key.asc
 actual=$(gpg --homedir "$scratch/gnupg" --with-colons --fingerprint | awk -F: '$1 == "fpr" {print $10; exit}')
-[[ "$actual" == "$fingerprint" ]]
-gpg --homedir "$scratch/gnupg" --batch --status-fd 1 --verify "$scratch/$package.sig" "$scratch/$package" > "$scratch/signature"
+[[ "$actual" == "$fingerprint" ]] || fail "Signing key fingerprint is $actual, expected $fingerprint."
+gpg --homedir "$scratch/gnupg" --batch --status-fd 1 --verify "$scratch/$package.sig" "$scratch/$package" > "$scratch/signature" || fail 'Package signature verification failed.'
 # Require the pinned primary key (or its signing subkey).
-grep -E "^\[GNUPG:\] VALIDSIG $fingerprint |^\[GNUPG:\] VALIDSIG .* $fingerprint$" "$scratch/signature"
-printf '%s  %s\n' "$sha" "$scratch/$package" | sha256sum --check
-[[ $(dpkg-deb -f "$scratch/$package" Version) == "$version-1" ]]
+grep -E "^\[GNUPG:\] VALIDSIG $fingerprint |^\[GNUPG:\] VALIDSIG .* $fingerprint$" "$scratch/signature" || fail 'Signature is not from the pinned signing key.'
+[[ $(dpkg-deb -f "$scratch/$package" Version) == "$version-1" ]] || fail "Expected package version $version-1."
 dpkg-deb -x "$scratch/$package" "$scratch/root"
 emulator="$scratch/root/opt/aws-emulator/bin/aws-emulator"
 "$emulator" --version
@@ -64,14 +69,17 @@ export AWS_REGION=us-east-1 AWS_DEFAULT_REGION=us-east-1
 export AWS_EC2_METADATA_DISABLED=true AWS_MAX_ATTEMPTS=1 AWS_PAGER=
 ready=false
 for ((i=0; i<100; i++)); do
-    kill -0 "$pid"
+    if ! kill -0 "$pid" 2>/dev/null; then
+        cat "$logs/server.log"
+        fail 'Emulator exited before readiness. Check server.log; port 9297 may already be in use.'
+    fi
     if [[ -f "$AWS_CA_BUNDLE" ]] && curl -fsS --max-time 1 --cacert "$AWS_CA_BUNDLE" "$AWS_ENDPOINT_URL/__admin/health" > /dev/null 2>&1; then
         ready=true
         break
     fi
     sleep 0.1
 done
-[[ "$ready" == true ]]
+[[ "$ready" == true ]] || fail 'Emulator did not become ready on port 9297. See server.log.'
 
 # Each command records its exit code and output, including expected failures.
 check() {
@@ -83,12 +91,16 @@ check() {
     timeout --kill-after=5 45 "$@" > "$logs/$name.log" 2>&1 || code=$?
     cat "$logs/$name.log"
     printf 'exit=%s\n' "$code"
-    [[ "$code" == "$expected" ]] || return 1
-    grep -F -- "$pattern" "$logs/$name.log"
+    [[ "$code" == "$expected" ]] || fail "$name: exit $code, expected $expected."
+    grep -F -- "$pattern" "$logs/$name.log" || fail "$name: expected output not found: $pattern"
+}
+# Read back deletion through the service, independently of cfnrain's message.
+absent() {
+    check "absent-$1" 254 "Stack with id $1 does not exist" aws cloudformation describe-stacks --stack-name "$1"
 }
 # The first AWS API call must identify the emulator account exactly.
 check identity 0 000000000000 aws sts get-caller-identity --query Account --output text
-[[ $(cat "$logs/identity.log") == 000000000000 ]]
+[[ $(cat "$logs/identity.log") == 000000000000 ]] || fail 'STS did not return the emulator account.'
 check version 0 cfnrain "$rain" --version
 check create 0 CREATE_COMPLETE "$rain" deploy test/templates/integ-handle.yaml emulator-handle -y
 check update 0 UPDATE_COMPLETE "$rain" deploy test/templates/integ-handle-two.yaml emulator-handle -y
@@ -97,14 +109,20 @@ check preview 0 'changeset created but not executed: preview' "$rain" deploy tes
 check execute 0 UPDATE_COMPLETE "$rain" deploy --changeset emulator-handle preview -y
 check failure 1 UPDATE_ROLLBACK_COMPLETE "$rain" deploy test/templates/integ-failure.yaml emulator-handle -y
 check rollback 0 UPDATE_ROLLBACK_COMPLETE aws cloudformation describe-stacks --stack-name emulator-handle --query 'Stacks[0].StackStatus' --output text
-check cat 0 'AWS::CloudFormation::WaitConditionHandle' "$rain" cat emulator-handle
+check cat 0 'Integration test stack with no service resources' "$rain" cat emulator-handle
+if grep -E 'SecondHandle|NeverSignalled' "$logs/cat.log"; then
+    fail 'cat returned resources from the wrong template version.'
+fi
 check logs 0 UPDATE_ROLLBACK_COMPLETE "$rain" logs emulator-handle
 check protected 0 CREATE_COMPLETE "$rain" deploy test/templates/integ-handle.yaml emulator-protected -y -t
 check protection 0 True aws cloudformation describe-stacks --stack-name emulator-protected --query 'Stacks[0].EnableTerminationProtection' --output text
 check protected-rm 0 'Successfully deleted' "$rain" rm emulator-protected -y
+absent emulator-protected
 check rm 0 'Successfully deleted' "$rain" rm emulator-handle -y
+absent emulator-handle
 check bucket 0 CREATE_COMPLETE "$rain" deploy test/templates/integ-p0/bucket.yaml emulator-bucket -y --params BucketName=emulator-test-bucket,Revision=first
-check bucket-read 0 first aws s3api get-bucket-tagging --bucket emulator-test-bucket
+check bucket-read 0 first aws s3api get-bucket-tagging --bucket emulator-test-bucket --query "TagSet[?Key=='Revision'].Value" --output text
+[[ $(cat "$logs/bucket-read.log") == first ]] || fail 'Bucket Revision tag is not exactly first.'
 cat > "$scratch/ssm.yaml" <<'YAML'
 Resources:
   Parameter:
@@ -128,14 +146,17 @@ YAML
 key=$(sha256sum "$scratch/payload.txt" | cut -d ' ' -f 1)
 check pkg 0 "s3://rain-artifacts-000000000000-us-east-1/$key" "$rain" pkg "$scratch/upload.yaml"
 check download 0 ContentLength aws s3api get-object --bucket rain-artifacts-000000000000-us-east-1 --key "$key" "$scratch/download.txt"
-cmp "$scratch/payload.txt" "$scratch/download.txt"
+cmp "$scratch/payload.txt" "$scratch/download.txt" || fail 'Downloaded artifact bytes differ.'
 check express-create 0 CREATE_COMPLETE "$rain" deploy test/templates/integ-handle.yaml emulator-express -y --express
 check express-preview 0 'changeset created but not executed' "$rain" deploy test/templates/integ-handle-two.yaml emulator-express express-preview -y --express --no-exec
 check express-mode 0 EXPRESS aws cloudformation describe-change-set --stack-name emulator-express --change-set-name express-preview --query DeploymentConfig.Mode --output text
 check express-update 0 UPDATE_COMPLETE "$rain" deploy --changeset emulator-express express-preview -y
 check conflict 1 NAME_CONFLICT_VALIDATION "$rain" deploy test/templates/integ-p0/bucket.yaml emulator-conflict conflict -y --params BucketName=emulator-test-bucket,Revision=first
-for detail in Bucket 'AWS::S3::Bucket' 'already exists'; do grep -F "$detail" "$logs/conflict.log"; done
+for detail in Bucket 'AWS::S3::Bucket' 'already exists'; do
+    grep -F "$detail" "$logs/conflict.log" || fail "Conflict detail missing: $detail"
+done
 for stack in emulator-express emulator-bucket emulator-ssm emulator-conflict; do
     check "rm-$stack" 0 'Successfully deleted' "$rain" rm "$stack" -y
+    absent "$stack"
 done
 echo 'All emulator checks passed.'
