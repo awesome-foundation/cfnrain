@@ -148,9 +148,9 @@ check pkg 0 "s3://rain-artifacts-000000000000-us-east-1/$key" "$rain" pkg "$scra
 check download 0 ContentLength aws s3api get-object --bucket rain-artifacts-000000000000-us-east-1 --key "$key" "$scratch/download.txt"
 cmp "$scratch/payload.txt" "$scratch/download.txt" || fail 'Downloaded artifact bytes differ.'
 check express-create 0 CREATE_COMPLETE "$rain" deploy test/templates/integ-handle.yaml emulator-express -y --express
-check express-preview 0 'changeset created but not executed' "$rain" deploy test/templates/integ-handle-two.yaml emulator-express express-preview -y --express --no-exec
-check express-mode 0 EXPRESS aws cloudformation describe-change-set --stack-name emulator-express --change-set-name express-preview --query DeploymentConfig.Mode --output text
-check express-update 0 UPDATE_COMPLETE "$rain" deploy --changeset emulator-express express-preview -y
+check express-preview 0 'changeset created but not executed' "$rain" deploy test/templates/integ-handle-two.yaml emulator-express success-express-preview -y --express --no-exec
+check express-mode 0 EXPRESS aws cloudformation describe-change-set --stack-name emulator-express --change-set-name success-express-preview --query DeploymentConfig.Mode --output text
+check express-update 0 UPDATE_COMPLETE "$rain" deploy --changeset emulator-express success-express-preview -y
 check conflict 1 NAME_CONFLICT_VALIDATION "$rain" deploy test/templates/integ-p0/bucket.yaml emulator-conflict conflict -y --params BucketName=emulator-test-bucket,Revision=first
 for detail in Bucket 'AWS::S3::Bucket' 'already exists'; do
     grep -F "$detail" "$logs/conflict.log" || fail "Conflict detail missing: $detail"
