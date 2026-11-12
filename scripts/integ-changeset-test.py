@@ -266,9 +266,9 @@ def self_test():
                                     capture_output=True, text=True)
             assert result.returncode != 0 and f'{path}:' in result.stderr, (source, result)
         valid_sources = [
-            "STACK_PREFIX=success-ok\nprintf '%s\\n' STACK_PREFIX=debug\n"
+            "STACK_PREFIX=success-ok\nprintf '%s\\n' STACK_PREFIX=debug\n" +
             './cfnrain deploy t s "$STACK_PREFIX"',
-            "STACK_PREFIX=success-ok\nprintf ';' STACK_PREFIX=debug\n"
+            "STACK_PREFIX=success-ok\nprintf ';' STACK_PREFIX=debug\n" +
             './cfnrain deploy t s "$STACK_PREFIX"',
         ]
         for source in valid_sources:
