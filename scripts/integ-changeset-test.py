@@ -115,6 +115,10 @@ def names(line):
         if i and words[i - 1] in ("build", "-o"):
             continue
         args = words[i + 1:]
+        for j, arg in enumerate(args):
+            if arg in (";", "&&", "||", "|"):
+                args = args[:j]
+                break
         if not args:
             continue
         command = args.pop(0)
@@ -177,6 +181,9 @@ def unknown_assignments(line):
             if match and (leading or declaration):
                 yield match[1]
             elif leading:
+                if word in ('if', 'then', 'else', 'elif', 'do', 'while', 'until',
+                            '!', '{', '}', 'fi', 'done', 'time'):
+                    continue
                 declaration = word in ('export', 'declare', 'readonly', 'local', 'typeset')
                 leading = False
     except ValueError:
@@ -205,6 +212,9 @@ def self_test():
         ('./cfnrain deploy t s success-ok --params "A=<(literal)"', ['success-ok']),
         ("./cfnrain deploy t s success-ok --params 'A=>(literal)'", ['success-ok']),
     ]
+    for separator in ('&&', '||', ';', '|'):
+        for flag in ('--version', '--help', '-h'):
+            cases.append((f'./cfnrain {flag} {separator} ./cfnrain deploy t s success-ok', ['success-ok']))
     for name in ('invalid-name', 'success-ok'):
         for redirect in ('> "$log"', '>>"$log"', '2> "$log"', '2>&1',
                          '&> "$log"', '&>>"$log"', '< "$input"',
@@ -250,6 +260,7 @@ def self_test():
         '"${rain}" deploy t s invalid-name',
         'out=`./cfnrain ls -c s invalid-name`',
         './cfnrain --debug deploy t s bad',
+        './cfnrain --version && ./cfnrain deploy t s bad',
     ]
     for declaration in ('export', 'declare', 'readonly', 'local', 'typeset', 'declare -x'):
         invalid_sources.append(
@@ -258,6 +269,14 @@ def self_test():
     invalid_sources.append(
         'STACK_PREFIX=success-ok\nSTACK_PREFIX=bad extra\n'
         './cfnrain deploy t s "$STACK_PREFIX"')
+    for command in ('if true; then STACK_PREFIX=bad; fi',
+                    'if false; then :; else STACK_PREFIX=bad; fi',
+                    'if false; then :; elif STACK_PREFIX=bad; then :; fi',
+                    'while false; do STACK_PREFIX=bad; done',
+                    'until STACK_PREFIX=bad; do :; done',
+                    '! STACK_PREFIX=bad', '{ STACK_PREFIX=bad; }'):
+        invalid_sources.append('STACK_PREFIX=success-ok\n' + command + '\n' +
+                               './cfnrain deploy t s "$STACK_PREFIX"')
     with tempfile.TemporaryDirectory() as directory:
         path = Path(directory) / 'integ-regression.sh'
         for source in invalid_sources:
@@ -266,6 +285,7 @@ def self_test():
                                     capture_output=True, text=True)
             assert result.returncode != 0 and f'{path}:' in result.stderr, (source, result)
         valid_sources = [
+            './cfnrain --version && ./cfnrain deploy t s success-ok',
             "STACK_PREFIX=success-ok\nprintf '%s\\n' STACK_PREFIX=debug\n" +
             './cfnrain deploy t s "$STACK_PREFIX"',
             "STACK_PREFIX=success-ok\nprintf ';' STACK_PREFIX=debug\n" +
