@@ -118,6 +118,10 @@ def names(line):
         if not args:
             continue
         command = args.pop(0)
+        if command.startswith("-"):
+            if not args and command in ("--version", "--help", "-h"):
+                continue
+            raise ValueError("unsupported flag before subcommand")
         markers = ("--changeset",) if command == "deploy" else ("-c", "--changeset")
         marked = any(a.split("=")[0] in markers for a in args)
         if command not in ("deploy", "rm", "ls"):
@@ -155,6 +159,31 @@ def names(line):
             yield positional[-1]
 
 
+def unknown_assignments(line):
+    # Keep quotes so a quoted separator cannot start a new command.
+    lexer = shlex.shlex(line, posix=False, punctuation_chars=';&|()')
+    lexer.whitespace_split = True
+    leading = True
+    declaration = False
+    try:
+        for word in lexer:
+            if all(char in ';&|()' for char in word):
+                leading = True
+                declaration = False
+                continue
+            if declaration and word[:1] in ("'", '"') and word[-1:] == word[:1]:
+                word = word[1:-1]
+            match = re.match(r'(\w+)\+?=', word)
+            if match and (leading or declaration):
+                yield match[1]
+            elif leading:
+                declaration = word in ('export', 'declare', 'readonly', 'local', 'typeset')
+                leading = False
+    except ValueError:
+        # Any assignment keys read before malformed quoting remain unknown.
+        return
+
+
 def self_test():
     cases = [
         ('./cfnrain deploy t s bad --no-exec -y', ['bad']),
@@ -164,6 +193,7 @@ def self_test():
         ('"$CFNRAIN" deploy t s bad', ['bad']),
         ('timeout 5 ./cfnrain deploy t s bad', ['bad']),
         ('./cfnrain deploy t s -y', []),
+        ('./cfnrain --version', []),
         ('aws cloudformation describe-change-set --change-set-name=bad', ['bad']),
         ('aws cloudformation describe-change-set --change-set-name "bad"', ['bad']),
         ('./cfnrain deploy t s "${STACK_PREFIX}cs"', ['${STACK_PREFIX}cs']),
@@ -219,8 +249,9 @@ def self_test():
         '"$rain" deploy t s invalid-name',
         '"${rain}" deploy t s invalid-name',
         'out=`./cfnrain ls -c s invalid-name`',
+        './cfnrain --debug deploy t s bad',
     ]
-    for declaration in ('export', 'declare', 'readonly', 'local', 'declare -x'):
+    for declaration in ('export', 'declare', 'readonly', 'local', 'typeset', 'declare -x'):
         invalid_sources.append(
             f'STACK_PREFIX=success-ok\n{declaration} STACK_PREFIX=bad\n'
             './cfnrain deploy t s "$STACK_PREFIX"')
@@ -234,7 +265,18 @@ def self_test():
             result = subprocess.run([sys.executable, __file__, str(path)],
                                     capture_output=True, text=True)
             assert result.returncode != 0 and f'{path}:' in result.stderr, (source, result)
-    print(f"Passed {len(cases)} command cases, 9 parse error cases, and {len(invalid_sources)} CLI cases")
+        valid_sources = [
+            "STACK_PREFIX=success-ok\nprintf '%s\\n' STACK_PREFIX=debug\n"
+            './cfnrain deploy t s "$STACK_PREFIX"',
+            "STACK_PREFIX=success-ok\nprintf ';' STACK_PREFIX=debug\n"
+            './cfnrain deploy t s "$STACK_PREFIX"',
+        ]
+        for source in valid_sources:
+            path.write_text(source + '\n')
+            result = subprocess.run([sys.executable, __file__, str(path)],
+                                    capture_output=True, text=True)
+            assert result.returncode == 0, (source, result)
+    print(f"Passed {len(cases)} command cases, 9 parse error cases, and {len(invalid_sources) + len(valid_sources)} CLI cases")
 
 
 if sys.argv[1:] == ["--self-test"]:
@@ -262,7 +304,7 @@ for source in sources:
                 parsed = True
         if not parsed:
             # Declarations and other assignment forms must not retain earlier trust.
-            for key in re.findall(r'(?:^|[\s;])(\w+)\+?=', line):
+            for key in unknown_assignments(line):
                 assignments.append((key, ''))
 
 
