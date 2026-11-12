@@ -67,7 +67,7 @@ nav = [
       { "watch" = "commands/stack/watch.md" },
       { "rm" = "commands/stack/rm.md" },
       { "stackset" = "commands/stack/stackset.md" },
-      { "cc" = "commands/stack/cc.md" },
+      { "cc (deprecated)" = "commands/stack/cc.md" },
     ] },
     { "Template commands" = [
       "commands/template/index.md",
@@ -76,9 +76,9 @@ nav = [
       { "diff" = "commands/template/diff.md" },
       { "merge" = "commands/template/merge.md" },
       { "tree" = "commands/template/tree.md" },
-      { "build" = "commands/template/build.md" },
+      { "build (deprecated)" = "commands/template/build.md" },
       { "bootstrap" = "commands/template/bootstrap.md" },
-      { "forecast" = "commands/template/forecast.md" },
+      { "forecast (deprecated)" = "commands/template/forecast.md" },
       { "module" = "commands/template/module.md" },
     ] },
     { "Account commands" = [
