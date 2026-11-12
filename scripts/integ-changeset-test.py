@@ -43,6 +43,8 @@ def substitutions(line, start=0, nested=False):
                     raise ValueError("cannot parse comment in command substitution")
                 output.append(line[i:])
                 break
+            if line.startswith(("<(", ">("), i):
+                raise ValueError("unsupported process substitution")
             if char == ")" and nested:
                 return "".join(output), commands, i + 1
             if char == "(" and nested:
@@ -159,6 +161,8 @@ def self_test():
         ('aws cloudformation describe-change-set --change-set-name "bad"', ['bad']),
         ('./cfnrain deploy t s "${STACK_PREFIX}cs"', ['${STACK_PREFIX}cs']),
         ('./cfnrain deploy t s "$cs"', ['$cs']),
+        ('./cfnrain deploy t s success-ok --params "A=<(literal)"', ['success-ok']),
+        ("./cfnrain deploy t s success-ok --params 'A=>(literal)'", ['success-ok']),
     ]
     for name in ('invalid-name', 'success-ok'):
         for redirect in ('> "$log"', '>>"$log"', '2> "$log"', '2>&1',
@@ -186,13 +190,15 @@ def self_test():
         'out="$(./cfnrain deploy t s bad # comment)"',
         './cfnrain deploy t s >',
         './cfnrain deploy t s > # missing target',
+        'diff <(./cfnrain ls -c s invalid-name) expected.txt',
+        'cat input.txt >(./cfnrain ls -c s invalid-name)',
     ):
         try:
             list(names(line))
         except ValueError:
             continue
         raise AssertionError(f"accepted ambiguous command: {line}")
-    print(f"Passed {len(cases)} command cases and 5 parse error cases")
+    print(f"Passed {len(cases)} command cases and 7 parse error cases")
 
 
 if sys.argv[1:] == ["--self-test"]:
