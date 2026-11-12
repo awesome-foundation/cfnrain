@@ -26,6 +26,13 @@ def substitutions(line, start=0, nested=False):
             output.append(line[i:i + 2])
             i += 2
             continue
+        if char == "`" and quote != "'":
+            raise ValueError("unsupported backtick command substitution")
+        if char == "$" and quote == "'":
+            # Preserve literal dollars so shlex cannot turn them into trusted variables.
+            output.append("literal-dollar-")
+            i += 1
+            continue
         if quote != "'" and line.startswith("$(", i):
             command, children, i = substitutions(line, i + 2, True)
             commands.extend(children)
@@ -103,7 +110,7 @@ def names(line):
             yield words[i + 1]
     for i, word in enumerate(words):
         if not (word.rsplit("/", 1)[-1] == "cfnrain" or
-                re.fullmatch(r"\$\{?CFNRAIN\}?", word)):
+                re.fullmatch(r"\$(?:CFNRAIN|rain|\{(?:CFNRAIN|rain)\})", word)):
             continue
         if i and words[i - 1] in ("build", "-o"):
             continue
@@ -161,6 +168,10 @@ def self_test():
         ('aws cloudformation describe-change-set --change-set-name "bad"', ['bad']),
         ('./cfnrain deploy t s "${STACK_PREFIX}cs"', ['${STACK_PREFIX}cs']),
         ('./cfnrain deploy t s "$cs"', ['$cs']),
+        ('"$rain" deploy t s bad', ['bad']),
+        ('"${rain}" deploy --changeset s bad', ['bad']),
+        ("./cfnrain deploy t s '$STACK_PREFIX'", ['literal-dollar-STACK_PREFIX']),
+        ("./cfnrain deploy t s success-ok --params '`literal`'", ['success-ok']),
         ('./cfnrain deploy t s success-ok --params "A=<(literal)"', ['success-ok']),
         ("./cfnrain deploy t s success-ok --params 'A=>(literal)'", ['success-ok']),
     ]
@@ -192,13 +203,38 @@ def self_test():
         './cfnrain deploy t s > # missing target',
         'diff <(./cfnrain ls -c s invalid-name) expected.txt',
         'cat input.txt >(./cfnrain ls -c s invalid-name)',
+        'out=`./cfnrain ls -c s invalid-name`',
+        'out="`./cfnrain ls -c s invalid-name`"',
     ):
         try:
             list(names(line))
         except ValueError:
             continue
         raise AssertionError(f"accepted ambiguous command: {line}")
-    print(f"Passed {len(cases)} command cases and 7 parse error cases")
+    # Exercise prefix inference and the line filter through the CLI as well.
+    import subprocess
+    import tempfile
+    invalid_sources = [
+        "STACK_PREFIX=success-ok\n./cfnrain deploy t s '$STACK_PREFIX'",
+        '"$rain" deploy t s invalid-name',
+        '"${rain}" deploy t s invalid-name',
+        'out=`./cfnrain ls -c s invalid-name`',
+    ]
+    for declaration in ('export', 'declare', 'readonly', 'local', 'declare -x'):
+        invalid_sources.append(
+            f'STACK_PREFIX=success-ok\n{declaration} STACK_PREFIX=bad\n'
+            './cfnrain deploy t s "$STACK_PREFIX"')
+    invalid_sources.append(
+        'STACK_PREFIX=success-ok\nSTACK_PREFIX=bad extra\n'
+        './cfnrain deploy t s "$STACK_PREFIX"')
+    with tempfile.TemporaryDirectory() as directory:
+        path = Path(directory) / 'integ-regression.sh'
+        for source in invalid_sources:
+            path.write_text('./cfnrain deploy t s success-baseline\n' + source + '\n')
+            result = subprocess.run([sys.executable, __file__, str(path)],
+                                    capture_output=True, text=True)
+            assert result.returncode != 0 and f'{path}:' in result.stderr, (source, result)
+    print(f"Passed {len(cases)} command cases, 9 parse error cases, and {len(invalid_sources)} CLI cases")
 
 
 if sys.argv[1:] == ["--self-test"]:
@@ -212,14 +248,22 @@ sources = [p.read_text().replace("\\\n", " ") for p in paths]
 assignments = []
 for source in sources:
     for line in source.splitlines():
+        if line.lstrip().startswith('#'):
+            continue
         match = re.match(r'^\s*(\w+)=(.*)$', line)
+        parsed = False
         if match:
             try:
-                value = shlex.split(match[2], comments=True)
+                value = shlex.split(substitutions(match[2])[0], comments=True)
             except ValueError:
-                continue
+                value = []
             if len(value) == 1:
                 assignments.append((match[1], value[0]))
+                parsed = True
+        if not parsed:
+            # Declarations and other assignment forms must not retain earlier trust.
+            for key in re.findall(r'(?:^|[\s;])(\w+)\+?=', line):
+                assignments.append((key, ''))
 
 
 def safe(name):
@@ -238,7 +282,7 @@ count = 0
 for path, source in zip(paths, sources):
     for number, line in enumerate(source.splitlines(), 1):
         # Embedded Python and heredocs are not shell commands.
-        if not re.search(r'cfnrain|CFNRAIN|--change-set-name', line):
+        if not re.search(r'cfnrain|CFNRAIN|\$(?:rain\b|\{rain\})|--change-set-name', line):
             continue
         try:
             for name in names(line):
