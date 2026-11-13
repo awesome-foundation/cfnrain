@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.26.0-beta.3](https://github.com/awesome-foundation/cfnrain/compare/v1.26.0-beta.2...v1.26.0-beta.3) (2026-11-13)
+
+
+### Bug Fixes
+
+* **pkg:** handle multi-byte characters before ${ in Fn::Sub ([#320](https://github.com/awesome-foundation/cfnrain/issues/320)) ([8664562](https://github.com/awesome-foundation/cfnrain/commit/8664562fb7ef8570ea727d437665b2e1cf4a71df))
+
+
+### Miscellaneous Chores
+
+* release 1.26.0-beta.3 ([#324](https://github.com/awesome-foundation/cfnrain/issues/324)) ([aa0de71](https://github.com/awesome-foundation/cfnrain/commit/aa0de713554c4fd8d4b1bbc679de063819820e90))
+
 ## [1.26.0-beta.2](https://github.com/awesome-foundation/cfnrain/compare/v1.26.0-beta.1...v1.26.0-beta.2) (2026-11-11)
 
 
