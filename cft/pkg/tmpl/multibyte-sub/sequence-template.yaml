@@ -1,0 +1,8 @@
+Resources:
+  Parameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Type: String
+      Value: !Sub
+        - 通知先${Name}
+        - Name: example
