@@ -133,7 +133,7 @@ Notes:
 
 - `cfnrain fmt -v <file>` fails when a template is not formatted.
 - `cfnrain pkg <file> -o packaged.yaml` writes the packaged template, so you can run `cfn-lint` or `cfn-guard` on it.
-- `cfnrain forecast -x <file> <stack>` exits with status 1 when a check fails. It is experimental. This command is deprecated and will be removed in cfnrain 2.0.
+- **Deprecated.** `cfnrain forecast -x <file> <stack>` exits with status 1 when a check fails. It is experimental. This command will be removed in cfnrain 2.0. See [Direction](https://github.com/awesome-foundation/cfnrain/discussions/20).
 
 !!! danger "Do not run info --creds in CI"
     It prints your secret key, and CI logs keep it. See [`info`](commands/account/info.md).

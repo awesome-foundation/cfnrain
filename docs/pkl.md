@@ -54,6 +54,8 @@ cfnrain fmt -p template.yaml > template.pkl
 
 `cfnrain build --pkl-class <type>` writes a Pkl class for a resource type.
 
-[`build`](commands/template/build.md) is deprecated and will be removed in cfnrain 2.0. See [Direction](https://github.com/awesome-foundation/cfnrain/discussions/20).
+!!! warning "Deprecated: removed in cfnrain 2.0"
+
+    [`build`](commands/template/build.md) is deprecated and will be removed in cfnrain 2.0. See [Direction](https://github.com/awesome-foundation/cfnrain/discussions/20).
 
 A full example is in [`test/webapp`](https://github.com/awesome-foundation/cfnrain/tree/main/test/webapp), in `webapp.pkl`.

@@ -13,4 +13,4 @@ The command output on these pages is illustrative. It needs a real AWS account, 
 | [`watch`](watch.md) | Shows the status of a stack while it changes. |
 | [`rm`](rm.md) | Deletes a stack and waits until the delete completes. |
 | [`stackset`](stackset.md) | Works with CloudFormation stack sets. |
-| [`cc`](cc.md) | Deploys templates with the Cloud Control API instead of CloudFormation. Experimental. This command is deprecated and will be removed in cfnrain 2.0. |
+| [`cc`](cc.md) | **Deprecated.** Deploys templates with the Cloud Control API instead of CloudFormation. Experimental. This command will be removed in cfnrain 2.0. See [Direction](https://github.com/awesome-foundation/cfnrain/discussions/20). |

@@ -2,7 +2,9 @@
 
 `cfnrain cc` deploys templates with the Cloud Control API instead of CloudFormation. Every `cc` command needs `-x` (`--experimental`).
 
-This command is deprecated and will be removed in cfnrain 2.0. See [Direction](https://github.com/awesome-foundation/cfnrain/discussions/20).
+!!! warning "Deprecated: removed in cfnrain 2.0"
+
+    This command is deprecated and will be removed in cfnrain 2.0. See [Direction](https://github.com/awesome-foundation/cfnrain/discussions/20).
 
 ```sh
 cfnrain cc deploy -x app.yaml app-dev

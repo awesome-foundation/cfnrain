@@ -2,7 +2,9 @@
 
 `cfnrain build` makes starter templates from the CloudFormation resource schemas. The schemas are in the binary, so most uses need no AWS call.
 
-This command is deprecated and will be removed in cfnrain 2.0. See [Direction](https://github.com/awesome-foundation/cfnrain/discussions/20).
+!!! warning "Deprecated: removed in cfnrain 2.0"
+
+    This command is deprecated and will be removed in cfnrain 2.0. See [Direction](https://github.com/awesome-foundation/cfnrain/discussions/20).
 
 Make a template with only the required properties of a type:
 
