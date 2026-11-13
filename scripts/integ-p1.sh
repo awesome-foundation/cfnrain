@@ -69,11 +69,11 @@ p1_changesets() {
   # Execute a new-stack preview and abandon a separate preview.
   for mode in execute abandon; do
     stack="${STACK_PREFIX}p1-preview-$mode"
-    run_case "p1-preview-create-$mode-command" capture ./cfnrain deploy test/templates/integ-handle.yaml "$stack" initial --no-exec -y > "$WORK_DIR/p1-preview-$mode.log" 2>&1
+    run_case "p1-preview-create-$mode-command" capture ./cfnrain deploy test/templates/integ-handle.yaml "$stack" success-initial --no-exec -y > "$WORK_DIR/p1-preview-$mode.log" 2>&1
     assert_status "$stack" REVIEW_IN_PROGRESS
     assert_eq "$(aws cloudformation list-stack-resources --stack-name "$stack" --query 'length(StackResourceSummaries)' --output text)" 0 'preview created no resources'
     if [[ "$mode" == execute ]]; then
-      run_case "p1-preview-execute-command" capture ./cfnrain deploy --changeset "$stack" initial > "$WORK_DIR/p1-preview-execute.log" 2>&1
+      run_case "p1-preview-execute-command" capture ./cfnrain deploy --changeset "$stack" success-initial > "$WORK_DIR/p1-preview-execute.log" 2>&1
       assert_status "$stack" CREATE_COMPLETE
     fi
     run_case "p1-preview-rm-$mode-command" capture ./cfnrain rm "$stack" -y > "$WORK_DIR/p1-preview-rm.log" 2>&1

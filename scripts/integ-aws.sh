@@ -310,17 +310,17 @@ assert_absent "$keep_stack"
 # 3. Change-set preview and execute on an existing stack.
 change_stack="${STACK_PREFIX}changeset"
 ./cfnrain deploy test/templates/integ-handle.yaml "$change_stack" -y >/dev/null
-./cfnrain deploy test/templates/integ-handle-two.yaml "$change_stack" add-handle --no-exec -y > "$WORK_DIR/preview.log"
-assert_eq "$(aws cloudformation describe-change-set --stack-name "$change_stack" --change-set-name add-handle --query Status --output text)" CREATE_COMPLETE 'change set status'
-./cfnrain ls -c "$change_stack" add-handle > "$WORK_DIR/changeset-ls.log"
+./cfnrain deploy test/templates/integ-handle-two.yaml "$change_stack" success-add-handle --no-exec -y > "$WORK_DIR/preview.log"
+assert_eq "$(aws cloudformation describe-change-set --stack-name "$change_stack" --change-set-name success-add-handle --query Status --output text)" CREATE_COMPLETE 'change set status'
+./cfnrain ls -c "$change_stack" success-add-handle > "$WORK_DIR/changeset-ls.log"
 grep -q 'SecondHandle' "$WORK_DIR/changeset-ls.log" || fail 'change set listing'
 assert_eq "$(aws cloudformation list-stack-resources --stack-name "$change_stack" --query 'length(StackResourceSummaries)' --output text)" 1 'preview changed resources'
-./cfnrain deploy --changeset "$change_stack" add-handle > "$WORK_DIR/changeset-exec.log"
+./cfnrain deploy --changeset "$change_stack" success-add-handle > "$WORK_DIR/changeset-exec.log"
 assert_status "$change_stack" UPDATE_COMPLETE
 assert_eq "$(aws cloudformation describe-stack-resource --stack-name "$change_stack" --logical-resource-id SecondHandle --query 'StackResourceDetail.ResourceStatus' --output text)" CREATE_COMPLETE 'change set resource'
-./cfnrain deploy test/templates/integ-handle-two.yaml "$change_stack" empty-preview --no-exec -y > "$WORK_DIR/empty-preview.log"
+./cfnrain deploy test/templates/integ-handle-two.yaml "$change_stack" success-empty-preview --no-exec -y > "$WORK_DIR/empty-preview.log"
 grep -q 'Deploy was skipped' "$WORK_DIR/empty-preview.log" || fail 'empty change set message'
-./cfnrain rm -c "$change_stack" empty-preview -y >/dev/null
+./cfnrain rm -c "$change_stack" success-empty-preview -y >/dev/null
 ./cfnrain rm "$change_stack" -y >/dev/null
 assert_absent "$change_stack"
 
@@ -463,8 +463,8 @@ for mode in express normal; do
   reuse_deadline=$((SECONDS + 300))
   for attempt in 1 2 3; do
     (( SECONDS < reuse_deadline )) || fail 'A1 bucket reuse deadline exceeded'
-    run_case "a1-$mode-preview" 0 ./cfnrain deploy test/templates/integ-p0/bucket.yaml "$stack" create-preview -y --no-exec "${flags[@]}" --params "BucketName=$name"
-    actual_mode=$(aws cloudformation describe-change-set --stack-name "$stack" --change-set-name create-preview --query DeploymentConfig.Mode --output text)
+    run_case "a1-$mode-preview" 0 ./cfnrain deploy test/templates/integ-p0/bucket.yaml "$stack" success-create-preview -y --no-exec "${flags[@]}" --params "BucketName=$name"
+    actual_mode=$(aws cloudformation describe-change-set --stack-name "$stack" --change-set-name success-create-preview --query DeploymentConfig.Mode --output text)
     printf '%s\n' "$actual_mode" > "$WORK_DIR/a1-$mode-mode.log"
     if [[ "$mode" == express ]]; then
       assert_eq "$actual_mode" EXPRESS 'A1 change set mode'
@@ -478,7 +478,7 @@ for mode in express normal; do
     create_start=$SECONDS
     create_result=0
     create_log="$WORK_DIR/a1-$mode-create-$attempt"
-    timeout "$create_limit" ./cfnrain deploy --changeset "$stack" create-preview -y > "$create_log-stdout.log" 2> "$create_log-stderr.log" || create_result=$?
+    timeout "$create_limit" ./cfnrain deploy --changeset "$stack" success-create-preview -y > "$create_log-stdout.log" 2> "$create_log-stderr.log" || create_result=$?
     printf 'exit=%s duration=%s\n' "$create_result" "$((SECONDS-create_start))" > "$create_log-result.log"
     (( create_result != 0 )) || break
     # shellcheck disable=SC2016
@@ -505,9 +505,9 @@ for mode in express normal; do
     for validation_mode in normal express; do
       validation_flags=()
       [[ "$validation_mode" != express ]] || validation_flags+=(--express)
-      run_case "a2-$validation_mode-conflict" 1 ./cfnrain deploy test/templates/integ-p0/bucket.yaml "${STACK_PREFIX}conflict" conflict -y "${validation_flags[@]}" --params "BucketName=$INTEG_BUCKET_NAME"
-      assert_eq "$(aws cloudformation describe-change-set --stack-name "${STACK_PREFIX}conflict" --change-set-name conflict --query Status --output text)" FAILED 'A2 failed change set'
-      aws cloudformation describe-events --stack-name "${STACK_PREFIX}conflict" --change-set-name conflict > "$WORK_DIR/a2-$validation_mode-events.log"
+      run_case "a2-$validation_mode-conflict" 1 ./cfnrain deploy test/templates/integ-p0/bucket.yaml "${STACK_PREFIX}conflict" success-conflict -y "${validation_flags[@]}" --params "BucketName=$INTEG_BUCKET_NAME"
+      assert_eq "$(aws cloudformation describe-change-set --stack-name "${STACK_PREFIX}conflict" --change-set-name success-conflict --query Status --output text)" FAILED 'A2 failed change set'
+      aws cloudformation describe-events --stack-name "${STACK_PREFIX}conflict" --change-set-name success-conflict > "$WORK_DIR/a2-$validation_mode-events.log"
       python3 - "$WORK_DIR" "$validation_mode" <<'PYTHON'
 import json, pathlib, sys
 p = pathlib.Path(sys.argv[1])

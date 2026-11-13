@@ -105,8 +105,8 @@ check version 0 cfnrain "$rain" --version
 check create 0 CREATE_COMPLETE "$rain" deploy test/templates/integ-handle.yaml emulator-handle -y
 check update 0 UPDATE_COMPLETE "$rain" deploy test/templates/integ-handle-two.yaml emulator-handle -y
 check noop 0 'Deploy was skipped' "$rain" deploy test/templates/integ-handle-two.yaml emulator-handle -y
-check preview 0 'changeset created but not executed: preview' "$rain" deploy test/templates/integ-handle.yaml emulator-handle preview --no-exec -y
-check execute 0 UPDATE_COMPLETE "$rain" deploy --changeset emulator-handle preview -y
+check preview 0 'changeset created but not executed: success-preview' "$rain" deploy test/templates/integ-handle.yaml emulator-handle success-preview --no-exec -y
+check execute 0 UPDATE_COMPLETE "$rain" deploy --changeset emulator-handle success-preview -y
 check failure 1 UPDATE_ROLLBACK_COMPLETE "$rain" deploy test/templates/integ-failure.yaml emulator-handle -y
 check rollback 0 UPDATE_ROLLBACK_COMPLETE aws cloudformation describe-stacks --stack-name emulator-handle --query 'Stacks[0].StackStatus' --output text
 check cat 0 'Integration test stack with no service resources' "$rain" cat emulator-handle
@@ -148,10 +148,10 @@ check pkg 0 "s3://rain-artifacts-000000000000-us-east-1/$key" "$rain" pkg "$scra
 check download 0 ContentLength aws s3api get-object --bucket rain-artifacts-000000000000-us-east-1 --key "$key" "$scratch/download.txt"
 cmp "$scratch/payload.txt" "$scratch/download.txt" || fail 'Downloaded artifact bytes differ.'
 check express-create 0 CREATE_COMPLETE "$rain" deploy test/templates/integ-handle.yaml emulator-express -y --express
-check express-preview 0 'changeset created but not executed' "$rain" deploy test/templates/integ-handle-two.yaml emulator-express express-preview -y --express --no-exec
-check express-mode 0 EXPRESS aws cloudformation describe-change-set --stack-name emulator-express --change-set-name express-preview --query DeploymentConfig.Mode --output text
-check express-update 0 UPDATE_COMPLETE "$rain" deploy --changeset emulator-express express-preview -y
-check conflict 1 NAME_CONFLICT_VALIDATION "$rain" deploy test/templates/integ-p0/bucket.yaml emulator-conflict conflict -y --params BucketName=emulator-test-bucket,Revision=first
+check express-preview 0 'changeset created but not executed' "$rain" deploy test/templates/integ-handle-two.yaml emulator-express success-express-preview -y --express --no-exec
+check express-mode 0 EXPRESS aws cloudformation describe-change-set --stack-name emulator-express --change-set-name success-express-preview --query DeploymentConfig.Mode --output text
+check express-update 0 UPDATE_COMPLETE "$rain" deploy --changeset emulator-express success-express-preview -y
+check conflict 1 NAME_CONFLICT_VALIDATION "$rain" deploy test/templates/integ-p0/bucket.yaml emulator-conflict success-conflict -y --params BucketName=emulator-test-bucket,Revision=first
 for detail in Bucket 'AWS::S3::Bucket' 'already exists'; do
     grep -F "$detail" "$logs/conflict.log" || fail "Conflict detail missing: $detail"
 done

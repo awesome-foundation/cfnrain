@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -eoux pipefail
+python3 scripts/integ-changeset-test.py
 
 # This should be run regularly, but in its own PR
 # go generate ./...
