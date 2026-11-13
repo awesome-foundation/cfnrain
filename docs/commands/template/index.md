@@ -11,7 +11,7 @@ The output on these pages comes from real runs of cfnrain, unless a page says ot
 | [`diff`](diff.md) | Compares two template files. |
 | [`merge`](merge.md) | Merges two or more templates into one. |
 | [`tree`](tree.md) | Shows which parameters, resources and outputs depend on each other. |
-| [`build`](build.md) | **Deprecated.** Makes starter templates from the CloudFormation resource schemas. This command will be removed in cfnrain 2.0. See [Direction](https://github.com/awesome-foundation/cfnrain/discussions/20). |
+| [`build`](build.md) | **Deprecated.** Makes starter templates from the CloudFormation resource schemas. |
 | [`bootstrap`](bootstrap.md) | Creates the artifact bucket. |
-| [`forecast`](forecast.md) | **Deprecated.** Looks for things that can make a deploy fail, such as a bucket name that already exists or an EC2 key pair that does not exist. Experimental. This command will be removed in cfnrain 2.0. See [Direction](https://github.com/awesome-foundation/cfnrain/discussions/20). |
+| [`forecast`](forecast.md) | **Deprecated.** Looks for things that can make a deploy fail, such as a bucket name that already exists or an EC2 key pair that does not exist. Experimental. |
 | [`module`](module.md) | Publishes and installs packages of modules with AWS CodeArtifact. Experimental. |

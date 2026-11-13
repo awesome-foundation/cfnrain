@@ -3,8 +3,7 @@
 `cfnrain forecast` looks for things that can make a deploy fail, such as a bucket name that already exists or an EC2 key pair that does not exist. It is not a linter. Use `cfn-lint` to check the syntax. It needs `-x` (`--experimental`).
 
 !!! warning "Deprecated: removed in cfnrain 2.0"
-
-    This command is deprecated and will be removed in cfnrain 2.0. See [Direction](https://github.com/awesome-foundation/cfnrain/discussions/20).
+    See [Direction](https://github.com/awesome-foundation/cfnrain/discussions/20) for the reasons.
 
 ```sh
 cfnrain forecast -x app.yaml app-prod
