@@ -63,7 +63,8 @@ func ParseSub(sub string, leaveBang bool) ([]SubWord, error) {
 	var last rune
 	var buf string
 	var wt wordtype
-	for i, r := range sub {
+	runes := []rune(sub)
+	for i, r := range runes {
 		//config.Debugf("%#U", r)
 		switch r {
 		case DOLLAR:
@@ -77,7 +78,7 @@ func ParseSub(sub string, leaveBang bool) ([]SubWord, error) {
 		case OPEN:
 			if state == MAYBE {
 				// Peek to see if we're about to start a LITERAL !
-				if len(sub) > i+1 && []rune(sub)[i+1] == BANG {
+				if len(runes) > i+1 && runes[i+1] == BANG {
 					// Treat this as part of the string, not a var
 					buf += "${"
 					state = READLIT

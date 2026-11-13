@@ -47,6 +47,36 @@ func TestParseSub(t *testing.T) {
 		parse.SubWord{T: parse.STR, W: "FOO$BAR"},
 	}
 
+	// Multi-byte text before a variable
+	cases["通知先${Name}"] = []parse.SubWord{
+		parse.SubWord{T: parse.STR, W: "通知先"},
+		parse.SubWord{T: parse.REF, W: "Name"},
+	}
+
+	// Multi-byte text before a variable, followed by !
+	cases["日本語${Name}a!"] = []parse.SubWord{
+		parse.SubWord{T: parse.STR, W: "日本語"},
+		parse.SubWord{T: parse.REF, W: "Name"},
+		parse.SubWord{T: parse.STR, W: "a!"},
+	}
+
+	// Literal after multi-byte text
+	cases["通知先${!Literal}"] = []parse.SubWord{
+		parse.SubWord{T: parse.STR, W: "通知先${Literal}"},
+	}
+
+	// Two-byte characters before a variable
+	cases["crème brûlée ${X}"] = []parse.SubWord{
+		parse.SubWord{T: parse.STR, W: "crème brûlée "},
+		parse.SubWord{T: parse.REF, W: "X"},
+	}
+
+	// A four-byte character before a variable
+	cases["🚀 ${X}"] = []parse.SubWord{
+		parse.SubWord{T: parse.STR, W: "🚀 "},
+		parse.SubWord{T: parse.REF, W: "X"},
+	}
+
 	for sub, expect := range cases {
 		words, err := parse.ParseSub(sub, false)
 		if err != nil {

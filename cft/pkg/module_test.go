@@ -61,6 +61,14 @@ func TestSubEscape(t *testing.T) {
 	}
 }
 
+func TestMultibyteSub(t *testing.T) {
+	for _, name := range []string{"variable", "bang", "sequence"} {
+		t.Run(name, func(t *testing.T) {
+			runTest("multibyte-sub/"+name, t)
+		})
+	}
+}
+
 func TestMany(t *testing.T) {
 	runTest("many", t)
 }
